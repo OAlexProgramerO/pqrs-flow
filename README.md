@@ -1,6 +1,8 @@
 # PQRS Flow
 
-A web system to submit, track and manage **PQRS** — *Peticiones, Quejas, Reclamos y Sugerencias* (Petitions, Complaints, Claims and Suggestions) — built end to end with JavaScript.
+[![CI](https://github.com/OAlexProgramerO/pqrs-flow/actions/workflows/ci.yml/badge.svg)](https://github.com/OAlexProgramerO/pqrs-flow/actions/workflows/ci.yml)
+
+A web system to submit, track and manage **PQRS** — _Peticiones, Quejas, Reclamos y Sugerencias_ (Petitions, Complaints, Claims and Suggestions) — built end to end with JavaScript.
 
 > Status: **v0.0.1** — project foundations. See the [ROADMAP](./ROADMAP.md) for what comes next.
 
@@ -14,12 +16,12 @@ Many organizations receive PQRS by email, paper or social media and lose track o
 
 ## Tech stack
 
-| Layer | Technology |
-| --- | --- |
-| Backend | Node.js 20+, Express |
-| Frontend | HTML + CSS + JavaScript (ES modules) |
+| Layer    | Technology                                       |
+| -------- | ------------------------------------------------ |
+| Backend  | Node.js 20+, Express                             |
+| Frontend | HTML + CSS + JavaScript (ES modules)             |
 | Database | SQLite via `better-sqlite3` (planned for v0.0.3) |
-| Quality | `node:test`, GitHub Actions |
+| Quality  | `node:test`, ESLint, Prettier, GitHub Actions    |
 
 ## Project structure
 
@@ -28,7 +30,7 @@ pqrs-flow/
 ├── backend/     # REST API (Express)
 ├── frontend/    # Static web interface
 ├── docs/        # Requirements and architecture
-└── .github/     # CI workflow
+└── .github/     # CI workflow and templates
 ```
 
 ## Getting started
@@ -45,11 +47,20 @@ npm run dev
 
 Open <http://localhost:3000>. The health endpoint is `GET /api/health`.
 
-## Tests
+## Scripts
 
-```bash
-npm test
-```
+| Command          | What it does                      |
+| ---------------- | --------------------------------- |
+| `npm run dev`    | Start the server with auto-reload |
+| `npm start`      | Start the server                  |
+| `npm test`       | Run the tests                     |
+| `npm run lint`   | Lint with ESLint                  |
+| `npm run format` | Format with Prettier              |
+| `npm run check`  | Lint + format check + tests       |
+
+## Contributing
+
+Branch naming, commit conventions and the release process are described in [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## Versioning
 
