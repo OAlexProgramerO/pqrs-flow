@@ -9,12 +9,12 @@ Navegador ──HTTP──► Express (backend/)
 
 ## Decisiones
 
-| Decisión | Elección | Motivo |
-| --- | --- | --- |
-| Módulos | ES Modules (`"type": "module"`) | Estándar actual de JavaScript |
-| Frontend | Estático servido por Express | Un solo comando para correr todo en las primeras fases |
-| Pruebas | `node:test` nativo | Cero dependencias extra |
-| Config | Variables de entorno (`.env`) | Mismo código en local y producción |
+| Decisión | Elección                        | Motivo                                                 |
+| -------- | ------------------------------- | ------------------------------------------------------ |
+| Módulos  | ES Modules (`"type": "module"`) | Estándar actual de JavaScript                          |
+| Frontend | Estático servido por Express    | Un solo comando para correr todo en las primeras fases |
+| Pruebas  | `node:test` nativo              | Cero dependencias extra                                |
+| Config   | Variables de entorno (`.env`)   | Mismo código en local y producción                     |
 
 ## Capas del backend (a medida que crezca)
 

@@ -4,19 +4,19 @@ Path from **v0.0.1** to **v1.0.0**. Every version must leave the project working
 
 ## Phase 0.0.x — Foundations (small steps)
 
-| Version | Goal | Visible result |
-| --- | --- | --- |
-| **0.0.1** | Repo, structure, Express server, `/api/health`, test, CI | The API responds and the page shows "API connected" |
-| 0.0.2 | Submission form (frontend only) with client-side validation | Usable form, nothing saved yet |
-| 0.0.3 | Database and `pqrs` table | Schema created on startup |
+| Version   | Goal                                                        | Visible result                                      |
+| --------- | ----------------------------------------------------------- | --------------------------------------------------- |
+| **0.0.1** | Repo, structure, Express server, `/api/health`, test, CI    | The API responds and the page shows "API connected" |
+| 0.0.2     | Submission form (frontend only) with client-side validation | Usable form, nothing saved yet                      |
+| 0.0.3     | Database and `pqrs` table                                   | Schema created on startup                           |
 
 ## Phase 0.1 — Citizen MVP
 
-| Version | Goal |
-| --- | --- |
+| Version   | Goal                                                                                                                     |
+| --------- | ------------------------------------------------------------------------------------------------------------------------ |
 | **0.1.0** | `POST /api/pqrs` stores the request and returns a **case number** (e.g. `PQRS-2026-000001`); the form is connected to it |
-| 0.1.1 | `GET /api/pqrs/:caseNumber` + status lookup screen |
-| 0.1.2 | Server-side validation hardening and clear error messages |
+| 0.1.1     | `GET /api/pqrs/:caseNumber` + status lookup screen                                                                       |
+| 0.1.2     | Server-side validation hardening and clear error messages                                                                |
 
 ## Phase 0.2 — Internal panel
 

@@ -2,12 +2,12 @@
 
 ## Request types
 
-| Type | Description |
-| --- | --- |
-| Petition (Petición) | Request for information, a document or an action |
-| Complaint (Queja) | Dissatisfaction with an employee's conduct or with the service |
-| Claim (Reclamo) | Demand for a right or a service not properly delivered |
-| Suggestion (Sugerencia) | Proposal to improve the service |
+| Type                    | Description                                                    |
+| ----------------------- | -------------------------------------------------------------- |
+| Petition (Petición)     | Request for information, a document or an action               |
+| Complaint (Queja)       | Dissatisfaction with an employee's conduct or with the service |
+| Claim (Reclamo)         | Demand for a right or a service not properly delivered         |
+| Suggestion (Sugerencia) | Proposal to improve the service                                |
 
 ## Actors
 

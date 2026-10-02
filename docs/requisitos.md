@@ -2,12 +2,12 @@
 
 ## Tipos de solicitud
 
-| Tipo | Descripción |
-| --- | --- |
-| Petición | Solicitud de información, documento o acción |
-| Queja | Inconformidad con la conducta de un funcionario o el servicio |
-| Reclamo | Exigencia por un derecho o servicio no prestado correctamente |
-| Sugerencia | Propuesta para mejorar el servicio |
+| Tipo       | Descripción                                                   |
+| ---------- | ------------------------------------------------------------- |
+| Petición   | Solicitud de información, documento o acción                  |
+| Queja      | Inconformidad con la conducta de un funcionario o el servicio |
+| Reclamo    | Exigencia por un derecho o servicio no prestado correctamente |
+| Sugerencia | Propuesta para mejorar el servicio                            |
 
 ## Actores
 

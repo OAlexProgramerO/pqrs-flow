@@ -9,12 +9,12 @@ Browser ──HTTP──► Express (backend/)
 
 ## Decisions
 
-| Decision | Choice | Reason |
-| --- | --- | --- |
-| Modules | ES Modules (`"type": "module"`) | Current JavaScript standard |
-| Frontend | Static files served by Express | One command runs everything in early phases |
-| Tests | Native `node:test` | No extra dependencies |
-| Config | Environment variables (`.env`) | Same code locally and in production |
+| Decision | Choice                          | Reason                                      |
+| -------- | ------------------------------- | ------------------------------------------- |
+| Modules  | ES Modules (`"type": "module"`) | Current JavaScript standard                 |
+| Frontend | Static files served by Express  | One command runs everything in early phases |
+| Tests    | Native `node:test`              | No extra dependencies                       |
+| Config   | Environment variables (`.env`)  | Same code locally and in production         |
 
 ## Backend layers (as it grows)
 
