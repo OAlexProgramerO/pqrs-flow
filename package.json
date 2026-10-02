@@ -3,12 +3,41 @@
   "version": "0.0.1",
   "description": "Web system to submit, track and manage PQRS (Petitions, Complaints, Claims and Suggestions) built with JavaScript",
   "private": true,
+  "author": "OAlexProgramerO",
+  "license": "MIT",
+  "keywords": [
+    "pqrs",
+    "nodejs",
+    "express",
+    "javascript",
+    "web"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/OAlexProgramerO/pqrs-flow.git"
+  },
+  "bugs": {
+    "url": "https://github.com/OAlexProgramerO/pqrs-flow/issues"
+  },
+  "homepage": "https://github.com/OAlexProgramerO/pqrs-flow#readme",
   "scripts": {
-    "install:all": "npm --prefix backend install",
+    "install:all": "npm install && npm --prefix backend install",
     "dev": "npm --prefix backend run dev",
     "start": "npm --prefix backend start",
-    "test": "npm --prefix backend test"
+    "test": "npm --prefix backend test",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check": "npm run lint && npm run format:check && npm test"
   },
-  "engines": { "node": ">=20" },
-  "license": "MIT"
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.12.0",
+    "globals": "^17.13.0",
+    "prettier": "^3.9.9"
+  }
 }

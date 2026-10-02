@@ -27,7 +27,6 @@ app.use('/api', (_req, res) => {
 app.use(express.static(frontendDir));
 
 // Error handling
-// eslint-disable-next-line no-unused-vars
 app.use((err, _req, res, _next) => {
   console.error(err);
   res.status(500).json({ error: 'Internal server error' });
