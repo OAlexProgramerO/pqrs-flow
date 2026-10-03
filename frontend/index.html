@@ -8,16 +8,104 @@
     <link rel="stylesheet" href="css/styles.css" />
   </head>
   <body>
-    <main class="page">
+    <header class="site-header">
       <h1>PQRS Flow</h1>
       <p class="lead">
         Submit a petition, complaint, claim or suggestion and follow its status with a case number.
       </p>
+    </header>
 
-      <p class="status" id="api-status" role="status">Checking API connection…</p>
+    <main class="container">
+      <section aria-labelledby="form-title">
+        <h2 id="form-title">Submit a PQRS</h2>
+        <p class="hint">Fields marked with * are required.</p>
 
-      <p class="version">Version 0.0.1 · under construction</p>
+        <form id="pqrsForm" class="pqrs-form" novalidate>
+          <div class="form-group">
+            <label for="type">Type of request *</label>
+            <select id="type" name="type" required aria-describedby="type-error">
+              <option value="" disabled selected>Select an option…</option>
+              <option value="petition">Petition</option>
+              <option value="complaint">Complaint</option>
+              <option value="claim">Claim</option>
+              <option value="suggestion">Suggestion</option>
+            </select>
+            <small class="field-error" id="type-error"></small>
+          </div>
+
+          <div class="form-group">
+            <label for="subject">Subject *</label>
+            <input
+              type="text"
+              id="subject"
+              name="subject"
+              required
+              maxlength="100"
+              placeholder="Brief summary of your request"
+              aria-describedby="subject-error"
+            />
+            <small class="field-error" id="subject-error"></small>
+          </div>
+
+          <div class="form-group">
+            <label for="description">Detailed description *</label>
+            <textarea
+              id="description"
+              name="description"
+              required
+              rows="6"
+              maxlength="2000"
+              placeholder="Provide all the details we need to help you"
+              aria-describedby="description-error descriptionCounter"
+            ></textarea>
+            <div class="field-meta">
+              <small class="field-error" id="description-error"></small>
+              <small class="counter" id="descriptionCounter"></small>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="requesterName">Full name *</label>
+              <input
+                type="text"
+                id="requesterName"
+                name="requesterName"
+                required
+                maxlength="100"
+                autocomplete="name"
+                aria-describedby="requesterName-error"
+              />
+              <small class="field-error" id="requesterName-error"></small>
+            </div>
+
+            <div class="form-group">
+              <label for="requesterEmail">Email address *</label>
+              <input
+                type="email"
+                id="requesterEmail"
+                name="requesterEmail"
+                required
+                maxlength="254"
+                autocomplete="email"
+                aria-describedby="requesterEmail-error"
+              />
+              <small class="field-error" id="requesterEmail-error"></small>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary" id="submitBtn">Submit PQRS</button>
+        </form>
+
+        <div id="formMessage" class="message" role="status" aria-live="polite" hidden></div>
+      </section>
     </main>
+
+    <footer class="site-footer">
+      <span class="status" id="api-status" role="status">Checking API connection…</span>
+      <span id="app-version"></span>
+    </footer>
+
     <script type="module" src="js/main.js"></script>
   </body>
 </html>
