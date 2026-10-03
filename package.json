@@ -1,6 +1,6 @@
 {
   "name": "pqrs-flow",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Web system to submit, track and manage PQRS (Petitions, Complaints, Claims and Suggestions) built with JavaScript",
   "private": true,
   "author": "OAlexProgramerO",

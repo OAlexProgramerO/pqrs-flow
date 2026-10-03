@@ -4,6 +4,26 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [SemVer](h
 
 ## [Unreleased]
 
+## [0.0.2] - 2026-10-03
+
+### Added
+
+- Submission form (type, subject, description, name, email) with accessible labels and error messages.
+- Client-side validation module (`frontend/js/validation.js`) with unit tests.
+- Character counter for the description field and a light/dark theme.
+- Tests for the JSON 404 response, static frontend files, security headers and environment config.
+- API reference (`docs/api.md`).
+- Dependabot configuration and code owners.
+
+### Changed
+
+- `GET /api/health` now reads the version from `backend/package.json`.
+- README expanded with project status, architecture and setup details.
+
+### Fixed
+
+- The `.env` file at the project root is now loaded; before, the server only looked inside `backend/`.
+
 ## [0.0.1] - 2026-10-02
 
 ### Added
