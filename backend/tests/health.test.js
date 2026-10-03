@@ -15,6 +15,7 @@ test('GET /api/health responds ok', async () => {
     assert.equal(res.status, 200);
     assert.equal(body.status, 'ok');
     assert.equal(body.service, 'pqrs-flow');
+    assert.match(body.version, /^\d+\.\d+\.\d+$/);
   } finally {
     server.close();
   }
