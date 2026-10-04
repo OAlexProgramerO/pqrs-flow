@@ -1,0 +1,53 @@
+# Requests for the "REST Client" extension of VS Code (humao.rest-client).
+# Start the server with `npm run dev`, then click "Send Request" above any request.
+
+@baseUrl = http://localhost:3000
+
+### Health check
+GET {{baseUrl}}/api/health
+
+### Submit a request (expects 201 and a case number)
+POST {{baseUrl}}/api/pqrs
+Content-Type: application/json
+
+{
+  "type": "petition",
+  "subject": "Copy of my property tax certificate",
+  "description": "I need an official copy of my property tax certificate to complete a bank loan.",
+  "requesterName": "Ana Gomez",
+  "requesterEmail": "Ana.Gomez@Example.com"
+}
+
+### Validation errors (expects 400 with details)
+POST {{baseUrl}}/api/pqrs
+Content-Type: application/json
+
+{
+  "type": "other",
+  "subject": "Hi",
+  "description": "Too short",
+  "requesterName": "",
+  "requesterEmail": "not-an-email"
+}
+
+### Malformed JSON (expects 400)
+POST {{baseUrl}}/api/pqrs
+Content-Type: application/json
+
+{ this is not json
+
+### Anti-bot field filled in (expects 400)
+POST {{baseUrl}}/api/pqrs
+Content-Type: application/json
+
+{
+  "type": "petition",
+  "subject": "Copy of my certificate",
+  "description": "I need an official copy of my property tax certificate.",
+  "requesterName": "Spam Bot",
+  "requesterEmail": "bot@example.com",
+  "website": "http://spam.example"
+}
+
+### Unknown route (expects 404)
+GET {{baseUrl}}/api/does-not-exist

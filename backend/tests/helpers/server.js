@@ -1,14 +1,14 @@
 import { once } from 'node:events';
 
 process.env.NODE_ENV = 'test';
-const { app } = await import('../../src/app.js');
+const { app, createApp } = await import('../../src/app.js');
 
 /**
- * Starts the app on a random free port and returns its base URL
- * plus a function to stop it.
+ * Starts the app on a random free port and returns its base URL plus a function to stop it.
+ * Pass createApp options (for example a getRepository function) to run an isolated instance.
  */
-export async function startServer() {
-  const server = app.listen(0);
+export async function startServer(options) {
+  const server = (options ? createApp(options) : app).listen(0);
   await once(server, 'listening');
   const { port } = server.address();
 
