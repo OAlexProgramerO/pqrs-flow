@@ -5,29 +5,50 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import { env } from './config/env.js';
-import routes from './routes/index.js';
+import { getDb } from './db/database.js';
+import { errorHandler, notFoundHandler } from './middlewares/error-handler.js';
+import { requestId } from './middlewares/request-id.js';
+import { createPqrsRepository } from './repositories/pqrs.repository.js';
+import { createRoutes } from './routes/index.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const frontendDir = path.join(__dirname, '../../frontend');
+const sharedDir = path.join(__dirname, '../../shared');
 
-export const app = express();
+morgan.token('id', (req) => req.id);
 
-app.use(helmet());
-app.use(cors());
-app.use(express.json());
-if (env.nodeEnv !== 'test') app.use(morgan('dev'));
+let defaultRepository;
 
-// API
-app.use('/api', routes);
-app.use('/api', (_req, res) => {
-  res.status(404).json({ error: 'Route not found' });
-});
+// The database opens on the first request, so importing the app never touches the disk
+function getDefaultRepository() {
+  defaultRepository ??= createPqrsRepository(getDb());
+  return defaultRepository;
+}
 
-// Static frontend
-app.use(express.static(frontendDir));
+/**
+ * Builds the Express app. Tests pass their own getRepository to use an in-memory database.
+ */
+export function createApp({ getRepository = getDefaultRepository } = {}) {
+  const app = express();
 
-// Error handling
-app.use((err, _req, res, _next) => {
-  console.error(err);
-  res.status(500).json({ error: 'Internal server error' });
-});
+  app.disable('x-powered-by');
+  app.use(requestId);
+  app.use(helmet());
+  app.use(cors());
+  app.use(express.json({ limit: '16kb' }));
+  if (env.nodeEnv !== 'test') app.use(morgan(':id :method :url :status :response-time ms'));
+
+  // API
+  app.use('/api', createRoutes({ getRepository }));
+  app.use('/api', notFoundHandler);
+
+  // Static frontend, plus the code shared with the server
+  app.use('/shared', express.static(sharedDir));
+  app.use(express.static(frontendDir));
+
+  app.use(errorHandler);
+
+  return app;
+}
+
+export const app = createApp();

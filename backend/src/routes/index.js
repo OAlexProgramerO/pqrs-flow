@@ -1,10 +1,12 @@
 import { Router } from 'express';
 import healthRoutes from './health.routes.js';
+import { createPqrsRoutes } from './pqrs.routes.js';
 
-const router = Router();
+export function createRoutes({ getRepository }) {
+  const router = Router();
 
-router.use('/health', healthRoutes);
+  router.use('/health', healthRoutes);
+  router.use('/pqrs', createPqrsRoutes({ getRepository }));
 
-// PQRS routes will be mounted here (v0.1.0)
-
-export default router;
+  return router;
+}
