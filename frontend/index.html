@@ -16,7 +16,7 @@
     </header>
 
     <main class="container">
-      <section aria-labelledby="form-title">
+      <section id="formSection" aria-labelledby="form-title">
         <h2 id="form-title">Submit a PQRS</h2>
         <p class="hint">Fields marked with * are required.</p>
 
@@ -94,10 +94,31 @@
             </div>
           </div>
 
+          <div class="hp-field" aria-hidden="true">
+            <label for="website">Leave this field empty</label>
+            <input type="text" id="website" name="website" tabindex="-1" autocomplete="off" />
+          </div>
+
           <button type="submit" class="btn btn-primary" id="submitBtn">Submit PQRS</button>
         </form>
 
         <div id="formMessage" class="message" role="status" aria-live="polite" hidden></div>
+      </section>
+
+      <section id="successPanel" class="success-panel" tabindex="-1" hidden>
+        <h2>Request received</h2>
+        <p>Your case number is:</p>
+        <p class="case-number">
+          <code id="caseNumber"></code>
+          <button type="button" class="btn btn-secondary" id="copyBtn">Copy</button>
+        </p>
+        <p class="hint">
+          Save this number and the email you used. You will need both to check the status once
+          tracking is available.
+        </p>
+        <button type="button" class="btn btn-secondary" id="newRequestBtn">
+          Submit another request
+        </button>
       </section>
     </main>
 

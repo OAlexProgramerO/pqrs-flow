@@ -10,7 +10,6 @@ const files = [
   ['/css/styles.css', /text\/css/, '--primary'],
   ['/js/main.js', /javascript/, 'initForm'],
   ['/js/form.js', /javascript/, 'validatePqrs'],
-  ['/js/validation.js', /javascript/, 'REQUEST_TYPES'],
   ['/favicon.svg', /image\/svg\+xml/, '<svg'],
 ];
 
