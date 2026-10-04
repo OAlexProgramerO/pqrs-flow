@@ -37,7 +37,8 @@ const DEMO_REQUESTS = [
   {
     type: 'complaint',
     subject: 'Street light out for two weeks',
-    description: 'The street light in front of number 14 has been off since the beginning of the month.',
+    description:
+      'The street light in front of number 14 has been off since the beginning of the month.',
     requesterName: 'Jorge Diaz',
     requesterEmail: 'jorge.diaz@example.com',
   },

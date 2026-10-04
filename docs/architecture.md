@@ -9,12 +9,12 @@ Browser ──HTTP──► Express (backend/)
 
 ## Decisions
 
-| Decision | Choice | Reason |
-| --- | --- | --- |
-| Modules | ES Modules (`"type": "module"`) | Current JavaScript standard |
-| Frontend | Static files served by Express | One command runs everything in early phases |
-| Tests | Native `node:test` | No extra dependencies |
-| Config | Environment variables (`.env`) | Same code locally and in production |
+| Decision | Choice                          | Reason                                      |
+| -------- | ------------------------------- | ------------------------------------------- |
+| Modules  | ES Modules (`"type": "module"`) | Current JavaScript standard                 |
+| Frontend | Static files served by Express  | One command runs everything in early phases |
+| Tests    | Native `node:test`              | No extra dependencies                       |
+| Config   | Environment variables (`.env`)  | Same code locally and in production         |
 
 ## Backend layers (as it grows)
 
@@ -54,4 +54,3 @@ Browser form ──► frontend/js/form.js ──► frontend/js/api.js ──PO
 - **App factory:** `createApp({ getRepository })` builds the Express app. Tests inject an in-memory repository, and the default app opens the real database on the first request.
 - **Privacy:** a submission response contains only the case number, type, subject, status and creation date.
 - **Anti-spam:** a hidden `website` field catches bots. Rate limiting arrives in v0.1.2.
-

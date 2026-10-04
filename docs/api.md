@@ -6,12 +6,12 @@ All responses are JSON. Errors always have the shape `{ "error": "message" }`, w
 
 ## Common behavior
 
-| Topic        | Behavior                                                                                       |
-| ------------ | ---------------------------------------------------------------------------------------------- |
+| Topic        | Behavior                                                                                                 |
+| ------------ | -------------------------------------------------------------------------------------------------------- |
 | Request id   | Every response has an `X-Request-Id` header. Send your own (8-64 letters, digits, `-`, `_`) to reuse it. |
-| Body size    | JSON bodies larger than 16 KB are rejected with `413`.                                         |
-| Content type | Send `Content-Type: application/json`. Other content types are ignored and fail validation.    |
-| Security     | Responses carry the headers set by `helmet` (content security policy, `nosniff`, and more).    |
+| Body size    | JSON bodies larger than 16 KB are rejected with `413`.                                                   |
+| Content type | Send `Content-Type: application/json`. Other content types are ignored and fail validation.              |
+| Security     | Responses carry the headers set by `helmet` (content security policy, `nosniff`, and more).              |
 
 ## Endpoints
 
@@ -53,14 +53,14 @@ Submits a new request and returns its case number.
 }
 ```
 
-| Field            | Rules                                                          |
-| ---------------- | -------------------------------------------------------------- |
-| `type`           | One of `petition`, `complaint`, `claim`, `suggestion`          |
-| `subject`        | 5 to 100 characters                                            |
-| `description`    | 20 to 2000 characters                                          |
-| `requesterName`  | 2 to 100 characters                                            |
-| `requesterEmail` | Valid email, up to 254 characters. Saved in lowercase.         |
-| `website`        | Anti-bot field. Must be missing or empty.                      |
+| Field            | Rules                                                  |
+| ---------------- | ------------------------------------------------------ |
+| `type`           | One of `petition`, `complaint`, `claim`, `suggestion`  |
+| `subject`        | 5 to 100 characters                                    |
+| `description`    | 20 to 2000 characters                                  |
+| `requesterName`  | 2 to 100 characters                                    |
+| `requesterEmail` | Valid email, up to 254 characters. Saved in lowercase. |
+| `website`        | Anti-bot field. Must be missing or empty.              |
 
 Text is trimmed before it is checked. The same rules run in the browser and on the server (`shared/validation.js`).
 
@@ -80,13 +80,13 @@ The response never repeats the description, the name or the email.
 
 **Errors**
 
-| Status | Body                                                                               | When                                      |
-| ------ | ---------------------------------------------------------------------------------- | ----------------------------------------- |
+| Status | Body                                                                                 | When                                      |
+| ------ | ------------------------------------------------------------------------------------ | ----------------------------------------- |
 | `400`  | `{ "error": "Validation failed", "details": { "subject": "Subject is required." } }` | One or more fields are invalid            |
-| `400`  | `{ "error": "Invalid submission" }`                                                | The `website` field is filled in          |
-| `400`  | `{ "error": "Malformed JSON body" }`                                               | The body is not valid JSON                |
-| `413`  | `{ "error": "Request body too large" }`                                            | The body is larger than 16 KB             |
-| `500`  | `{ "error": "Internal server error", "requestId": "..." }`                         | Unexpected failure. Quote the request id. |
+| `400`  | `{ "error": "Invalid submission" }`                                                  | The `website` field is filled in          |
+| `400`  | `{ "error": "Malformed JSON body" }`                                                 | The body is not valid JSON                |
+| `413`  | `{ "error": "Request body too large" }`                                              | The body is larger than 16 KB             |
+| `500`  | `{ "error": "Internal server error", "requestId": "..." }`                           | Unexpected failure. Quote the request id. |
 
 ## Other errors
 
@@ -104,6 +104,6 @@ Unhandled errors return `500` with the request id. Details are logged on the ser
 
 ## Planned
 
-| Method | Path                    | Version | Description                                    |
-| ------ | ----------------------- | ------- | ---------------------------------------------- |
-| `POST` | `/api/pqrs/lookup`      | 0.1.1   | Status lookup with case number and email       |
+| Method | Path               | Version | Description                              |
+| ------ | ------------------ | ------- | ---------------------------------------- |
+| `POST` | `/api/pqrs/lookup` | 0.1.1   | Status lookup with case number and email |

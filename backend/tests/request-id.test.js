@@ -40,7 +40,13 @@ test('reuses a valid id sent by the client', () => {
 });
 
 test('replaces ids that could pollute the logs', () => {
-  const invalid = ['short', 'has spaces in it', 'line\nbreak-1234567', 'a'.repeat(65), '<script>alert(1)'];
+  const invalid = [
+    'short',
+    'has spaces in it',
+    'line\nbreak-1234567',
+    'a'.repeat(65),
+    '<script>alert(1)',
+  ];
 
   for (const value of invalid) {
     const { req } = run({ 'x-request-id': value });

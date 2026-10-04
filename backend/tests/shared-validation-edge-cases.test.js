@@ -48,7 +48,11 @@ test('rejects values one character outside the limits', () => {
     requesterName: 'a'.repeat(LIMITS.requesterName.max + 1),
   });
 
-  assert.deepEqual(Object.keys(tooShort.errors).sort(), ['description', 'requesterName', 'subject']);
+  assert.deepEqual(Object.keys(tooShort.errors).sort(), [
+    'description',
+    'requesterName',
+    'subject',
+  ]);
   assert.deepEqual(Object.keys(tooLong.errors).sort(), ['description', 'requesterName', 'subject']);
 });
 

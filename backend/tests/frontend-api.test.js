@@ -54,7 +54,10 @@ test('throws an ApiError with the status and the field details', async () => {
   mockFetch(async () => ({
     ok: false,
     status: 400,
-    json: async () => ({ error: 'Validation failed', details: { subject: 'Subject is required.' } }),
+    json: async () => ({
+      error: 'Validation failed',
+      details: { subject: 'Subject is required.' },
+    }),
   }));
 
   await assert.rejects(createPqrs(payload), (error) => {
