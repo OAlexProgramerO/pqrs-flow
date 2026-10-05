@@ -1,6 +1,6 @@
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { ApiError, createPqrs } from '../../frontend/js/api.js';
+import { ApiError, createPqrs, lookupPqrs } from '../../frontend/js/api.js';
 
 const originalFetch = globalThis.fetch;
 after(() => {
@@ -54,10 +54,7 @@ test('throws an ApiError with the status and the field details', async () => {
   mockFetch(async () => ({
     ok: false,
     status: 400,
-    json: async () => ({
-      error: 'Validation failed',
-      details: { subject: 'Subject is required.' },
-    }),
+    json: async () => ({ error: 'Validation failed', details: { subject: 'Subject is required.' } }),
   }));
 
   await assert.rejects(createPqrs(payload), (error) => {
@@ -105,3 +102,84 @@ test('explains a timeout', async () => {
 
   await assert.rejects(createPqrs(payload), /took too long/);
 });
+
+test('lookupPqrs sends a JSON POST to /api/pqrs/lookup with only the two fields', async () => {
+  const calls = mockFetch(async () => ({
+    ok: true,
+    status: 200,
+    json: async () => ({ caseNumber: 'PQRS-2026-000001', status: 'filed' }),
+  }));
+
+  const result = await lookupPqrs({
+    caseNumber: 'PQRS-2026-000001',
+    requesterEmail: 'ana@example.com',
+    somethingElse: 'must not be sent',
+  });
+
+  assert.equal(calls[0].url, '/api/pqrs/lookup');
+  assert.equal(calls[0].options.method, 'POST');
+  assert.deepEqual(JSON.parse(calls[0].options.body), {
+    caseNumber: 'PQRS-2026-000001',
+    requesterEmail: 'ana@example.com',
+  });
+  assert.equal(result.status, 'filed');
+});
+
+test('lookupPqrs never puts the email in the URL', async () => {
+  const calls = mockFetch(async () => ({ ok: true, status: 200, json: async () => ({}) }));
+
+  await lookupPqrs({ caseNumber: 'PQRS-2026-000001', requesterEmail: 'ana@example.com' });
+
+  assert.equal(calls[0].url.includes('ana@example.com'), false);
+  assert.equal(calls[0].url.includes('?'), false);
+});
+
+test('lookupPqrs reports a 404 with the message of the server', async () => {
+  mockFetch(async () => ({
+    ok: false,
+    status: 404,
+    json: async () => ({ error: 'No request matches that case number and email.' }),
+  }));
+
+  await assert.rejects(
+    lookupPqrs({ caseNumber: 'PQRS-2026-000001', requesterEmail: 'ana@example.com' }),
+    (error) => {
+      assert.equal(error.status, 404);
+      assert.equal(error.message, 'No request matches that case number and email.');
+      return true;
+    },
+  );
+});
+
+test('a 429 keeps the seconds of the Retry-After header', async () => {
+  mockFetch(async () => ({
+    ok: false,
+    status: 429,
+    headers: { get: (name) => (name === 'Retry-After' ? '120' : null) },
+    json: async () => ({ error: 'Too many attempts. Please try again later.' }),
+  }));
+
+  await assert.rejects(
+    lookupPqrs({ caseNumber: 'PQRS-2026-000001', requesterEmail: 'ana@example.com' }),
+    (error) => {
+      assert.equal(error.status, 429);
+      assert.equal(error.retryAfter, 120);
+      return true;
+    },
+  );
+});
+
+test('retryAfter stays empty when the header is missing', async () => {
+  mockFetch(async () => ({
+    ok: false,
+    status: 500,
+    headers: { get: () => null },
+    json: async () => ({ error: 'Internal server error' }),
+  }));
+
+  await assert.rejects(createPqrs(payload), (error) => {
+    assert.equal(error.retryAfter, undefined);
+    return true;
+  });
+});
+
