@@ -16,6 +16,7 @@ try {
   const last = created[created.length - 1].caseNumber;
 
   console.log(`Added ${created.length} demo requests (${first} to ${last}) to ${env.dbPath}`);
+  console.log(`Try the tracking page with ${first} and ${created[0].requesterEmail}`);
 } finally {
   db.close();
 }
