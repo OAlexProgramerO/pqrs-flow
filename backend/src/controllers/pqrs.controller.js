@@ -1,5 +1,5 @@
 import { HttpError } from '../errors/http-error.js';
-import { submitPqrs } from '../services/pqrs.service.js';
+import { lookupPqrs, submitPqrs } from '../services/pqrs.service.js';
 
 // A field real users never see. Bots that fill every input reveal themselves by filling it.
 const HONEYPOT_FIELD = 'website';
@@ -27,6 +27,18 @@ export function createPqrsController({ getRepository }) {
 
         const created = submitPqrs(getRepository(), body);
         res.status(201).json(toPublicResponse(created));
+      } catch (error) {
+        next(error);
+      }
+    },
+
+    lookup(req, res, next) {
+      try {
+        // Answers about a person's request must never be stored by a browser or a proxy
+        res.set('Cache-Control', 'no-store');
+
+        const found = lookupPqrs(getRepository(), req.body ?? {});
+        res.status(200).json(found);
       } catch (error) {
         next(error);
       }

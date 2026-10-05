@@ -23,6 +23,11 @@ function fakeRes() {
   return {
     statusCode: undefined,
     body: undefined,
+    headers: {},
+    set(name, value) {
+      this.headers[name] = value;
+      return this;
+    },
     status(code) {
       this.statusCode = code;
       return this;
@@ -116,3 +121,49 @@ test('passes unexpected errors to next', () => {
   assert.equal(res.statusCode, undefined);
   assert.equal(errors[0].message, 'database unavailable');
 });
+
+function lookupCall(reqBody) {
+  const res = fakeRes();
+  const errors = [];
+  controller.lookup({ body: reqBody }, res, (error) => errors.push(error));
+  return { res, errors };
+}
+
+test('lookup answers 200 with the public fields and forbids caching', () => {
+  const created = call(body).res.body;
+  const { res, errors } = lookupCall({
+    caseNumber: created.caseNumber,
+    requesterEmail: body.requesterEmail,
+  });
+
+  assert.deepEqual(errors, []);
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.headers['Cache-Control'], 'no-store');
+  assert.deepEqual(Object.keys(res.body).sort(), ['caseNumber', 'createdAt', 'status', 'type']);
+  assert.equal(res.body.caseNumber, created.caseNumber);
+});
+
+test('lookup passes a 404 to next when the email does not match', () => {
+  const created = call(body).res.body;
+  const { res, errors } = lookupCall({
+    caseNumber: created.caseNumber,
+    requesterEmail: 'wrong@example.com',
+  });
+
+  assert.equal(res.statusCode, undefined);
+  assert.equal(errors[0].status, 404);
+  assert.equal(res.headers['Cache-Control'], 'no-store');
+});
+
+test('lookup passes a ValidationError to next for badly formed input', () => {
+  const { errors } = lookupCall({ caseNumber: 'x', requesterEmail: 'y' });
+
+  assert.ok(errors[0] instanceof ValidationError);
+});
+
+test('lookup treats a missing body as empty input', () => {
+  const { errors } = lookupCall(undefined);
+
+  assert.ok(errors[0] instanceof ValidationError);
+});
+
