@@ -29,7 +29,9 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check": "npm run lint && npm run format:check && npm test"
+    "check": "npm run lint && npm run format:check && npm test",
+    "seed": "npm --prefix backend run seed",
+    "db:reset": "npm --prefix backend run db:reset"
   },
   "engines": {
     "node": ">=20"
