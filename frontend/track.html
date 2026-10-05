@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Track a request · PQRS Flow</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <h1>PQRS Flow</h1>
+      <p class="lead">
+        Submit a petition, complaint, claim or suggestion and follow its status with a case number.
+      </p>
+      <nav class="site-nav" aria-label="Main">
+        <a href="/">Submit a request</a>
+        <a href="track.html" aria-current="page">Track a request</a>
+      </nav>
+    </header>
+
+    <main class="container">
+      <section id="lookupSection" aria-labelledby="lookup-title">
+        <h2 id="lookup-title">Track a request</h2>
+        <p class="hint">
+          Enter the case number you received and the email you used when you submitted the request.
+        </p>
+
+        <form id="lookupForm" class="pqrs-form" novalidate>
+          <div class="form-group">
+            <label for="caseNumber">Case number *</label>
+            <input
+              type="text"
+              id="caseNumber"
+              name="caseNumber"
+              required
+              maxlength="40"
+              placeholder="PQRS-2026-000001"
+              autocomplete="off"
+              spellcheck="false"
+              aria-describedby="caseNumber-error"
+            />
+            <small class="field-error" id="caseNumber-error"></small>
+          </div>
+
+          <div class="form-group">
+            <label for="requesterEmail">Email address *</label>
+            <input
+              type="email"
+              id="requesterEmail"
+              name="requesterEmail"
+              required
+              maxlength="254"
+              autocomplete="email"
+              aria-describedby="requesterEmail-error"
+            />
+            <small class="field-error" id="requesterEmail-error"></small>
+          </div>
+
+          <button type="submit" class="btn btn-primary" id="lookupBtn">Check status</button>
+        </form>
+
+        <div id="lookupMessage" class="message" role="status" aria-live="polite" hidden></div>
+      </section>
+
+      <section
+        id="resultPanel"
+        class="result-card"
+        aria-labelledby="result-title"
+        tabindex="-1"
+        hidden
+      >
+        <h2 id="result-title">Request status</h2>
+        <p class="status-badge" id="statusBadge"></p>
+        <p id="statusText"></p>
+
+        <dl class="details">
+          <div>
+            <dt>Case number</dt>
+            <dd><code id="resultCaseNumber"></code></dd>
+          </div>
+          <div>
+            <dt>Type</dt>
+            <dd id="resultType"></dd>
+          </div>
+          <div>
+            <dt>Submitted</dt>
+            <dd id="resultCreated"></dd>
+          </div>
+        </dl>
+
+        <h3>Progress</h3>
+        <ol class="timeline" id="timeline" aria-label="Progress of your request"></ol>
+
+        <button type="button" class="btn btn-secondary" id="anotherBtn">
+          Check another request
+        </button>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <span class="status" id="api-status" role="status">Checking API connection…</span>
+      <span id="app-version"></span>
+    </footer>
+
+    <script type="module" src="js/main.js"></script>
+    <script type="module" src="js/track.js"></script>
+  </body>
+</html>
