@@ -1,9 +1,13 @@
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { openDatabase } from '../src/db/database.js';
-import { ValidationError } from '../src/errors/http-error.js';
+import { HttpError, ValidationError } from '../src/errors/http-error.js';
 import { createPqrsRepository } from '../src/repositories/pqrs.repository.js';
-import { submitPqrs } from '../src/services/pqrs.service.js';
+import {
+  LOOKUP_NOT_FOUND_MESSAGE,
+  lookupPqrs,
+  submitPqrs,
+} from '../src/services/pqrs.service.js';
 
 const openDatabases = [];
 after(() => openDatabases.forEach((db) => db.close()));
@@ -73,3 +77,80 @@ test('passes the options through to the repository', () => {
 
   assert.equal(created.caseNumber, 'PQRS-2027-000001');
 });
+
+test('lookupPqrs returns the public fields when case number and email match', () => {
+  const repository = setup();
+  const created = submitPqrs(repository, input, october2026);
+
+  assert.deepEqual(
+    lookupPqrs(repository, { caseNumber: created.caseNumber, requesterEmail: input.requesterEmail }),
+    {
+      caseNumber: 'PQRS-2026-000001',
+      type: 'complaint',
+      status: 'filed',
+      createdAt: created.createdAt,
+    },
+  );
+});
+
+test('lookupPqrs accepts a lowercase case number and an email in any case', () => {
+  const repository = setup();
+  submitPqrs(repository, input, october2026);
+
+  const found = lookupPqrs(repository, {
+    caseNumber: ' pqrs-2026-000001 ',
+    requesterEmail: ' LUIS@Example.COM ',
+  });
+
+  assert.equal(found.caseNumber, 'PQRS-2026-000001');
+});
+
+test('lookupPqrs never returns the description or personal data', () => {
+  const repository = setup();
+  submitPqrs(repository, input, october2026);
+
+  const found = lookupPqrs(repository, {
+    caseNumber: 'PQRS-2026-000001',
+    requesterEmail: input.requesterEmail,
+  });
+
+  assert.deepEqual(Object.keys(found).sort(), ['caseNumber', 'createdAt', 'status', 'type']);
+});
+
+test('lookupPqrs gives the same 404 for a wrong email and an unknown case number', () => {
+  const repository = setup();
+  submitPqrs(repository, input, october2026);
+
+  const failures = [
+    { caseNumber: 'PQRS-2026-000001', requesterEmail: 'wrong@example.com' },
+    { caseNumber: 'PQRS-2026-000099', requesterEmail: input.requesterEmail },
+  ].map((lookup) => {
+    try {
+      lookupPqrs(repository, lookup);
+    } catch (error) {
+      return error;
+    }
+    return null;
+  });
+
+  for (const error of failures) {
+    assert.ok(error instanceof HttpError);
+    assert.equal(error.status, 404);
+    assert.equal(error.message, LOOKUP_NOT_FOUND_MESSAGE);
+    assert.equal(error.details, undefined);
+  }
+});
+
+test('lookupPqrs throws a ValidationError for badly formed input', () => {
+  const repository = setup();
+
+  assert.throws(
+    () => lookupPqrs(repository, { caseNumber: 'nope', requesterEmail: 'nope' }),
+    (error) => {
+      assert.ok(error instanceof ValidationError);
+      assert.deepEqual(Object.keys(error.details).sort(), ['caseNumber', 'requesterEmail']);
+      return true;
+    },
+  );
+});
+
