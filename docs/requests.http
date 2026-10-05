@@ -7,6 +7,7 @@
 GET {{baseUrl}}/api/health
 
 ### Submit a request (expects 201 and a case number)
+# @name submit
 POST {{baseUrl}}/api/pqrs
 Content-Type: application/json
 
@@ -51,3 +52,40 @@ Content-Type: application/json
 
 ### Unknown route (expects 404)
 GET {{baseUrl}}/api/does-not-exist
+
+### Look up the request you just submitted (expects 200; the email may use any case)
+POST {{baseUrl}}/api/pqrs/lookup
+Content-Type: application/json
+
+{
+  "caseNumber": "{{submit.response.body.caseNumber}}",
+  "requesterEmail": "ANA.GOMEZ@example.com"
+}
+
+### Look up with the wrong email (expects 404, the same answer as an unknown case number)
+POST {{baseUrl}}/api/pqrs/lookup
+Content-Type: application/json
+
+{
+  "caseNumber": "{{submit.response.body.caseNumber}}",
+  "requesterEmail": "someone.else@example.com"
+}
+
+### Look up with badly formed values (expects 400 with details)
+POST {{baseUrl}}/api/pqrs/lookup
+Content-Type: application/json
+
+{
+  "caseNumber": "12345",
+  "requesterEmail": "not-an-email"
+}
+
+### Seeded demo request (run `npm run seed` first; expects 200)
+POST {{baseUrl}}/api/pqrs/lookup
+Content-Type: application/json
+
+{
+  "caseNumber": "PQRS-2026-000001",
+  "requesterEmail": "ana.gomez@example.com"
+}
+
