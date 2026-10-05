@@ -6,7 +6,7 @@
 
 A web system to submit, track and manage **PQRS** — _Peticiones, Quejas, Reclamos y Sugerencias_ (Petitions, Complaints, Claims and Suggestions). Built end to end with JavaScript, prioritizing simplicity, no frontend build step and clear architectural boundaries.
 
-**Status: v0.1.0** — Citizens can submit a request and receive a case number. See [ROADMAP.md](./ROADMAP.md) for the path to v1.0.0.
+**Status: v0.1.1** — Citizens can submit a request, receive a case number and track its status. See [ROADMAP.md](./ROADMAP.md) for the path to v1.0.0.
 
 ---
 
@@ -17,30 +17,32 @@ Many organizations still handle feedback, complaints and requests through scatte
 **PQRS Flow provides:**
 
 1. **Public submission portal:** a responsive form that saves the request and returns a unique case number such as `PQRS-2026-000001`.
-2. **Status lookup (next):** a public page where people check the status with the case number and their email, no account needed.
+2. **Status lookup:** a public page where people check the status with the case number and their email, no account needed.
 3. **Internal management panel (planned):** a protected area where staff review incoming cases, update their status (`Filed → In progress → Answered → Closed`) and answer them.
 
 ### Project status
 
-| Feature                                                  | Version | Status  |
-| -------------------------------------------------------- | ------- | ------- |
-| Express server, health endpoint, static site             | 0.0.1   | Done    |
-| Submission form with client-side validation              | 0.0.2   | Done    |
-| Database, migrations and repository                      | 0.0.3   | Done    |
-| `POST /api/pqrs`, form connected to the API, case number | 0.1.0   | Done    |
-| Status lookup with case number and email                 | 0.1.1   | Planned |
-| Rate limiting, compression, graceful shutdown            | 0.1.2   | Planned |
-| Staff panel (login, list, status changes)                | 0.2.x   | Planned |
+| Feature                                                    | Version | Status  |
+| ---------------------------------------------------------- | ------- | ------- |
+| Express server, health endpoint, static site               | 0.0.1   | Done    |
+| Submission form with client-side validation                | 0.0.2   | Done    |
+| Database, migrations and repository                        | 0.0.3   | Done    |
+| `POST /api/pqrs`, form connected to the API, case number   | 0.1.0   | Done    |
+| Status lookup with case number and email                   | 0.1.1   | Done    |
+| Rate limit for submissions, compression, proxy settings    | 0.1.2   | Next    |
+| Staff panel (login, list, status changes)                  | 0.2.x   | Planned |
 
 ## ✨ What it does today
 
 - Submission form with live validation, a character counter and accessible error messages.
 - The same validation rules run in the browser and on the server (`shared/validation.js`).
 - SQLite storage with versioned migrations. Case numbers are generated atomically, one counter per year.
-- Success screen with the case number and a copy button.
+- Success screen with the case number, a copy button and a link to track the request.
+- Tracking page: case number plus email shows the status with a progress timeline.
+- Privacy by design: the lookup returns only status, type and dates, a wrong email and an unknown case number look the same, and every attempt is rate limited.
 - Anti-spam field, 16 KB body limit and a request id on every response.
 - Demo data and database reset commands for local development.
-- Tests for validation, database, service, controller, API and frontend client.
+- Tests for validation, database, service, controller, rate limiter, API, status helpers and frontend client.
 
 ## 🛠️ Tech stack
 
@@ -58,9 +60,9 @@ The backend follows a layered **Controller → Service → Repository** structur
 
 - **Routes** map HTTP endpoints to controllers.
 - **Controllers** handle the request and send the response.
-- **Services** hold the business rules (validation, normalization, case numbers).
+- **Services** hold the business rules (validation, normalization, case numbers, lookup).
 - **Repositories** run the SQL queries.
-- **Middlewares** add the request id and turn errors into JSON.
+- **Middlewares** add the request id, limit the attempts and turn errors into JSON.
 
 More details in [docs/architecture.md](./docs/architecture.md). The API is documented in [docs/api.md](./docs/api.md).
 
@@ -97,15 +99,15 @@ Then open:
 - Frontend: <http://localhost:3000>
 - API health: <http://localhost:3000/api/health>
 
-To see data without typing it, add demo requests with `npm run seed`. To start from an empty database, run `npm run db:reset`.
+To see data without typing it, add demo requests with `npm run seed`. It prints a case number and an email you can use on the tracking page (`/track.html`). To start from an empty database, run `npm run db:reset`.
 
 ### Configuration
 
-| Variable   | Default        | Description                                            |
-| ---------- | -------------- | ------------------------------------------------------ |
-| `PORT`     | `3000`         | Port of the server                                     |
-| `NODE_ENV` | `development`  | `production` disables the seed and reset commands      |
-| `DB_PATH`  | `data/pqrs.db` | SQLite file. Relative paths start at the project root. |
+| Variable   | Default         | Description                                                    |
+| ---------- | --------------- | -------------------------------------------------------------- |
+| `PORT`     | `3000`          | Port of the server                                             |
+| `NODE_ENV` | `development`   | `production` disables the seed and reset commands              |
+| `DB_PATH`  | `data/pqrs.db`  | SQLite file. Relative paths start at the project root.         |
 
 ### Try the API
 
@@ -119,25 +121,26 @@ curl -X POST http://localhost:3000/api/pqrs \
 
 ## 📜 Available scripts
 
-| Command            | Description                                       |
-| ------------------ | ------------------------------------------------- |
-| `npm run dev`      | Start the Express server with auto-reload         |
-| `npm start`        | Start the server                                  |
-| `npm test`         | Run the test suite with Node's native test runner |
-| `npm run lint`     | Find code problems with ESLint                    |
-| `npm run format`   | Format all files with Prettier                    |
-| `npm run check`    | Run lint, format check and tests in sequence      |
-| `npm run seed`     | Add demo requests to the local database           |
-| `npm run db:reset` | Delete the local database and its WAL files       |
+| Command                | Description                                                |
+| ---------------------- | ---------------------------------------------------------- |
+| `npm run dev`          | Start the Express server with auto-reload                  |
+| `npm start`            | Start the server                                           |
+| `npm test`             | Run the test suite with Node's native test runner          |
+| `npm run lint`         | Find code problems with ESLint                             |
+| `npm run format`       | Format all files with Prettier                             |
+| `npm run check`        | Run lint, format check and tests in sequence               |
+| `npm run seed`         | Add demo requests to the local database                    |
+| `npm run db:reset`     | Delete the local database and its WAL files                |
 
 ## 🩺 Troubleshooting
 
-| Problem                                 | Solution                                                           |
-| --------------------------------------- | ------------------------------------------------------------------ |
-| `EADDRINUSE` when starting              | Another process uses the port. Change `PORT` in `.env`.            |
+| Problem                          | Solution                                                                  |
+| -------------------------------- | ------------------------------------------------------------------------- |
+| `EADDRINUSE` when starting       | Another process uses the port. Change `PORT` in `.env`.                   |
+| The tracking page says "Too many attempts" | The lookup allows 8 tries per case number every 15 minutes. Wait, or restart the server in development. |
 | The footer says it cannot reach the API | Start the server with `npm run dev`.                               |
-| `better-sqlite3` fails to install       | Use Node 22 or 24 so the prebuilt binary is downloaded.            |
-| Old data keeps appearing                | Run `npm run db:reset` and, if you want demo data, `npm run seed`. |
+| `better-sqlite3` fails to install | Use Node 22 or 24 so the prebuilt binary is downloaded.                  |
+| Old data keeps appearing         | Run `npm run db:reset` and, if you want demo data, `npm run seed`.        |
 
 ## 🤝 Contributing
 
