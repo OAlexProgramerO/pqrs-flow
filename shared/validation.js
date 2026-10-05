@@ -62,3 +62,45 @@ export function validatePqrs(input) {
 
   return { valid: Object.keys(errors).length === 0, errors, data };
 }
+
+export const CASE_NUMBER_PATTERN = /^PQRS-\d{4}-\d{6,}$/;
+
+/**
+ * Cleans what a person types as a case number: spaces removed at the ends, uppercase.
+ */
+export function normalizeCaseNumber(value) {
+  return String(value ?? '')
+    .trim()
+    .toUpperCase();
+}
+
+/**
+ * Validates the data of a status lookup.
+ * The email is returned in lowercase because that is how it is stored.
+ */
+export function validateLookup(input = {}) {
+  const data = {
+    caseNumber: normalizeCaseNumber(input.caseNumber),
+    requesterEmail: String(input.requesterEmail ?? '')
+      .trim()
+      .toLowerCase(),
+  };
+  const errors = {};
+
+  if (!data.caseNumber) {
+    errors.caseNumber = 'Case number is required.';
+  } else if (!CASE_NUMBER_PATTERN.test(data.caseNumber)) {
+    errors.caseNumber = 'Enter a case number like PQRS-2026-000001.';
+  }
+
+  if (!data.requesterEmail) {
+    errors.requesterEmail = 'Email address is required.';
+  } else if (
+    data.requesterEmail.length > LIMITS.requesterEmail.max ||
+    !EMAIL_PATTERN.test(data.requesterEmail)
+  ) {
+    errors.requesterEmail = 'Enter a valid email address.';
+  }
+
+  return { valid: Object.keys(errors).length === 0, errors, data };
+}
