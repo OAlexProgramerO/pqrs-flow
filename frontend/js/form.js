@@ -16,6 +16,7 @@ export function initForm() {
   const caseNumberEl = document.getElementById('caseNumber');
   const copyBtn = document.getElementById('copyBtn');
   const newRequestBtn = document.getElementById('newRequestBtn');
+  const trackLink = document.getElementById('trackLink');
 
   const readForm = () => Object.fromEntries(new FormData(form));
 
@@ -50,6 +51,8 @@ export function initForm() {
     messageEl.hidden = true;
 
     caseNumberEl.textContent = caseNumber;
+    // Only the case number travels in the link. The email is never put in a URL.
+    trackLink.href = `track.html?case=${encodeURIComponent(caseNumber)}`;
     formSection.hidden = true;
     successPanel.hidden = false;
     successPanel.focus();

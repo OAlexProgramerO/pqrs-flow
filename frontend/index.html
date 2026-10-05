@@ -13,6 +13,10 @@
       <p class="lead">
         Submit a petition, complaint, claim or suggestion and follow its status with a case number.
       </p>
+      <nav class="site-nav" aria-label="Main">
+        <a href="/" aria-current="page">Submit a request</a>
+        <a href="track.html">Track a request</a>
+      </nav>
     </header>
 
     <main class="container">
@@ -113,12 +117,15 @@
           <button type="button" class="btn btn-secondary" id="copyBtn">Copy</button>
         </p>
         <p class="hint">
-          Save this number and the email you used. You will need both to check the status once
-          tracking is available.
+          Save this number and the email you used. You need both to check the status of your
+          request.
         </p>
-        <button type="button" class="btn btn-secondary" id="newRequestBtn">
-          Submit another request
-        </button>
+        <p class="actions">
+          <a class="btn btn-primary" id="trackLink" href="track.html">Track this request</a>
+          <button type="button" class="btn btn-secondary" id="newRequestBtn">
+            Submit another request
+          </button>
+        </p>
       </section>
     </main>
 
