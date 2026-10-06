@@ -1,0 +1,33 @@
+#!/bin/sh
+# Runs the same checks as CI before anything is pushed, so main never turns red.
+# Enabled by `npm install` (the "prepare" script sets core.hooksPath to .githooks).
+# Skip it only in an emergency with:  git push --no-verify
+
+# Pushing only tags (for example v0.1.2) needs no checks
+only_tags=1
+while read -r local_ref local_sha remote_ref remote_sha; do
+  case "$local_ref" in
+    refs/tags/*) ;;
+    *) only_tags=0 ;;
+  esac
+done
+if [ "$only_tags" = 1 ]; then
+  exit 0
+fi
+
+# The checks must run on exactly what is being pushed, not on unsaved edits
+if ! git diff --quiet || ! git diff --cached --quiet; then
+  echo "pre-push: you have changes that are not committed."
+  echo "          Commit or stash them first, so the checks run on what you push."
+  exit 1
+fi
+
+echo "pre-push: running the same checks as CI (lint, formatting, tests)..."
+if ! npm run check; then
+  echo ""
+  echo "pre-push: the checks failed, so nothing was pushed."
+  echo "          If the formatting failed, run: npm run format  and commit the result."
+  exit 1
+fi
+
+echo "pre-push: all checks passed."
