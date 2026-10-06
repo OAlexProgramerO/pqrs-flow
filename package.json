@@ -34,7 +34,7 @@
     "db:reset": "npm --prefix backend run db:reset"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
