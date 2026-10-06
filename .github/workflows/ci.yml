@@ -4,26 +4,28 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   quality:
     name: quality (Node ${{ matrix.node-version }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
-        node-version: [20, 24]
+        node-version: [22, 24]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node-version }}
           cache: npm
@@ -31,17 +33,49 @@ jobs:
             package-lock.json
             backend/package-lock.json
 
+      - name: Show versions
+        run: |
+          node --version
+          npm --version
+
       - name: Install root tooling
         run: npm ci
 
       - name: Install backend dependencies
+        id: backend
         run: npm --prefix backend ci
 
+      # The three checks below always run, so one red build shows every problem at once
+      # instead of hiding the tests behind a formatting error.
       - name: Lint
+        if: ${{ !cancelled() && steps.backend.outcome == 'success' }}
         run: npm run lint
 
       - name: Check formatting
-        run: npm run format:check
+        if: ${{ !cancelled() && steps.backend.outcome == 'success' }}
+        run: |
+          npm run format:check || {
+            echo "::error title=Formatting::Run 'npm run format' on your computer and commit the result."
+            exit 1
+          }
 
       - name: Run tests
+        if: ${{ !cancelled() && steps.backend.outcome == 'success' }}
         run: npm test
+
+  audit:
+    name: audit (production dependencies)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Install production dependencies
+        run: npm --prefix backend ci --omit=dev
+
+      - name: Audit
+        run: npm --prefix backend audit --omit=dev --audit-level=high

@@ -9,12 +9,12 @@ Browser ──HTTP──► Express (backend/)
 
 ## Decisions
 
-| Decision | Choice | Reason |
-| --- | --- | --- |
-| Modules | ES Modules (`"type": "module"`) | Current JavaScript standard |
-| Frontend | Static files served by Express | One command runs everything in early phases |
-| Tests | Native `node:test` | No extra dependencies |
-| Config | Environment variables (`.env`) | Same code locally and in production |
+| Decision | Choice                          | Reason                                      |
+| -------- | ------------------------------- | ------------------------------------------- |
+| Modules  | ES Modules (`"type": "module"`) | Current JavaScript standard                 |
+| Frontend | Static files served by Express  | One command runs everything in early phases |
+| Tests    | Native `node:test`              | No extra dependencies                       |
+| Config   | Environment variables (`.env`)  | Same code locally and in production         |
 
 ## Backend layers (as it grows)
 
@@ -74,4 +74,3 @@ track.html ──► js/track.js ──► js/api.js ──POST /api/pqrs/lookup
 - **Browser side:** `js/status.js` holds the texts, the timeline and the date format as pure functions. `js/track.js` builds the page with `textContent` and DOM nodes, never `innerHTML`.
 - **Case number in the link:** the confirmation page links to `track.html?case=...`. The page reads it, then removes it from the address bar. The email never goes in a URL.
 - **Referrer:** `helmet` sends `Referrer-Policy: no-referrer`, so the case number in a link is not passed to other sites.
-

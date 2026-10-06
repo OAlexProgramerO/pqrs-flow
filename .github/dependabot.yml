@@ -1,24 +1,47 @@
 version: 2
 updates:
+  # Tools used while developing (ESLint, Prettier). Minor and patch updates arrive in one pull request.
   - package-ecosystem: npm
     directory: /
     schedule:
       interval: weekly
-    open-pull-requests-limit: 5
+      day: monday
+    open-pull-requests-limit: 3
     commit-message:
       prefix: 'chore(deps)'
+    groups:
+      dev-tools:
+        update-types: [minor, patch]
+    ignore:
+      # A new major version can change how the code behaves. Those upgrades are planned by hand
+      # as their own version of the project, not accepted automatically.
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
 
+  # Libraries the server needs (Express, better-sqlite3, helmet...).
   - package-ecosystem: npm
     directory: /backend
     schedule:
       interval: weekly
-    open-pull-requests-limit: 5
+      day: monday
+    open-pull-requests-limit: 3
     commit-message:
       prefix: 'chore(deps)'
+    groups:
+      runtime:
+        update-types: [minor, patch]
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
 
+  # Versions of the actions used by CI (checkout, setup-node). Majors are allowed here.
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+      day: monday
     commit-message:
       prefix: 'ci'
+    groups:
+      actions:
+        patterns: ['*']

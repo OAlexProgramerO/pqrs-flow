@@ -153,6 +153,8 @@ test('the lookup query uses the case number index', () => {
     )
     .all('x', 'y');
 
-  assert.ok(plan.some((step) => /USING (COVERING )?INDEX/.test(step.detail)), JSON.stringify(plan));
+  assert.ok(
+    plan.some((step) => /USING (COVERING )?INDEX/.test(step.detail)),
+    JSON.stringify(plan),
+  );
 });
-

@@ -3,11 +3,7 @@ import assert from 'node:assert/strict';
 import { openDatabase } from '../src/db/database.js';
 import { HttpError, ValidationError } from '../src/errors/http-error.js';
 import { createPqrsRepository } from '../src/repositories/pqrs.repository.js';
-import {
-  LOOKUP_NOT_FOUND_MESSAGE,
-  lookupPqrs,
-  submitPqrs,
-} from '../src/services/pqrs.service.js';
+import { LOOKUP_NOT_FOUND_MESSAGE, lookupPqrs, submitPqrs } from '../src/services/pqrs.service.js';
 
 const openDatabases = [];
 after(() => openDatabases.forEach((db) => db.close()));
@@ -83,7 +79,10 @@ test('lookupPqrs returns the public fields when case number and email match', ()
   const created = submitPqrs(repository, input, october2026);
 
   assert.deepEqual(
-    lookupPqrs(repository, { caseNumber: created.caseNumber, requesterEmail: input.requesterEmail }),
+    lookupPqrs(repository, {
+      caseNumber: created.caseNumber,
+      requesterEmail: input.requesterEmail,
+    }),
     {
       caseNumber: 'PQRS-2026-000001',
       type: 'complaint',
@@ -153,4 +152,3 @@ test('lookupPqrs throws a ValidationError for badly formed input', () => {
     },
   );
 });
-

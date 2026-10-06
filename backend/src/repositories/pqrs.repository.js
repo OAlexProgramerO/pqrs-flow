@@ -28,9 +28,7 @@ export function createPqrsRepository(db) {
     VALUES (@caseNumber, @type, @subject, @description, @requesterName, @requesterEmail)
   `);
 
-  const selectByCaseNumber = db.prepare(
-    `SELECT ${SELECT_COLUMNS} FROM pqrs WHERE case_number = ?`,
-  );
+  const selectByCaseNumber = db.prepare(`SELECT ${SELECT_COLUMNS} FROM pqrs WHERE case_number = ?`);
 
   // Only the columns a citizen may see. The email is compared without caring about case.
   const selectForLookup = db.prepare(`

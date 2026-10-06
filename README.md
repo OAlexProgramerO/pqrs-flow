@@ -22,15 +22,15 @@ Many organizations still handle feedback, complaints and requests through scatte
 
 ### Project status
 
-| Feature                                                    | Version | Status  |
-| ---------------------------------------------------------- | ------- | ------- |
-| Express server, health endpoint, static site               | 0.0.1   | Done    |
-| Submission form with client-side validation                | 0.0.2   | Done    |
-| Database, migrations and repository                        | 0.0.3   | Done    |
-| `POST /api/pqrs`, form connected to the API, case number   | 0.1.0   | Done    |
-| Status lookup with case number and email                   | 0.1.1   | Done    |
-| Rate limit for submissions, compression, proxy settings    | 0.1.2   | Next    |
-| Staff panel (login, list, status changes)                  | 0.2.x   | Planned |
+| Feature                                                  | Version | Status  |
+| -------------------------------------------------------- | ------- | ------- |
+| Express server, health endpoint, static site             | 0.0.1   | Done    |
+| Submission form with client-side validation              | 0.0.2   | Done    |
+| Database, migrations and repository                      | 0.0.3   | Done    |
+| `POST /api/pqrs`, form connected to the API, case number | 0.1.0   | Done    |
+| Status lookup with case number and email                 | 0.1.1   | Done    |
+| Rate limit for submissions, compression, proxy settings  | 0.1.2   | Next    |
+| Staff panel (login, list, status changes)                | 0.2.x   | Planned |
 
 ## ✨ What it does today
 
@@ -103,11 +103,11 @@ To see data without typing it, add demo requests with `npm run seed`. It prints 
 
 ### Configuration
 
-| Variable   | Default         | Description                                                    |
-| ---------- | --------------- | -------------------------------------------------------------- |
-| `PORT`     | `3000`          | Port of the server                                             |
-| `NODE_ENV` | `development`   | `production` disables the seed and reset commands              |
-| `DB_PATH`  | `data/pqrs.db`  | SQLite file. Relative paths start at the project root.         |
+| Variable   | Default        | Description                                            |
+| ---------- | -------------- | ------------------------------------------------------ |
+| `PORT`     | `3000`         | Port of the server                                     |
+| `NODE_ENV` | `development`  | `production` disables the seed and reset commands      |
+| `DB_PATH`  | `data/pqrs.db` | SQLite file. Relative paths start at the project root. |
 
 ### Try the API
 
@@ -121,26 +121,26 @@ curl -X POST http://localhost:3000/api/pqrs \
 
 ## 📜 Available scripts
 
-| Command                | Description                                                |
-| ---------------------- | ---------------------------------------------------------- |
-| `npm run dev`          | Start the Express server with auto-reload                  |
-| `npm start`            | Start the server                                           |
-| `npm test`             | Run the test suite with Node's native test runner          |
-| `npm run lint`         | Find code problems with ESLint                             |
-| `npm run format`       | Format all files with Prettier                             |
-| `npm run check`        | Run lint, format check and tests in sequence               |
-| `npm run seed`         | Add demo requests to the local database                    |
-| `npm run db:reset`     | Delete the local database and its WAL files                |
+| Command            | Description                                       |
+| ------------------ | ------------------------------------------------- |
+| `npm run dev`      | Start the Express server with auto-reload         |
+| `npm start`        | Start the server                                  |
+| `npm test`         | Run the test suite with Node's native test runner |
+| `npm run lint`     | Find code problems with ESLint                    |
+| `npm run format`   | Format all files with Prettier                    |
+| `npm run check`    | Run lint, format check and tests in sequence      |
+| `npm run seed`     | Add demo requests to the local database           |
+| `npm run db:reset` | Delete the local database and its WAL files       |
 
 ## 🩺 Troubleshooting
 
-| Problem                          | Solution                                                                  |
-| -------------------------------- | ------------------------------------------------------------------------- |
-| `EADDRINUSE` when starting       | Another process uses the port. Change `PORT` in `.env`.                   |
+| Problem                                    | Solution                                                                                                |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| `EADDRINUSE` when starting                 | Another process uses the port. Change `PORT` in `.env`.                                                 |
 | The tracking page says "Too many attempts" | The lookup allows 8 tries per case number every 15 minutes. Wait, or restart the server in development. |
-| The footer says it cannot reach the API | Start the server with `npm run dev`.                               |
-| `better-sqlite3` fails to install | Use Node 22 or 24 so the prebuilt binary is downloaded.                  |
-| Old data keeps appearing         | Run `npm run db:reset` and, if you want demo data, `npm run seed`.        |
+| The footer says it cannot reach the API    | Start the server with `npm run dev`.                                                                    |
+| `better-sqlite3` fails to install          | Use Node 22 or 24 so the prebuilt binary is downloaded.                                                 |
+| Old data keeps appearing                   | Run `npm run db:reset` and, if you want demo data, `npm run seed`.                                      |
 
 ## 🤝 Contributing
 

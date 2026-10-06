@@ -166,4 +166,3 @@ test('lookup treats a missing body as empty input', () => {
 
   assert.ok(errors[0] instanceof ValidationError);
 });
-

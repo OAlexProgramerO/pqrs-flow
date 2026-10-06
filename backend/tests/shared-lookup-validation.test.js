@@ -40,7 +40,13 @@ test('works without any argument', () => {
 });
 
 test('rejects badly formed case numbers', () => {
-  for (const caseNumber of ['PQRS-26-000001', 'PQRS-2026-1', 'PQRS2026000001', 'ABC', '1; DROP TABLE']) {
+  for (const caseNumber of [
+    'PQRS-26-000001',
+    'PQRS-2026-1',
+    'PQRS2026000001',
+    'ABC',
+    '1; DROP TABLE',
+  ]) {
     const { errors } = validateLookup({ ...valid, caseNumber });
     assert.match(errors.caseNumber, /case number like/, `${caseNumber} should be rejected`);
   }

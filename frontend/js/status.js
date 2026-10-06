@@ -65,9 +65,11 @@ export function formatDateTime(iso, { locale, timeZone } = {}) {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return '';
 
-  return new Intl.DateTimeFormat(locale, { dateStyle: 'long', timeStyle: 'short', timeZone }).format(
-    date,
-  );
+  return new Intl.DateTimeFormat(locale, {
+    dateStyle: 'long',
+    timeStyle: 'short',
+    timeZone,
+  }).format(date);
 }
 
 /**

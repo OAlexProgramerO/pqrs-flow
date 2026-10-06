@@ -1,10 +1,12 @@
 import { ApiError, lookupPqrs } from './api.js';
-import { buildTimeline, describeStatus, describeWait, formatDateTime, typeLabel } from './status.js';
 import {
-  CASE_NUMBER_PATTERN,
-  normalizeCaseNumber,
-  validateLookup,
-} from '/shared/validation.js';
+  buildTimeline,
+  describeStatus,
+  describeWait,
+  formatDateTime,
+  typeLabel,
+} from './status.js';
+import { CASE_NUMBER_PATTERN, normalizeCaseNumber, validateLookup } from '/shared/validation.js';
 
 const FIELDS = ['caseNumber', 'requesterEmail'];
 const SUBMIT_LABEL = 'Check status';
@@ -67,7 +69,9 @@ export function initTrack() {
     document.getElementById('resultCaseNumber').textContent = result.caseNumber;
     document.getElementById('resultType').textContent = typeLabel(result.type);
     document.getElementById('resultCreated').textContent = formatDateTime(result.createdAt);
-    document.getElementById('timeline').replaceChildren(...buildTimeline(result.status).map(buildTimelineItem));
+    document
+      .getElementById('timeline')
+      .replaceChildren(...buildTimeline(result.status).map(buildTimelineItem));
 
     messageEl.hidden = true;
     lookupSection.hidden = true;

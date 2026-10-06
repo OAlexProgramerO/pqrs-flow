@@ -12,10 +12,7 @@ export function submitPqrs(repository, input, options) {
   const { valid, errors, data } = validatePqrs(input);
   if (!valid) throw new ValidationError(errors);
 
-  return repository.create(
-    { ...data, requesterEmail: data.requesterEmail.toLowerCase() },
-    options,
-  );
+  return repository.create({ ...data, requesterEmail: data.requesterEmail.toLowerCase() }, options);
 }
 
 /**

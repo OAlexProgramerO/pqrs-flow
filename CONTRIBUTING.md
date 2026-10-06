@@ -14,13 +14,24 @@ npm run dev
 
 ## Daily commands
 
-| Command          | What it does                                        |
-| ---------------- | --------------------------------------------------- |
-| `npm run dev`    | Start the server with auto-reload                   |
-| `npm test`       | Run the tests                                       |
-| `npm run lint`   | Find code problems with ESLint                      |
-| `npm run format` | Format all files with Prettier                      |
-| `npm run check`  | Lint + format check + tests (run before every push) |
+| Command          | What it does                                                        |
+| ---------------- | ------------------------------------------------------------------- |
+| `npm run dev`    | Start the server with auto-reload                                   |
+| `npm test`       | Run the tests                                                       |
+| `npm run lint`   | Find code problems with ESLint                                      |
+| `npm run format` | Format all files with Prettier                                      |
+| `npm run check`  | Lint + format check + tests (run before every push)                 |
+| `npm run ready`  | Format everything, then run `check` (run it after extracting a zip) |
+
+## Working directly on main
+
+Branches and pull requests are the safest way to work. If you commit straight to `main`, these rules keep it green:
+
+1. After extracting a zip or editing files, run `npm run ready`. It formats everything, then runs lint, formatting and tests.
+2. Commit in small steps, but **push once, at the end**. Every push starts a CI run.
+3. The pre-push hook runs `npm run check` before a push and refuses to push if it fails. It is turned on by `npm install` (or manually with `git config core.hooksPath .githooks`). Skip it only in an emergency with `git push --no-verify`.
+4. If CI turns red anyway, follow [docs/ci-troubleshooting.md](./docs/ci-troubleshooting.md) and fix it before starting anything new.
+5. Major dependency upgrades are planned as their own version. Close the Dependabot pull request instead of merging it.
 
 ## Branching (GitHub Flow)
 

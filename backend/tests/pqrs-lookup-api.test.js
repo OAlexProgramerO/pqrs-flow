@@ -153,9 +153,18 @@ test('too many attempts from one client get a 429 whatever the case number is', 
     },
   });
 
-  assert.equal((await lookup(limited, { caseNumber: 'PQRS-2026-000001', requesterEmail: 'a@b.co' })).status, 404);
-  assert.equal((await lookup(limited, { caseNumber: 'PQRS-2026-000002', requesterEmail: 'a@b.co' })).status, 404);
-  assert.equal((await lookup(limited, { caseNumber: 'PQRS-2026-000003', requesterEmail: 'a@b.co' })).status, 429);
+  assert.equal(
+    (await lookup(limited, { caseNumber: 'PQRS-2026-000001', requesterEmail: 'a@b.co' })).status,
+    404,
+  );
+  assert.equal(
+    (await lookup(limited, { caseNumber: 'PQRS-2026-000002', requesterEmail: 'a@b.co' })).status,
+    404,
+  );
+  assert.equal(
+    (await lookup(limited, { caseNumber: 'PQRS-2026-000003', requesterEmail: 'a@b.co' })).status,
+    429,
+  );
 });
 
 test('submitting a request is not affected by the lookup limits', async () => {
