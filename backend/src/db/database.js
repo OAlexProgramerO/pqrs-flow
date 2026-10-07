@@ -8,15 +8,17 @@ import { runMigrations } from './migrate.js';
  * Opens a SQLite database, applies safe defaults and runs the pending migrations.
  */
 export function openDatabase({ filename = env.dbPath, migrationsDir } = {}) {
-  if (filename !== ':memory:') fs.mkdirSync(path.dirname(filename), { recursive: true });
+  if (filename !== ':memory:') {
+    fs.mkdirSync(path.dirname(filename), { recursive: true });
+  }
 
   const db = new Database(filename);
 
   try {
-    db.pragma('journal_mode = WAL'); // readers do not block the writer
-    db.pragma('synchronous = NORMAL'); // safe with WAL and much faster than FULL
-    db.pragma('foreign_keys = ON'); // SQLite ignores foreign keys unless this is set
-    db.pragma('busy_timeout = 5000'); // wait up to 5 s instead of failing on a locked file
+    db.pragma('journal_mode = WAL');
+    db.pragma('synchronous = NORMAL');
+    db.pragma('foreign_keys = ON');
+    db.pragma('busy_timeout = 5000');
 
     runMigrations(db, migrationsDir);
   } catch (error) {
@@ -30,7 +32,8 @@ export function openDatabase({ filename = env.dbPath, migrationsDir } = {}) {
 let shared;
 
 /**
- * Shared connection for the app. It opens on first use, so importing the app never touches the disk.
+ * Shared connection for the app.
+ * It opens on first use, so importing the app never touches the disk.
  */
 export function getDb() {
   shared ??= openDatabase();
