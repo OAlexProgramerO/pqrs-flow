@@ -82,3 +82,11 @@ export function describeWait(seconds) {
   const minutes = Math.ceil(seconds / 60);
   return `about ${minutes} minute${minutes === 1 ? '' : 's'}`;
 }
+
+/**
+ * Adds the waiting time to the message of a 429 answer, when the server sent one.
+ */
+export function rateLimitMessage(message, retryAfter) {
+  const wait = describeWait(retryAfter);
+  return wait ? `${message} You can try again in ${wait}.` : message;
+}

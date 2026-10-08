@@ -6,6 +6,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import { env } from './config/env.js';
 import { getDb } from './db/database.js';
+import { compression } from './middlewares/compression.js';
 import { errorHandler, notFoundHandler } from './middlewares/error-handler.js';
 import { createRateLimiter } from './middlewares/rate-limit.js';
 import { requestId } from './middlewares/request-id.js';
@@ -28,6 +29,9 @@ const defaultLookupLimits = {
   caseNumber: { windowMs: FIFTEEN_MINUTES, max: 8 },
 };
 
+// New requests are limited per client address. The values come from the environment.
+const defaultSubmitLimit = env.submitRateLimit;
+
 let defaultRepository;
 
 // The database opens on the first request, so importing the app never touches the disk
@@ -37,14 +41,18 @@ function getDefaultRepository() {
 }
 
 /**
- * Builds the Express app. Tests pass their own getRepository to use an in-memory database
- * and their own lookupLimits to try the rate limits quickly.
+ * Builds the Express app. Tests pass their own getRepository to use an in-memory database,
+ * their own lookupLimits and submitLimit to try the rate limits quickly, and trustProxy to
+ * try the proxy settings.
  */
 export function createApp({
   getRepository = getDefaultRepository,
   lookupLimits = defaultLookupLimits,
+  submitLimit = defaultSubmitLimit,
+  trustProxy = env.trustProxy,
 } = {}) {
   const app = express();
+  const submitLimiters = [createRateLimiter({ ...submitLimit, key: (req) => `ip:${req.ip}` })];
   const lookupLimiters = [
     createRateLimiter({ ...lookupLimits.ip, key: (req) => `ip:${req.ip}` }),
     createRateLimiter({
@@ -53,15 +61,20 @@ export function createApp({
     }),
   ];
 
+  // Behind a reverse proxy, req.ip must be the visitor and not the proxy, or every visitor
+  // would share one rate limit. Express only believes X-Forwarded-For when this is set.
+  if (trustProxy) app.set('trust proxy', trustProxy);
+
   app.disable('x-powered-by');
   app.use(requestId);
   app.use(helmet());
   app.use(cors());
+  app.use(compression());
   app.use(express.json({ limit: '16kb' }));
   if (env.nodeEnv !== 'test') app.use(morgan(':id :method :url :status :response-time ms'));
 
   // API
-  app.use('/api', createRoutes({ getRepository, lookupLimiters }));
+  app.use('/api', createRoutes({ getRepository, lookupLimiters, submitLimiters }));
   app.use('/api', notFoundHandler);
 
   // Static frontend, plus the code shared with the server

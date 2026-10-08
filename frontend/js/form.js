@@ -1,4 +1,5 @@
 import { ApiError, createPqrs } from './api.js';
+import { rateLimitMessage } from './status.js';
 import { LIMITS, validatePqrs } from '/shared/validation.js';
 
 const FIELDS = ['type', 'subject', 'description', 'requesterName', 'requesterEmail'];
@@ -100,6 +101,8 @@ export function initForm() {
       if (error instanceof ApiError && error.details) {
         showFieldErrors(error.details);
         showMessage('Please fix the highlighted fields.', 'error');
+      } else if (error instanceof ApiError && error.status === 429) {
+        showMessage(rateLimitMessage(error.message, error.retryAfter), 'error');
       } else {
         showMessage(error.message, 'error');
       }
