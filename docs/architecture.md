@@ -53,7 +53,7 @@ Browser form ──► frontend/js/form.js ──► frontend/js/api.js ──PO
 - **Request id:** `middlewares/request-id.js` gives every request an id, returns it in `X-Request-Id` and prints it in the log line.
 - **App factory:** `createApp({ getRepository })` builds the Express app. Tests inject an in-memory repository, and the default app opens the real database on the first request.
 - **Privacy:** a submission response contains only the case number, type, subject, status and creation date.
-- **Anti-spam:** a hidden `website` field catches bots. Rate limiting arrives in v0.1.2.
+- **Anti-spam:** a hidden `website` field catches bots, and since v0.1.2 every client address has a limit on new requests.
 
 ## Looking up a request (v0.1.1)
 
@@ -70,7 +70,21 @@ track.html ──► js/track.js ──► js/api.js ──POST /api/pqrs/lookup
 
 - **Two keys, one answer:** the repository query asks for the case number and the email at the same time, so "wrong email" and "unknown case number" follow the same path and give the same `404`.
 - **Public columns only:** `findForLookup` selects the case number, type, status and creation date. Nothing else can leave the database through this route.
-- **Rate limiter:** `middlewares/rate-limit.js` is a fixed-window counter in memory with an injectable clock and a cap on the number of keys. It has no dependency and is used for the lookup now; version 0.1.2 reuses it for the rest of the API.
+- **Rate limiter:** `middlewares/rate-limit.js` is a fixed-window counter in memory with an injectable clock and a cap on the number of keys. It has no dependency. The lookup uses it, and version 0.1.2 reuses it for submissions.
 - **Browser side:** `js/status.js` holds the texts, the timeline and the date format as pure functions. `js/track.js` builds the page with `textContent` and DOM nodes, never `innerHTML`.
 - **Case number in the link:** the confirmation page links to `track.html?case=...`. The page reads it, then removes it from the address bar. The email never goes in a URL.
 - **Referrer:** `helmet` sends `Referrer-Policy: no-referrer`, so the case number in a link is not passed to other sites.
+
+## Hardening (v0.1.2)
+
+```
+requestId → helmet → cors → compression → express.json (16 KB) → morgan
+   → /api  (health, pqrs: submit limit or lookup limits → controller)
+   → static files (frontend/, shared/)
+   → error handler
+```
+
+- **Submission limit:** `POST /api/pqrs` passes through one limiter keyed by `req.ip` (10 every 15 minutes by default). It uses the same `createRateLimiter` as the lookup, with its own counters. `SUBMIT_RATE_LIMIT_MAX` and `SUBMIT_RATE_LIMIT_WINDOW_MINUTES` change the numbers.
+- **Compression:** `middlewares/compression.js` replaces `res.write` and `res.end` and decides when the first byte is about to leave, when the status and the headers are final. It compresses text of 1 KB or more with brotli (quality 4) or gzip, whichever the client prefers. Static files are compressed while they stream, and when the connection is slow the compressor waits for the `drain` event, so memory does not grow. Partial answers (206), `HEAD`, `204`, `304`, images and answers that are already encoded pass untouched. A strong ETag becomes weak, because the bytes are not the same, and `If-None-Match` still gives a `304`.
+- **Why not the `compression` package:** the middleware is under 200 lines, adds no dependency (the lock file and the audit stay the same) and is covered by tests with real HTTP requests. Swapping it later for the package takes one line in `app.js`.
+- **Reverse proxy:** `TRUST_PROXY` is passed to Express as `trust proxy`, so `req.ip` is the visitor and not the proxy. It is off by default, because without a proxy anyone can send a fake `X-Forwarded-For` and skip the limits. Use the number of proxies (`1`), not `true`. `server.js` also raises `keepAliveTimeout` to 65 s and `headersTimeout` to 66 s, above the 60 s idle time most proxies use, to avoid random 502 errors.

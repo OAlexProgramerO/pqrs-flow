@@ -12,7 +12,8 @@ All responses are JSON. Errors always have the shape `{ "error": "message" }`, w
 | Body size    | JSON bodies larger than 16 KB are rejected with `413`.                                                   |
 | Content type | Send `Content-Type: application/json`. Other content types are ignored and fail validation.              |
 | Security     | Responses carry the headers set by `helmet` (content security policy, `nosniff`, and more).              |
-| Rate limit   | Only the lookup is limited for now. A `429` includes a `Retry-After` header in seconds.                  |
+| Rate limit   | Submissions and lookups are limited. A `429` includes a `Retry-After` header in seconds.                 |
+| Compression  | Text answers over 1 KB are sent with `br` or `gzip` when `Accept-Encoding` allows it. `Vary` says so.    |
 
 ## Endpoints
 
@@ -26,7 +27,7 @@ Checks that the server is running. Used by the frontend and by monitoring tools.
 {
   "status": "ok",
   "service": "pqrs-flow",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "timestamp": "2026-10-04T12:00:00.000Z"
 }
 ```
@@ -81,13 +82,22 @@ The response never repeats the description, the name or the email.
 
 **Errors**
 
-| Status | Body                                                                                 | When                                      |
-| ------ | ------------------------------------------------------------------------------------ | ----------------------------------------- |
-| `400`  | `{ "error": "Validation failed", "details": { "subject": "Subject is required." } }` | One or more fields are invalid            |
-| `400`  | `{ "error": "Invalid submission" }`                                                  | The `website` field is filled in          |
-| `400`  | `{ "error": "Malformed JSON body" }`                                                 | The body is not valid JSON                |
-| `413`  | `{ "error": "Request body too large" }`                                              | The body is larger than 16 KB             |
-| `500`  | `{ "error": "Internal server error", "requestId": "..." }`                           | Unexpected failure. Quote the request id. |
+| Status | Body                                                                                   | When                                      |
+| ------ | -------------------------------------------------------------------------------------- | ----------------------------------------- |
+| `400`  | `{ "error": "Validation failed", "details": { "subject": "Subject is required." } }`   | One or more fields are invalid            |
+| `400`  | `{ "error": "Invalid submission" }`                                                    | The `website` field is filled in          |
+| `400`  | `{ "error": "Malformed JSON body" }`                                                   | The body is not valid JSON                |
+| `413`  | `{ "error": "Request body too large" }`                                                | The body is larger than 16 KB             |
+| `429`  | `{ "error": "Too many attempts. Please try again later." }` and a `Retry-After` header | Too many submissions from one address     |
+| `500`  | `{ "error": "Internal server error", "requestId": "..." }`                             | Unexpected failure. Quote the request id. |
+
+**Rate limit**
+
+| Limit                          | Value               | Protects against                        |
+| ------------------------------ | ------------------- | --------------------------------------- |
+| Submissions per client address | 10 every 15 minutes | Spam and scripts that fill the database |
+
+Every attempt that reaches the route counts, valid or not. A body that is not valid JSON, or is larger than 16 KB, is rejected before the limit and does not count. The numbers can be changed with `SUBMIT_RATE_LIMIT_MAX` and `SUBMIT_RATE_LIMIT_WINDOW_MINUTES`. The counters live in the memory of the server and restart with it.
 
 ### `POST /api/pqrs/lookup`
 
@@ -145,7 +155,7 @@ Checks the status of a request. It needs the case number **and** the email used 
 | Attempts per client address | 30 every 15 minutes | One computer trying many case numbers              |
 | Attempts per case number    | 8 every 15 minutes  | Guessing the email of one case from many computers |
 
-Every attempt counts, successful or not. The counters live in the memory of the server and restart with it. Known trade-off: someone who knows a case number can use up its 8 attempts and make the owner wait. Behind a proxy, the server must be told to trust it (`trust proxy`) so the client address is the real one; that is part of the deployment in 0.5.2.
+Every attempt counts, successful or not. The counters live in the memory of the server and restart with it. Known trade-off: someone who knows a case number can use up its 8 attempts and make the owner wait. Behind a proxy, set `TRUST_PROXY` (see the README) so the client address is the real one.
 
 ## Other errors
 

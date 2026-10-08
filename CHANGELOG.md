@@ -4,8 +4,17 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [SemVer](h
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-10-08
+
 ### Added
 
+- Rate limit for `POST /api/pqrs`: 10 requests per client address every 15 minutes, with `429` and `Retry-After`. Set it with `SUBMIT_RATE_LIMIT_MAX` and `SUBMIT_RATE_LIMIT_WINDOW_MINUTES`.
+- Compression middleware (`middlewares/compression.js`) built on Node's `zlib`: brotli and gzip, weights of `Accept-Encoding` respected, `Vary: Accept-Encoding`, weak ETags, streaming with back pressure. It skips images, small answers, partial answers (206), `HEAD`, `204`, `304` and `no-transform`.
+- `TRUST_PROXY` setting (a number of proxies, `loopback` and similar values, off by default) so the rate limits see the real visitor behind a reverse proxy. A warning is printed when it is set to `true`.
+- Longer keep-alive and header timeouts in `server.js`, so proxies and load balancers do not hit closed connections.
+- The submission form shows how long to wait after a `429` (`rateLimitMessage` in `frontend/js/status.js`).
+- `createApp` accepts `submitLimit` and `trustProxy`, so tests can try both quickly.
+- Tests for the compression middleware and the whole app, the submission limit, the proxy settings, the environment values and the new message.
 - Pre-push hook (`.githooks/pre-push`) that runs lint, formatting and tests before anything is pushed.
 - `npm run ready` formats every file and then runs all the checks.
 - CI troubleshooting guide (`docs/ci-troubleshooting.md`) and rules for working directly on `main`.

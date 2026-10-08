@@ -6,6 +6,7 @@ import {
   describeStatus,
   describeWait,
   formatDateTime,
+  rateLimitMessage,
   typeLabel,
 } from '../../frontend/js/status.js';
 
@@ -95,4 +96,16 @@ test('the status helpers are the same file the browser loads', async () => {
   const module = await import('../../frontend/js/status.js');
 
   assert.equal(typeof module.buildTimeline, 'function');
+});
+
+test('rateLimitMessage adds the waiting time to the message', () => {
+  assert.equal(
+    rateLimitMessage('Too many attempts. Please try again later.', 600),
+    'Too many attempts. Please try again later. You can try again in about 10 minutes.',
+  );
+});
+
+test('rateLimitMessage keeps the message as it is when there is no waiting time', () => {
+  assert.equal(rateLimitMessage('Too many attempts.', undefined), 'Too many attempts.');
+  assert.equal(rateLimitMessage('Too many attempts.', 0), 'Too many attempts.');
 });

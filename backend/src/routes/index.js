@@ -2,11 +2,11 @@ import { Router } from 'express';
 import healthRoutes from './health.routes.js';
 import { createPqrsRoutes } from './pqrs.routes.js';
 
-export function createRoutes({ getRepository, lookupLimiters }) {
+export function createRoutes({ getRepository, lookupLimiters, submitLimiters }) {
   const router = Router();
 
   router.use('/health', healthRoutes);
-  router.use('/pqrs', createPqrsRoutes({ getRepository, lookupLimiters }));
+  router.use('/pqrs', createPqrsRoutes({ getRepository, lookupLimiters, submitLimiters }));
 
   return router;
 }
