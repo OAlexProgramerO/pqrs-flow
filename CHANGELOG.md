@@ -4,6 +4,21 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [SemVer](h
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-10-08
+
+### Added
+
+- `CORS_ORIGINS` setting: a list of websites (or `*`) allowed to call the API from a browser.
+- `STATIC_CACHE_SECONDS` setting: how long a browser may keep styles, scripts and images. It is `0` in development and tests, and `3600` when `NODE_ENV=production`.
+- `Cache-Control` rules for the static files: pages are always revalidated (`no-cache`), the rest uses `public, max-age=N`. The `ETag` still answers `304` to a repeated request.
+- `Cache-Control: no-store` on every answer under `/api`, errors included.
+- `createApp` accepts `corsOrigins` and `staticCacheSeconds`, so tests can try both.
+- Tests for CORS, cache headers and the new environment values.
+
+### Changed
+
+- CORS is off by default. Before, `cors()` allowed every website. The pages are served by the same server, so they keep working; a page served from another address needs its origin in `CORS_ORIGINS`.
+
 ## [0.1.2] - 2026-10-08
 
 ### Added

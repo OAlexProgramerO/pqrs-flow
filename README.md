@@ -6,7 +6,7 @@
 
 A web system to submit, track and manage **PQRS** — _Peticiones, Quejas, Reclamos y Sugerencias_ (Petitions, Complaints, Claims and Suggestions). Built end to end with JavaScript, prioritizing simplicity, no frontend build step and clear architectural boundaries.
 
-**Status: v0.1.2** — Citizens can submit a request, receive a case number and track its status. Submissions are rate limited, answers are compressed and the server can run behind a reverse proxy. See [ROADMAP.md](./ROADMAP.md) for the path to v1.0.0.
+**Status: v0.1.3** — Citizens can submit a request, receive a case number and track its status. Submissions are rate limited, answers are compressed, browsers cache the static files and the server can run behind a reverse proxy. See [ROADMAP.md](./ROADMAP.md) for the path to v1.0.0.
 
 ---
 
@@ -22,15 +22,16 @@ Many organizations still handle feedback, complaints and requests through scatte
 
 ### Project status
 
-| Feature                                                  | Version | Status  |
-| -------------------------------------------------------- | ------- | ------- |
-| Express server, health endpoint, static site             | 0.0.1   | Done    |
-| Submission form with client-side validation              | 0.0.2   | Done    |
-| Database, migrations and repository                      | 0.0.3   | Done    |
-| `POST /api/pqrs`, form connected to the API, case number | 0.1.0   | Done    |
-| Status lookup with case number and email                 | 0.1.1   | Done    |
-| Rate limit for submissions, compression, proxy settings  | 0.1.2   | Done    |
-| Staff panel (login, list, status changes)                | 0.2.x   | Planned |
+| Feature                                                   | Version | Status  |
+| --------------------------------------------------------- | ------- | ------- |
+| Express server, health endpoint, static site              | 0.0.1   | Done    |
+| Submission form with client-side validation               | 0.0.2   | Done    |
+| Database, migrations and repository                       | 0.0.3   | Done    |
+| `POST /api/pqrs`, form connected to the API, case number  | 0.1.0   | Done    |
+| Status lookup with case number and email                  | 0.1.1   | Done    |
+| Rate limit for submissions, compression, proxy settings   | 0.1.2   | Done    |
+| Cache headers for static files, CORS from the environment | 0.1.3   | Done    |
+| Staff panel (login, list, status changes)                 | 0.2.x   | Planned |
 
 ## ✨ What it does today
 
@@ -44,6 +45,8 @@ Many organizations still handle feedback, complaints and requests through scatte
 - Submissions are rate limited per client address (10 every 15 minutes by default, set in `.env`).
 - Text answers (pages, styles, scripts, JSON) are compressed with gzip or brotli, with no extra dependency.
 - Works behind a reverse proxy: `TRUST_PROXY` makes the rate limits see the real visitor.
+- Cache rules: pages are always revalidated, styles and scripts are kept for an hour in production, and API answers are never stored.
+- CORS is closed by default, because the pages come from the same server. `CORS_ORIGINS` opens it for the websites you list.
 - Demo data and database reset commands for local development.
 - Tests for validation, database, service, controller, rate limiter, compression, API, status helpers and frontend client.
 
@@ -106,14 +109,16 @@ To see data without typing it, add demo requests with `npm run seed`. It prints 
 
 ### Configuration
 
-| Variable                           | Default        | Description                                                                         |
-| ---------------------------------- | -------------- | ----------------------------------------------------------------------------------- |
-| `PORT`                             | `3000`         | Port of the server                                                                  |
-| `NODE_ENV`                         | `development`  | `production` disables the seed and reset commands                                   |
-| `DB_PATH`                          | `data/pqrs.db` | SQLite file. Relative paths start at the project root.                              |
-| `SUBMIT_RATE_LIMIT_MAX`            | `10`           | New requests one client address may send in each window                             |
-| `SUBMIT_RATE_LIMIT_WINDOW_MINUTES` | `15`           | Length of that window in minutes                                                    |
-| `TRUST_PROXY`                      | empty (off)    | Number of reverse proxies in front of the app, for example `1`. See the note below. |
+| Variable                           | Default                      | Description                                                                         |
+| ---------------------------------- | ---------------------------- | ----------------------------------------------------------------------------------- |
+| `PORT`                             | `3000`                       | Port of the server                                                                  |
+| `NODE_ENV`                         | `development`                | `production` disables the seed and reset commands                                   |
+| `DB_PATH`                          | `data/pqrs.db`               | SQLite file. Relative paths start at the project root.                              |
+| `SUBMIT_RATE_LIMIT_MAX`            | `10`                         | New requests one client address may send in each window                             |
+| `SUBMIT_RATE_LIMIT_WINDOW_MINUTES` | `15`                         | Length of that window in minutes                                                    |
+| `TRUST_PROXY`                      | empty (off)                  | Number of reverse proxies in front of the app, for example `1`. See the note below. |
+| `CORS_ORIGINS`                     | empty (none)                 | Websites allowed to call the API from a browser, separated by commas, or `*`        |
+| `STATIC_CACHE_SECONDS`             | `0`, or `3600` in production | Seconds a browser may keep styles, scripts and images                               |
 
 **Behind a reverse proxy** (Nginx, Render, Railway...) set `TRUST_PROXY` to the number of proxies, usually `1`. Without it the server sees the address of the proxy for every visitor, so all of them would share one rate limit. Leave it empty when nobody sits in front of the app, because trusting `X-Forwarded-For` without a proxy lets anyone fake their address. Avoid `TRUST_PROXY=true` for the same reason.
 
@@ -142,15 +147,17 @@ curl -X POST http://localhost:3000/api/pqrs \
 
 ## 🩺 Troubleshooting
 
-| Problem                                    | Solution                                                                                                |
-| ------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
-| `EADDRINUSE` when starting                 | Another process uses the port. Change `PORT` in `.env`.                                                 |
-| The tracking page says "Too many attempts" | The lookup allows 8 tries per case number every 15 minutes. Wait, or restart the server in development. |
-| The form says "Too many attempts"          | Each address may send 10 requests every 15 minutes. Wait, or raise `SUBMIT_RATE_LIMIT_MAX` in `.env`.   |
-| Every visitor is blocked at the same time  | The app is behind a proxy. Set `TRUST_PROXY=1` in the environment of the server.                        |
-| The footer says it cannot reach the API    | Start the server with `npm run dev`.                                                                    |
-| `better-sqlite3` fails to install          | Use Node 22 or 24 so the prebuilt binary is downloaded.                                                 |
-| Old data keeps appearing                   | Run `npm run db:reset` and, if you want demo data, `npm run seed`.                                      |
+| Problem                                                  | Solution                                                                                                    |
+| -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `EADDRINUSE` when starting                               | Another process uses the port. Change `PORT` in `.env`.                                                     |
+| The tracking page says "Too many attempts"               | The lookup allows 8 tries per case number every 15 minutes. Wait, or restart the server in development.     |
+| The form says "Too many attempts"                        | Each address may send 10 requests every 15 minutes. Wait, or raise `SUBMIT_RATE_LIMIT_MAX` in `.env`.       |
+| The browser blocks the API with a CORS error             | The page is served by another website or port (for example Live Server). Add its address to `CORS_ORIGINS`. |
+| A changed script or style does not show up in production | Browsers keep them for `STATIC_CACHE_SECONDS`. Lower it, or force a reload with Ctrl+F5.                    |
+| Every visitor is blocked at the same time                | The app is behind a proxy. Set `TRUST_PROXY=1` in the environment of the server.                            |
+| The footer says it cannot reach the API                  | Start the server with `npm run dev`.                                                                        |
+| `better-sqlite3` fails to install                        | Use Node 22 or 24 so the prebuilt binary is downloaded.                                                     |
+| Old data keeps appearing                                 | Run `npm run db:reset` and, if you want demo data, `npm run seed`.                                          |
 
 ## 🤝 Contributing
 

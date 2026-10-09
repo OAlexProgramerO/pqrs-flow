@@ -17,9 +17,9 @@ Path from **v0.0.1** to **v1.0.0**. Each version is one branch, one pull request
 | 0.0.3   | `feat/database`            | SQLite, migrations, repository and case numbers                      | Done     |
 | 0.1.0   | `feat/submit-pqrs`         | `POST /api/pqrs`, shared validation, form connected, success screen  | Done     |
 | 0.1.1   | `feat/track-pqrs`          | Lookup with case number **and** email, tracking page, rate limits    | Done     |
-| 0.1.2   | `chore/hardening`          | Rate limit for submissions, compression, proxy settings              | **Done** |
-| 0.1.3   | `chore/http-caching`       | Cache headers for static files and CORS origins from the environment | Next     |
-| 0.2.0   | `feat/staff-auth`          | Staff login with hashed passwords and httpOnly cookie sessions       | Planned  |
+| 0.1.2   | `chore/hardening`          | Rate limit for submissions, compression, proxy settings              | Done     |
+| 0.1.3   | `chore/http-caching`       | Cache headers for static files and CORS origins from the environment | **Done** |
+| 0.2.0   | `feat/staff-auth`          | Staff login with hashed passwords and httpOnly cookie sessions       | Next     |
 | 0.2.1   | `feat/staff-list`          | Paginated list with filters and an index                             | Planned  |
 | 0.2.2   | `feat/status-workflow`     | State machine, reply text, history table                             | Planned  |
 | 0.3.0   | `feat/deadlines`           | Due date per request type, business days, overdue flag               | Planned  |
@@ -47,6 +47,8 @@ Path from **v0.0.1** to **v1.0.0**. Each version is one branch, one pull request
 | Lookup limits per client address and per case number       | One limit stops a computer, the other stops many computers guessing one email.                                  |
 | Submission limit per client address, set in `.env` (0.1.2) | Real people send one or two requests. A shared address still has room and the numbers change without code.      |
 | Own compression with Node's `zlib`, not a package (0.1.2)  | No new dependency, so the lock file and the audit stay as they are. Tested with files, ranges and slow clients. |
+| CORS closed by default, `CORS_ORIGINS` opens it (0.1.3)    | The pages and the API share one origin. The staff cookies of 0.2.0 must never be readable from other sites.     |
+| Static files are not cached in development (0.1.3)         | Their names have no version, so a long cache would hide edits. Production keeps them for an hour.               |
 | Proxy trust is off by default, `TRUST_PROXY` turns it on   | Trusting `X-Forwarded-For` without a proxy lets anyone fake an address and skip the limits.                     |
 | Passwords use Node's built-in `scrypt` (0.2.0)             | No extra dependency for the staff login.                                                                        |
 | Node 22 is the minimum, CI runs on 22 and 24               | Node 20 reached end of life in April 2026.                                                                      |

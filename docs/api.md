@@ -13,6 +13,8 @@ All responses are JSON. Errors always have the shape `{ "error": "message" }`, w
 | Content type | Send `Content-Type: application/json`. Other content types are ignored and fail validation.              |
 | Security     | Responses carry the headers set by `helmet` (content security policy, `nosniff`, and more).              |
 | Rate limit   | Submissions and lookups are limited. A `429` includes a `Retry-After` header in seconds.                 |
+| Caching      | Every answer under `/api` carries `Cache-Control: no-store`.                                             |
+| CORS         | Closed by default. Websites listed in `CORS_ORIGINS` may call the API from a browser.                    |
 | Compression  | Text answers over 1 KB are sent with `br` or `gzip` when `Accept-Encoding` allows it. `Vary` says so.    |
 
 ## Endpoints
@@ -27,7 +29,7 @@ Checks that the server is running. Used by the frontend and by monitoring tools.
 {
   "status": "ok",
   "service": "pqrs-flow",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "timestamp": "2026-10-04T12:00:00.000Z"
 }
 ```
