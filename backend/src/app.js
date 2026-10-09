@@ -32,6 +32,23 @@ const defaultLookupLimits = {
 // New requests are limited per client address. The values come from the environment.
 const defaultSubmitLimit = env.submitRateLimit;
 
+function noStore(_req, res, next) {
+  res.set('Cache-Control', 'no-store');
+  next();
+}
+
+/**
+ * Cache rules of the static files. Pages are always checked again with the server (the ETag
+ * makes that cheap). Styles, scripts and images may be kept for `seconds`; with zero they are
+ * checked again too, so a change shows up at once.
+ */
+export function setStaticCacheHeaders(seconds) {
+  return (res, filePath) => {
+    const keep = seconds > 0 && !filePath.endsWith('.html');
+    res.setHeader('Cache-Control', keep ? `public, max-age=${seconds}` : 'no-cache');
+  };
+}
+
 let defaultRepository;
 
 // The database opens on the first request, so importing the app never touches the disk
@@ -42,14 +59,16 @@ function getDefaultRepository() {
 
 /**
  * Builds the Express app. Tests pass their own getRepository to use an in-memory database,
- * their own lookupLimits and submitLimit to try the rate limits quickly, and trustProxy to
- * try the proxy settings.
+ * their own lookupLimits and submitLimit to try the rate limits quickly, and trustProxy,
+ * corsOrigins and staticCacheSeconds to try the proxy, CORS and cache settings.
  */
 export function createApp({
   getRepository = getDefaultRepository,
   lookupLimits = defaultLookupLimits,
   submitLimit = defaultSubmitLimit,
   trustProxy = env.trustProxy,
+  corsOrigins = env.corsOrigins,
+  staticCacheSeconds = env.staticCacheSeconds,
 } = {}) {
   const app = express();
   const submitLimiters = [createRateLimiter({ ...submitLimit, key: (req) => `ip:${req.ip}` })];
@@ -68,8 +87,11 @@ export function createApp({
   app.disable('x-powered-by');
   app.use(requestId);
   app.use(helmet());
-  app.use(cors());
+  // The pages come from this same server, so CORS is only switched on for the origins listed
+  if (corsOrigins) app.use(cors({ origin: corsOrigins }));
   app.use(compression());
+  // Answers of the API are never kept by a browser or a proxy
+  app.use('/api', noStore);
   app.use(express.json({ limit: '16kb' }));
   if (env.nodeEnv !== 'test') app.use(morgan(':id :method :url :status :response-time ms'));
 
@@ -78,8 +100,9 @@ export function createApp({
   app.use('/api', notFoundHandler);
 
   // Static frontend, plus the code shared with the server
-  app.use('/shared', express.static(sharedDir));
-  app.use(express.static(frontendDir));
+  const staticOptions = { setHeaders: setStaticCacheHeaders(staticCacheSeconds) };
+  app.use('/shared', express.static(sharedDir, staticOptions));
+  app.use(express.static(frontendDir, staticOptions));
 
   app.use(errorHandler);
 

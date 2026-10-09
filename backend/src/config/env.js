@@ -24,14 +24,42 @@ export function parseTrustProxy(value) {
   return text;
 }
 
+/**
+ * Reads CORS_ORIGINS, the websites allowed to call the API from a browser.
+ * - empty: nobody. The pages are served by this app, so they do not need CORS (default)
+ * - a list separated by commas, such as "https://example.com,http://localhost:5500"
+ * - "*": any website (only for a public API without cookies)
+ * Returns false, "*" or an array of origins without a trailing slash.
+ */
+export function parseCorsOrigins(value) {
+  const origins = String(value ?? '')
+    .split(',')
+    .map((origin) => origin.trim().replace(/\/+$/, ''))
+    .filter(Boolean);
+
+  if (origins.length === 0) return false;
+  if (origins.includes('*')) return '*';
+  return origins;
+}
+
 // A whole number greater than zero, or the fallback when the value is missing or wrong
 function positiveInteger(value, fallback) {
   const number = Number(value);
   return Number.isInteger(number) && number > 0 ? number : fallback;
 }
 
+// A whole number of zero or more, or the fallback when the value is missing or wrong
+function nonNegativeInteger(value, fallback) {
+  if (String(value ?? '').trim() === '') return fallback;
+
+  const number = Number(value);
+  return Number.isInteger(number) && number >= 0 ? number : fallback;
+}
+
+const nodeEnv = process.env.NODE_ENV ?? 'development';
+
 export const env = {
-  nodeEnv: process.env.NODE_ENV ?? 'development',
+  nodeEnv,
   port: Number(process.env.PORT) || 3000,
 
   // DB_PATH is resolved relative to the project root.
@@ -45,4 +73,14 @@ export const env = {
     max: positiveInteger(process.env.SUBMIT_RATE_LIMIT_MAX, 10),
     windowMs: positiveInteger(process.env.SUBMIT_RATE_LIMIT_WINDOW_MINUTES, 15) * 60 * 1000,
   },
+
+  // Websites allowed to call the API from a browser. Nobody by default.
+  corsOrigins: parseCorsOrigins(process.env.CORS_ORIGINS),
+
+  // How long browsers may keep the styles, scripts and images. Pages are always revalidated.
+  // Files have no version in their name, so development and tests keep it at zero.
+  staticCacheSeconds: nonNegativeInteger(
+    process.env.STATIC_CACHE_SECONDS,
+    nodeEnv === 'production' ? 3600 : 0,
+  ),
 };

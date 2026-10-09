@@ -78,9 +78,10 @@ track.html ──► js/track.js ──► js/api.js ──POST /api/pqrs/lookup
 ## Hardening (v0.1.2)
 
 ```
-requestId → helmet → cors → compression → express.json (16 KB) → morgan
+requestId → helmet → cors (only if CORS_ORIGINS) → compression → /api no-store
+   → express.json (16 KB) → morgan
    → /api  (health, pqrs: submit limit or lookup limits → controller)
-   → static files (frontend/, shared/)
+   → static files (frontend/, shared/) with their cache rules
    → error handler
 ```
 
@@ -88,3 +89,10 @@ requestId → helmet → cors → compression → express.json (16 KB) → morga
 - **Compression:** `middlewares/compression.js` replaces `res.write` and `res.end` and decides when the first byte is about to leave, when the status and the headers are final. It compresses text of 1 KB or more with brotli (quality 4) or gzip, whichever the client prefers. Static files are compressed while they stream, and when the connection is slow the compressor waits for the `drain` event, so memory does not grow. Partial answers (206), `HEAD`, `204`, `304`, images and answers that are already encoded pass untouched. A strong ETag becomes weak, because the bytes are not the same, and `If-None-Match` still gives a `304`.
 - **Why not the `compression` package:** the middleware is under 200 lines, adds no dependency (the lock file and the audit stay the same) and is covered by tests with real HTTP requests. Swapping it later for the package takes one line in `app.js`.
 - **Reverse proxy:** `TRUST_PROXY` is passed to Express as `trust proxy`, so `req.ip` is the visitor and not the proxy. It is off by default, because without a proxy anyone can send a fake `X-Forwarded-For` and skip the limits. Use the number of proxies (`1`), not `true`. `server.js` also raises `keepAliveTimeout` to 65 s and `headersTimeout` to 66 s, above the 60 s idle time most proxies use, to avoid random 502 errors.
+
+## HTTP caching and CORS (v0.1.3)
+
+- **API answers:** a middleware on `/api` sets `Cache-Control: no-store` before anything else runs, so success answers, validation errors, `429` and unknown routes are never kept by a browser or a proxy. It sits before `express.json`, so even a malformed body gets it.
+- **Static files:** `setStaticCacheHeaders(seconds)` is passed to `express.static` for the frontend and for `/shared`. Pages (`.html`) always get `no-cache`: the browser asks again and the `ETag` turns the answer into a cheap `304`. Other files get `public, max-age=N`. With `N = 0` they also get `no-cache`.
+- **Why zero in development:** file names have no version (`styles.css`, not `styles.3f2a.css`), so a cache would hide edits and an old script could meet a new page after a deploy. Production uses one hour by default, a compromise that `STATIC_CACHE_SECONDS` can change. Versioned file names would allow a year and arrive with the build step, if there ever is one.
+- **CORS:** the pages and the API share one origin, so the middleware is only added when `CORS_ORIGINS` lists websites (or `*`). The `cors` package then answers the preflight and adds `Vary: Origin`. The staff cookies of 0.2.0 depend on this being closed by default.
