@@ -9,6 +9,13 @@ if (env.trustProxy === true) {
   );
 }
 
+if (env.nodeEnv === 'production' && !env.session.cookieSecure) {
+  console.warn(
+    'SESSION_COOKIE_SECURE is off in production, so the staff cookie also travels over plain ' +
+      'HTTP. Serve the app over HTTPS and leave it on.',
+  );
+}
+
 const server = app.listen(env.port, () => {
   console.log(`PQRS Flow listening on http://localhost:${env.port}`);
 });

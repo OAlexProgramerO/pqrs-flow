@@ -147,10 +147,14 @@ function repairLegacyPqrsTable(db) {
  * Each migration runs inside a transaction.
  *
  * A compatibility repair is also applied to databases created by the
- * previous broken schema implementation.
+ * previous broken schema implementation. It runs first, so every migration
+ * (indexes and foreign keys included) sees a complete `pqrs` table.
  */
 export function runMigrations(db, migrationsDir = DEFAULT_MIGRATIONS_DIR) {
   const migrations = getMigrationFiles(migrationsDir);
+
+  // Repair the legacy table if this database predates the correct schema.
+  repairLegacyPqrsTable(db);
 
   let currentVersion = getUserVersion(db);
 
@@ -170,9 +174,6 @@ export function runMigrations(db, migrationsDir = DEFAULT_MIGRATIONS_DIR) {
 
     currentVersion = migration.version;
   }
-
-  // Repair the legacy table if this database predates the correct schema.
-  repairLegacyPqrsTable(db);
 
   // Ensure the counter table exists even if an old database had a partial schema.
   if (!tableExists(db, 'case_counters')) {

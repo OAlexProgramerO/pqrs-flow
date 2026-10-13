@@ -96,3 +96,65 @@ requestId → helmet → cors (only if CORS_ORIGINS) → compression → /api no
 - **Static files:** `setStaticCacheHeaders(seconds)` is passed to `express.static` for the frontend and for `/shared`. Pages (`.html`) always get `no-cache`: the browser asks again and the `ETag` turns the answer into a cheap `304`. Other files get `public, max-age=N`. With `N = 0` they also get `no-cache`.
 - **Why zero in development:** file names have no version (`styles.css`, not `styles.3f2a.css`), so a cache would hide edits and an old script could meet a new page after a deploy. Production uses one hour by default, a compromise that `STATIC_CACHE_SECONDS` can change. Versioned file names would allow a year and arrive with the build step, if there ever is one.
 - **CORS:** the pages and the API share one origin, so the middleware is only added when `CORS_ORIGINS` lists websites (or `*`). The `cors` package then answers the preflight and adds `Vary: Origin`. The staff cookies of 0.2.0 depend on this being closed by default.
+
+## Staff panel (v0.2.0)
+
+### Layout
+
+```
+frontend-admin/          → staff pages, served under /admin behind the gate
+backend/src/
+  routes/admin.routes.js          → /api/admin: order of the guards
+  middlewares/admin-auth.js       → cookie, session, CSRF, origin check, page gate
+  controllers/admin-*.controller.js
+  services/auth.service.js        → login, session check, logout
+  services/password.js            → scrypt hash and verify
+  services/session-token.js       → random token, SHA-256, CSRF token
+  services/status-workflow.js     → the four statuses and their transitions
+  services/admin-pqrs.service.js  → list, detail, change status
+  services/admin-validation.js    → every staff input is checked here
+  services/admin-accounts.js      → create, reset, deactivate accounts (used by the command)
+  repositories/admin*.js, session.repository.js, admin-pqrs.repository.js
+  cli/admin-cli.js + scripts/admin.js → `npm run admin`
+  admin-context.js                → builds the staff objects on one database connection
+```
+
+The staff repositories are separate from `pqrs.repository.js`. The public routes only receive the public one, so a listing or an audit query cannot be reached by mistake from a public endpoint.
+
+### Request flow
+
+`routes/admin.routes.js` applies the guards in a fixed order:
+
+1. `sameOriginOnly`: a request that changes something and comes from another site is refused before anything else.
+2. `POST /login` (behind the two login limiters) and `POST /logout`, which handle sessions themselves.
+3. `requireAdmin` for everything else. It also catches unknown paths, so an anonymous visitor always gets `401`.
+4. `requireCsrf`, which covers every method except `GET`, `HEAD` and `OPTIONS`. A new route that changes data is protected without anyone remembering to add the check.
+
+### Sessions
+
+- The token is 32 random bytes in base64url. The cookie holds the token, the table `admin_sessions` holds `SHA-256(token)`. A copy of the database cannot become working cookies.
+- A session has an absolute end (`expires_at`) and an idle end (`last_seen_at` plus the idle time). `last_seen_at` is written at most once a minute, so reading the panel does not write.
+- Login deletes the session of the cookie it received and creates a new one in one transaction (rotation). Expired sessions are deleted when they are found and, for everybody, on each login.
+- The CSRF token is `HMAC-SHA256(sessionToken, "pqrs-flow:csrf:v1")`. Nothing extra is stored. Another site cannot compute it because it cannot read the `HttpOnly` cookie. It is compared in constant time.
+- The cookie is named `__Host-pqrs_session` when `Secure` is on: the browser then refuses it unless it came over HTTPS, with `Path=/` and no `Domain`.
+- A login for an unknown account verifies the password against a real dummy hash, so the time does not tell which accounts exist.
+
+### The staff pages and the static handler
+
+`app.use('/admin', adminAuth.pageGate, express.static(adminDir))` comes before the public static handler. The gate compares the path **exactly** with a short list of public files (the login page, its script, the API client, the messages helper and the stylesheet); every other spelling, encoded or not, is protected. The staff folder is outside `frontend/`, so spellings the router does not map to `/admin` (like `//admin/index.html`) reach the public handler and find nothing.
+
+### Status change and audit
+
+`admin-pqrs.repository.transitionStatus` runs one `BEGIN IMMEDIATE` transaction: it reads the request, calls `decide(current)` (the service checks `expectedStatus` and the transition table and may throw), runs `UPDATE ... WHERE status = previous`, then inserts the audit row. If any step fails the transaction is rolled back, so there is never a status change without its audit record. The immediate lock stops two processes from reading the same status. The table `pqrs_audit` has triggers that refuse `UPDATE` and `DELETE`, and its foreign keys use `RESTRICT`. Accounts are deactivated, never deleted.
+
+### The list
+
+`validateListQuery` turns the query string into clean filters. The repository builds `WHERE` from fixed fragments with named parameters. The only text added to the SQL is the `ORDER BY`, taken from the `SORT_COLUMNS` whitelist. The search escapes `%`, `_` and `\` and uses `LIKE ... ESCAPE`. `created_at` is stored in UTC, so a date range compares text in the same format.
+
+### Migration `002_admin_panel.sql`
+
+Adds `admins`, `admin_sessions`, `pqrs_audit`, the triggers and three indexes on `pqrs`. The migration runner now repairs the legacy `pqrs` table **before** running migrations, so an old database gets a complete table before indexes and foreign keys point to it.
+
+### Known limits
+
+Sessions and login counters are designed for one process. The limiters are in memory, and the session table is in SQLite, so several processes could share sessions but would count login attempts separately. See [security.md](./security.md).

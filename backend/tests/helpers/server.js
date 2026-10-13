@@ -1,4 +1,5 @@
 import { once } from 'node:events';
+import './isolate-db.js';
 
 process.env.NODE_ENV = 'test';
 const { app, createApp } = await import('../../src/app.js');

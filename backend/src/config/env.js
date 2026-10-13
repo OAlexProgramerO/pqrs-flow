@@ -56,6 +56,21 @@ function nonNegativeInteger(value, fallback) {
   return Number.isInteger(number) && number >= 0 ? number : fallback;
 }
 
+/**
+ * Reads a true/false setting such as SESSION_COOKIE_SECURE.
+ * "true", "1", "yes" and "on" are true; "false", "0", "no" and "off" are false (any case).
+ * An empty or unknown value gives the fallback, so a typo can never switch a protection off.
+ */
+export function parseBoolean(value, fallback) {
+  const text = String(value ?? '')
+    .trim()
+    .toLowerCase();
+
+  if (['true', '1', 'yes', 'on'].includes(text)) return true;
+  if (['false', '0', 'no', 'off'].includes(text)) return false;
+  return fallback;
+}
+
 const nodeEnv = process.env.NODE_ENV ?? 'development';
 
 export const env = {
@@ -83,4 +98,24 @@ export const env = {
     process.env.STATIC_CACHE_SECONDS,
     nodeEnv === 'production' ? 3600 : 0,
   ),
+
+  // Staff sessions. A session ends after `idleMs` without use or after `maxAgeMs`, whichever
+  // comes first. The cookie is `Secure` (HTTPS only) in production unless it is switched off.
+  session: {
+    idleMs: positiveInteger(process.env.SESSION_IDLE_MINUTES, 30) * 60 * 1000,
+    maxAgeMs: positiveInteger(process.env.SESSION_MAX_HOURS, 8) * 60 * 60 * 1000,
+    cookieSecure: parseBoolean(process.env.SESSION_COOKIE_SECURE, nodeEnv === 'production'),
+  },
+
+  // Staff login attempts, counted per client address and per account in the same window.
+  loginRateLimit: {
+    ip: {
+      max: positiveInteger(process.env.LOGIN_RATE_LIMIT_MAX, 10),
+      windowMs: positiveInteger(process.env.LOGIN_RATE_LIMIT_WINDOW_MINUTES, 15) * 60 * 1000,
+    },
+    account: {
+      max: positiveInteger(process.env.LOGIN_ACCOUNT_RATE_LIMIT_MAX, 5),
+      windowMs: positiveInteger(process.env.LOGIN_RATE_LIMIT_WINDOW_MINUTES, 15) * 60 * 1000,
+    },
+  },
 };

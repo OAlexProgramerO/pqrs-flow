@@ -4,6 +4,41 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [SemVer](h
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-12
+
+The internal staff panel. It brings together what the roadmap had planned as 0.2.0 (login), 0.2.1 (list) and 0.2.2 (status workflow and history).
+
+### Added
+
+- **Staff login** at `/admin/login.html`: `POST /api/admin/login`, `POST /api/admin/logout` and `GET /api/admin/session`. Passwords are stored only as salted `scrypt` hashes (Node's `crypto`, 32 MiB of memory per hash). A login for an unknown account takes as long as a real one, and every failure gives the same `401`.
+- **Server-side sessions** with opaque 256-bit random tokens. Only the SHA-256 of a token is stored. A session ends after 30 idle minutes or 8 hours (`SESSION_IDLE_MINUTES`, `SESSION_MAX_HOURS`). Every login opens a brand new session and closes the one the browser had (no session fixation).
+- **Session cookie**: `HttpOnly`, `SameSite=Strict`, `Path=/`, and `Secure` with the `__Host-` prefix in production (`SESSION_COOKIE_SECURE`).
+- **CSRF protection** for every staff request that changes something: a per-session token in the `X-CSRF-Token` header, plus a check of `Origin` and `Sec-Fetch-Site`.
+- **Login rate limits** per client address and per account (`LOGIN_RATE_LIMIT_MAX`, `LOGIN_ACCOUNT_RATE_LIMIT_MAX`, `LOGIN_RATE_LIMIT_WINDOW_MINUTES`). Public submission and tracking do not depend on them.
+- **Protected staff pages** (`frontend-admin/`, served under `/admin`): anonymous visitors only get the login page and its files. The folder lives outside `frontend/`, so the public static handler can never serve it.
+- **Dashboard**: counters per status, a paginated list with search (case number, subject, name, email), filters by status, type and date range, sorting, and clear loading, empty, error and session-ended states. Responsive, keyboard friendly, with text on every status badge.
+- **Request detail** with the requester data, the description, the allowed next statuses and the status history.
+- **Staff API**: `GET /api/admin/stats`, `GET /api/admin/pqrs`, `GET /api/admin/pqrs/:caseNumber` and `PATCH /api/admin/pqrs/:caseNumber/status`. Every parameter is validated, SQL always uses parameters and sorting uses a whitelist of columns.
+- **Status workflow**: `filed → in_progress → answered → closed`, with `answered → in_progress` to reopen. `closed` is final. Moves that are not allowed answer `409`. An optional `expectedStatus` detects two people changing the same request.
+- **Audit history** (`pqrs_audit`): who changed which request, from which status to which, when, and with which request id. It is written in the same transaction as the status change, so a failed audit rolls the change back. Triggers make the table append-only. It is never exposed by the public API.
+- **Account tool**: `npm run admin -- create | reset-password | deactivate | activate | list`. Passwords are asked in the terminal (hidden) or read from standard input, never from arguments or the environment. A password reset closes every session of the account. There are no default accounts.
+- **Migration `002_admin_panel.sql`**: `admins`, `admin_sessions`, `pqrs_audit` and the indexes of the list. Existing requests and case numbers are not touched.
+- `docs/security.md` with the security model and the deployment checklist.
+- 192 new tests (228 before, 420 now): hashing, tokens, validation, migrations from every previous schema, login and sessions, authorization and CSRF, the list and its injection resistance, status changes and conflicts, audit and rollback, the account tool, the staff pages and the API client.
+
+### Changed
+
+- The legacy table repair of the migration runner now runs **before** the migrations, so a migration that adds indexes or foreign keys always sees a complete `pqrs` table. Migration `001` is untouched.
+- The access log no longer prints the query string of `/api/admin` requests, because searches may contain names and emails.
+- `npm test` gives every test process its own temporary database (`tests/helpers/isolate-db.js`). Before, a test of v0.1.3 could open `data/pqrs.db` of the developer.
+- ESLint lints `frontend-admin/` with the browser globals.
+- `shared/validation.js` exports `EMAIL_PATTERN` (no behavior change).
+
+### Security notes
+
+- CORS stays closed by default and is never used for the staff area: even a website listed in `CORS_ORIGINS` cannot log in or change a request.
+- The in-memory login limits and the sessions of a single process are the known limits of this version. See `docs/security.md`.
+
 ## [0.1.3] - 2026-10-08
 
 ### Added

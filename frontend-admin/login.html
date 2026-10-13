@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Staff login · PQRS Flow</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/css/styles.css" />
+    <link rel="stylesheet" href="/admin/css/admin.css" />
+  </head>
+  <body>
+    <main class="login-card container" id="main">
+      <h1 class="login-title">PQRS Flow</h1>
+      <h2 id="login-title">Staff login</h2>
+      <p class="hint">Only authorized staff can use this area.</p>
+
+      <form id="loginForm" class="pqrs-form" novalidate aria-labelledby="login-title">
+        <div class="form-group">
+          <label for="email">Email address</label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            required
+            maxlength="254"
+            autocomplete="username"
+            aria-describedby="email-error"
+          />
+          <small class="field-error" id="email-error"></small>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input
+            type="password"
+            id="password"
+            name="password"
+            required
+            maxlength="128"
+            autocomplete="current-password"
+            aria-describedby="password-error"
+          />
+          <small class="field-error" id="password-error"></small>
+        </div>
+
+        <button type="submit" class="btn btn-primary" id="loginBtn">Log in</button>
+      </form>
+
+      <div id="loginMessage" class="message" role="status" aria-live="polite" hidden></div>
+
+      <p class="hint login-back"><a href="/">Back to the public site</a></p>
+    </main>
+
+    <script type="module" src="/admin/js/login.js"></script>
+  </body>
+</html>

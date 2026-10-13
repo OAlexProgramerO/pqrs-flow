@@ -13,7 +13,7 @@ const LABELS = {
   requesterName: 'Full name',
 };
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function normalize(input = {}) {
   const read = (key) => String(input[key] ?? '').trim();

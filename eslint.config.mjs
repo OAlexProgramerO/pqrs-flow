@@ -13,7 +13,7 @@ export default [
     },
   },
   {
-    files: ['frontend/**/*.js'],
+    files: ['frontend/**/*.js', 'frontend-admin/**/*.js'],
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',

@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Request · PQRS Flow staff</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/css/styles.css" />
+    <link rel="stylesheet" href="/admin/css/admin.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to the content</a>
+
+    <header class="admin-header">
+      <div class="admin-brand">
+        <strong>PQRS Flow</strong>
+        <span>Staff</span>
+      </div>
+      <nav class="admin-nav" aria-label="Staff">
+        <a href="/admin/">Dashboard</a>
+        <a href="/" target="_blank" rel="noopener">Public site</a>
+      </nav>
+      <div class="admin-user">
+        <span id="adminName" class="admin-name"></span>
+        <button type="button" class="btn btn-secondary" id="logoutBtn">Log out</button>
+      </div>
+    </header>
+
+    <main class="admin-main" id="main">
+      <p><a href="/admin/" id="backLink">&larr; Back to the dashboard</a></p>
+
+      <div id="detailState" class="message" role="status" aria-live="polite">
+        Loading the request…
+      </div>
+      <p class="actions" id="detailRetryRow" hidden>
+        <button type="button" class="btn btn-secondary" id="detailRetryBtn">Try again</button>
+      </p>
+
+      <article id="detail" class="panel" aria-labelledby="detail-title" hidden>
+        <h1 id="detail-title" tabindex="-1">Request <code id="caseNumber"></code></h1>
+        <p class="status-badge" id="statusBadge"></p>
+
+        <dl class="details">
+          <div>
+            <dt>Type</dt>
+            <dd id="type"></dd>
+          </div>
+          <div>
+            <dt>Submitted</dt>
+            <dd id="createdAt"></dd>
+          </div>
+          <div>
+            <dt>Requester</dt>
+            <dd id="requesterName"></dd>
+          </div>
+          <div>
+            <dt>Email</dt>
+            <dd id="requesterEmail"></dd>
+          </div>
+          <div>
+            <dt>Subject</dt>
+            <dd id="subject"></dd>
+          </div>
+        </dl>
+
+        <h2>Description</h2>
+        <p class="description" id="description"></p>
+      </article>
+
+      <section id="statusPanel" class="panel" aria-labelledby="status-title" hidden>
+        <h2 id="status-title">Change the status</h2>
+
+        <form id="statusForm" class="status-form" novalidate>
+          <div class="form-group">
+            <label for="newStatus">Move this request to</label>
+            <select id="newStatus" name="status" required aria-describedby="status-error"></select>
+            <small class="field-error" id="status-error"></small>
+          </div>
+          <button type="submit" class="btn btn-primary" id="statusBtn">Update status</button>
+        </form>
+
+        <p class="hint" id="noTransitions" hidden>
+          This request is closed. A closed request cannot change again.
+        </p>
+
+        <div
+          id="statusMessage"
+          class="message"
+          role="status"
+          aria-live="polite"
+          tabindex="-1"
+          hidden
+        ></div>
+      </section>
+
+      <section id="historyPanel" class="panel" aria-labelledby="history-title" hidden>
+        <h2 id="history-title">Status history</h2>
+        <ol class="history" id="history"></ol>
+      </section>
+    </main>
+
+    <script type="module" src="/admin/js/request.js"></script>
+  </body>
+</html>

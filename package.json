@@ -1,6 +1,6 @@
 {
   "name": "pqrs-flow",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "description": "Web system to submit, track and manage PQRS (Petitions, Complaints, Claims and Suggestions) built with JavaScript",
   "private": true,
   "author": "OAlexProgramerO",
@@ -33,7 +33,8 @@
     "seed": "npm --prefix backend run seed",
     "db:reset": "npm --prefix backend run db:reset",
     "prepare": "git config core.hooksPath .githooks || exit 0",
-    "ready": "prettier --write . && npm run check"
+    "ready": "prettier --write . && npm run check",
+    "admin": "npm --prefix backend run admin --"
   },
   "engines": {
     "node": ">=22"

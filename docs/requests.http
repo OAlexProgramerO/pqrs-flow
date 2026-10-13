@@ -89,3 +89,57 @@ Content-Type: application/json
   "requesterEmail": "ana.gomez@example.com"
 }
 
+
+###
+### Staff area (v0.2.0)
+### Create an account first:  npm run admin -- create --email you@example.com --name "Your Name"
+### Send the login, then copy "csrfToken" from its answer into @csrf below.
+### The REST Client extension keeps the session cookie between requests.
+###
+
+@csrf = paste-the-csrfToken-here
+@case = PQRS-2026-000001
+
+### Staff login (expects 200, a cookie and a csrfToken)
+POST {{baseUrl}}/api/admin/login
+Content-Type: application/json
+
+{
+  "email": "you@example.com",
+  "password": "your password"
+}
+
+### Who is logged in (expects 200, or 401 without a session)
+GET {{baseUrl}}/api/admin/session
+
+### Numbers for the dashboard
+GET {{baseUrl}}/api/admin/stats
+
+### List with search, filters and pagination
+GET {{baseUrl}}/api/admin/pqrs?q=tax&status=filed&type=petition&from=2026-01-01&to=2026-12-31&sort=createdAt&order=desc&page=1&pageSize=20
+
+### One request with its history and the statuses it may move to
+GET {{baseUrl}}/api/admin/pqrs/{{case}}
+
+### Change the status (expects 200, or 409 when the move is not allowed)
+PATCH {{baseUrl}}/api/admin/pqrs/{{case}}/status
+Content-Type: application/json
+X-CSRF-Token: {{csrf}}
+
+{
+  "status": "in_progress",
+  "expectedStatus": "filed"
+}
+
+### Without the CSRF token (expects 403)
+PATCH {{baseUrl}}/api/admin/pqrs/{{case}}/status
+Content-Type: application/json
+
+{ "status": "in_progress" }
+
+### Log out (expects 204)
+POST {{baseUrl}}/api/admin/logout
+Content-Type: application/json
+X-CSRF-Token: {{csrf}}
+
+{}

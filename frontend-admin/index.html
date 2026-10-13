@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Dashboard · PQRS Flow staff</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/css/styles.css" />
+    <link rel="stylesheet" href="/admin/css/admin.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to the content</a>
+
+    <header class="admin-header">
+      <div class="admin-brand">
+        <strong>PQRS Flow</strong>
+        <span>Staff</span>
+      </div>
+      <nav class="admin-nav" aria-label="Staff">
+        <a href="/admin/" aria-current="page">Dashboard</a>
+        <a href="/" target="_blank" rel="noopener">Public site</a>
+      </nav>
+      <div class="admin-user">
+        <span id="adminName" class="admin-name"></span>
+        <button type="button" class="btn btn-secondary" id="logoutBtn">Log out</button>
+      </div>
+    </header>
+
+    <main class="admin-main" id="main">
+      <h1>Dashboard</h1>
+
+      <section aria-labelledby="metrics-title">
+        <h2 id="metrics-title" class="visually-hidden">Requests by status</h2>
+        <div class="metrics" id="metrics" role="group" aria-label="Filter by status"></div>
+        <p id="metricsMessage" class="message error" role="alert" hidden></p>
+      </section>
+
+      <section class="panel" aria-labelledby="filters-title">
+        <h2 id="filters-title">Search and filters</h2>
+
+        <form id="filterForm" class="filters" novalidate>
+          <div class="form-group filter-search">
+            <label for="q">Search</label>
+            <input
+              type="search"
+              id="q"
+              name="q"
+              maxlength="100"
+              placeholder="Case number, subject, name or email"
+              autocomplete="off"
+              aria-describedby="q-error"
+            />
+            <small class="field-error" id="q-error"></small>
+          </div>
+
+          <div class="form-group">
+            <label for="status">Status</label>
+            <select id="status" name="status">
+              <option value="">All statuses</option>
+              <option value="filed">Received</option>
+              <option value="in_progress">In progress</option>
+              <option value="answered">Answered</option>
+              <option value="closed">Closed</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="type">Type</label>
+            <select id="type" name="type">
+              <option value="">All types</option>
+              <option value="petition">Petition</option>
+              <option value="complaint">Complaint</option>
+              <option value="claim">Claim</option>
+              <option value="suggestion">Suggestion</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="from">From (UTC)</label>
+            <input type="date" id="from" name="from" aria-describedby="from-error" />
+            <small class="field-error" id="from-error"></small>
+          </div>
+
+          <div class="form-group">
+            <label for="to">To (UTC)</label>
+            <input type="date" id="to" name="to" aria-describedby="to-error" />
+            <small class="field-error" id="to-error"></small>
+          </div>
+
+          <div class="form-group">
+            <label for="sort">Sort by</label>
+            <select id="sort" name="sort">
+              <option value="createdAt:desc">Newest first</option>
+              <option value="createdAt:asc">Oldest first</option>
+              <option value="caseNumber:asc">Case number (low to high)</option>
+              <option value="caseNumber:desc">Case number (high to low)</option>
+              <option value="status:asc">Status</option>
+              <option value="type:asc">Type</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="pageSize">Per page</label>
+            <select id="pageSize" name="pageSize">
+              <option value="10">10</option>
+              <option value="20" selected>20</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+          </div>
+
+          <div class="filter-actions">
+            <button type="submit" class="btn btn-primary" id="applyBtn">Apply</button>
+            <button type="reset" class="btn btn-secondary" id="resetBtn">Reset</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel" aria-labelledby="list-title">
+        <h2 id="list-title">Requests</h2>
+
+        <div id="listState" class="message" role="status" aria-live="polite" hidden></div>
+        <p class="actions" id="retryRow" hidden>
+          <button type="button" class="btn btn-secondary" id="retryBtn">Try again</button>
+        </p>
+
+        <div class="table-wrap" id="tableWrap" aria-busy="true" hidden>
+          <table class="requests">
+            <caption class="visually-hidden">
+              Requests that match the filters
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Case number</th>
+                <th scope="col">Type</th>
+                <th scope="col">Subject</th>
+                <th scope="col">Requester</th>
+                <th scope="col">Status</th>
+                <th scope="col">Submitted</th>
+              </tr>
+            </thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+
+        <nav class="pagination" id="pagination" aria-label="Pages" hidden>
+          <button type="button" class="btn btn-secondary" id="prevBtn">Previous</button>
+          <span id="pageInfo"></span>
+          <button type="button" class="btn btn-secondary" id="nextBtn">Next</button>
+        </nav>
+      </section>
+    </main>
+
+    <script type="module" src="/admin/js/dashboard.js"></script>
+  </body>
+</html>

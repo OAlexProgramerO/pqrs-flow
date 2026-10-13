@@ -10,28 +10,31 @@ Path from **v0.0.1** to **v1.0.0**. Each version is one branch, one pull request
 
 ## The plan
 
-| Version | Branch                     | Goal                                                                 | Status   |
-| ------- | -------------------------- | -------------------------------------------------------------------- | -------- |
-| 0.0.1   | `chore/project-setup`      | Express server, `/api/health`, static site, CI                       | Done     |
-| 0.0.2   | `feat/submission-form`     | Submission form with client-side validation                          | Done     |
-| 0.0.3   | `feat/database`            | SQLite, migrations, repository and case numbers                      | Done     |
-| 0.1.0   | `feat/submit-pqrs`         | `POST /api/pqrs`, shared validation, form connected, success screen  | Done     |
-| 0.1.1   | `feat/track-pqrs`          | Lookup with case number **and** email, tracking page, rate limits    | Done     |
-| 0.1.2   | `chore/hardening`          | Rate limit for submissions, compression, proxy settings              | Done     |
-| 0.1.3   | `chore/http-caching`       | Cache headers for static files and CORS origins from the environment | **Done** |
-| 0.2.0   | `feat/staff-auth`          | Staff login with hashed passwords and httpOnly cookie sessions       | Next     |
-| 0.2.1   | `feat/staff-list`          | Paginated list with filters and an index                             | Planned  |
-| 0.2.2   | `feat/status-workflow`     | State machine, reply text, history table                             | Planned  |
-| 0.3.0   | `feat/deadlines`           | Due date per request type, business days, overdue flag               | Planned  |
-| 0.3.1   | `feat/attachments`         | Safe file uploads with size and type limits                          | Planned  |
-| 0.3.2   | `feat/email-notifications` | Emails on filing and on answer, with an outbox and retries           | Planned  |
-| 0.4.0   | `feat/reports`             | Dashboard of cases by type, status and response time                 | Planned  |
-| 0.4.1   | `feat/csv-export`          | Streamed CSV export with protection against formula injection        | Planned  |
-| 0.5.0   | `chore/quality`            | Coverage report, end-to-end smoke test, accessibility check          | Planned  |
-| 0.5.1   | `chore/docker`             | Multi-stage Dockerfile and `docker compose`                          | Planned  |
-| 0.5.2   | `chore/deploy`             | Cloud deployment, CI/CD and database backups                         | Planned  |
-| 0.9.0   | `chore/release-candidate`  | Feature freeze, demo data, screenshots and final docs                | Planned  |
-| 1.0.0   | `chore/release-1.0`        | First stable release with a public demo                              | Planned  |
+| Version | Branch                     | Goal                                                                         | Status   |
+| ------- | -------------------------- | ---------------------------------------------------------------------------- | -------- |
+| 0.0.1   | `chore/project-setup`      | Express server, `/api/health`, static site, CI                               | Done     |
+| 0.0.2   | `feat/submission-form`     | Submission form with client-side validation                                  | Done     |
+| 0.0.3   | `feat/database`            | SQLite, migrations, repository and case numbers                              | Done     |
+| 0.1.0   | `feat/submit-pqrs`         | `POST /api/pqrs`, shared validation, form connected, success screen          | Done     |
+| 0.1.1   | `feat/track-pqrs`          | Lookup with case number **and** email, tracking page, rate limits            | Done     |
+| 0.1.2   | `chore/hardening`          | Rate limit for submissions, compression, proxy settings                      | Done     |
+| 0.1.3   | `chore/http-caching`       | Cache headers for static files and CORS origins from the environment         | Done     |
+| 0.2.0   | `feat/staff-panel`         | Staff login, protected dashboard, search and filters, status workflow, audit | **Done** |
+| 0.2.1   | `feat/staff-accounts`      | Roles, account management in the panel, change of password, session list     | Planned  |
+| 0.2.2   | `feat/replies-and-notes`   | Reply text to the citizen, internal notes, assignment, audit viewer          | Planned  |
+| 0.3.0   | `feat/deadlines`           | Due date per request type, business days, overdue flag                       | Planned  |
+| 0.3.1   | `feat/attachments`         | Safe file uploads with size and type limits                                  | Planned  |
+| 0.3.2   | `feat/email-notifications` | Emails on filing and on answer, with an outbox and retries                   | Planned  |
+| 0.4.0   | `feat/reports`             | Dashboard of cases by type, status and response time                         | Planned  |
+| 0.4.1   | `feat/csv-export`          | Streamed CSV export with protection against formula injection                | Planned  |
+| 0.5.0   | `chore/quality`            | Coverage report, end-to-end smoke test, accessibility check                  | Planned  |
+| 0.5.1   | `chore/auth-hardening`     | Second factor (TOTP), login limits that survive restarts, security log       | Planned  |
+| 0.5.2   | `chore/docker`             | Multi-stage Dockerfile and `docker compose`                                  | Planned  |
+| 0.5.3   | `chore/deploy`             | Cloud deployment, CI/CD and database backups                                 | Planned  |
+| 0.9.0   | `chore/release-candidate`  | Feature freeze, demo data, screenshots and final docs                        | Planned  |
+| 1.0.0   | `chore/release-1.0`        | First stable release with a public demo                                      | Planned  |
+
+The old 0.2.1 (`feat/staff-list`) and 0.2.2 (`feat/status-workflow`) were delivered together with the login in 0.2.0, so the panel is useful from its first release.
 
 ## Decisions
 
@@ -41,7 +44,7 @@ Path from **v0.0.1** to **v1.0.0**. Each version is one branch, one pull request
 | Lookup is a `POST`, not a `GET` with the email in the URL  | URLs end up in logs and browser history.                                                                        |
 | One validation module shared by browser and server (0.1.0) | The rules live in one place. The server still validates everything again.                                       |
 | Migrations instead of running a schema file at startup     | The schema can change safely and its history is versioned.                                                      |
-| Indexes only when a query needs them                       | The only index today is the unique case number. The panel index arrives in 0.2.1.                               |
+| Indexes only when a query needs them                       | The panel list (0.2.0) added indexes on date, status and type. Every other column is searched with `LIKE`.      |
 | Performance and security work has its own version (0.1.2)  | It can be reviewed and measured on its own.                                                                     |
 | Own in-memory rate limiter instead of a package (0.1.1)    | The lookup needed protection now. It is small, has no dependency and is tested with a fake clock.               |
 | Lookup limits per client address and per case number       | One limit stops a computer, the other stops many computers guessing one email.                                  |
@@ -51,6 +54,13 @@ Path from **v0.0.1** to **v1.0.0**. Each version is one branch, one pull request
 | Static files are not cached in development (0.1.3)         | Their names have no version, so a long cache would hide edits. Production keeps them for an hour.               |
 | Proxy trust is off by default, `TRUST_PROXY` turns it on   | Trusting `X-Forwarded-For` without a proxy lets anyone fake an address and skip the limits.                     |
 | Passwords use Node's built-in `scrypt` (0.2.0)             | No extra dependency for the staff login.                                                                        |
+| Server-side sessions with opaque tokens, not JWT (0.2.0)   | A session can be closed at once (logout, reset, deactivation). Only the token hash is stored.                   |
+| CSRF token derived from the session token (0.2.0)          | Nothing extra to store, and another site cannot read the HttpOnly cookie to compute it.                         |
+| Staff pages live in `frontend-admin/`, outside `frontend/` | The public static handler cannot serve them by accident, whatever spelling of the address someone tries.        |
+| Accounts are managed by a command, not by an HTTP route    | Nobody can create or promote an account from the network. Roles and a panel for it are planned for 0.2.1.       |
+| `closed` is a final status (0.2.0)                         | A closed case keeps its meaning for reports. More work after closing is a new request.                          |
+| Audit rows are protected by triggers (0.2.0)               | Even a bug in the application cannot rewrite the history. Status and audit are saved in one transaction.        |
+| Tests never open `data/pqrs.db` (0.2.0)                    | A migration or a write from a test must not change the database of a developer.                                 |
 | Node 22 is the minimum, CI runs on 22 and 24               | Node 20 reached end of life in April 2026.                                                                      |
 | Major dependency upgrades are planned, never automatic     | Express 5 and dotenv 18 can change behavior. Each one gets its own version and a checklist.                     |
 | A pre-push hook runs the CI checks                         | CI turned red three times because the checks were skipped before pushing to main.                               |
