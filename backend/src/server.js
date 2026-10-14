@@ -1,5 +1,7 @@
 import { app } from './app.js';
 import { env } from './config/env.js';
+import { closeDb } from './db/database.js';
+import { createShutdown, installShutdownHandlers } from './shutdown.js';
 
 if (env.trustProxy === true) {
   console.warn(
@@ -24,3 +26,6 @@ const server = app.listen(env.port, () => {
 // after 5 seconds by default, which shows up as random 502 errors. These values stay above that.
 server.keepAliveTimeout = 65_000;
 server.headersTimeout = 66_000;
+
+// Ctrl+C and the stop signal of process managers close the server and the database cleanly
+installShutdownHandlers(createShutdown({ server, closeDatabase: closeDb }));

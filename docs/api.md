@@ -29,7 +29,7 @@ Checks that the server is running. Used by the frontend and by monitoring tools.
 {
   "status": "ok",
   "service": "pqrs-flow",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "timestamp": "2026-10-04T12:00:00.000Z"
 }
 ```
@@ -353,5 +353,5 @@ Planned for later versions (see the README):
 
 | Method | Path                        | Version | Description                |
 | ------ | --------------------------- | ------- | -------------------------- |
-| `POST` | `/api/admin/pqrs/:id/reply` | 0.2.2   | Reply text for the citizen |
-| `GET`  | `/api/admin/users`          | 0.2.1   | Staff accounts and roles   |
+| `POST` | `/api/admin/pqrs/:id/reply` | 0.3.2   | Reply text for the citizen |
+| `GET`  | `/api/admin/users`          | 0.3.1   | Staff accounts and roles   |

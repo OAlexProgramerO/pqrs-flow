@@ -12,8 +12,8 @@
 ## Actors
 
 - **Citizen:** submits and tracks requests (no account needed).
-- **Staff member:** logs in to the panel, reviews cases and changes their status (0.2.0). Answering cases arrives in 0.2.2.
-- **Administrator:** manages accounts. In 0.2.0 an account is created and recovered from the server's terminal; roles and a screen for it arrive in 0.2.1.
+- **Staff member:** logs in to the panel, reviews cases and changes their status (0.2.0). Answering cases arrives in 0.3.2.
+- **Administrator:** manages accounts. In 0.2.0 an account is created and recovered from the server's terminal; roles and a screen for it arrive in 0.3.1.
 
 ## Functional requirements (MVP)
 

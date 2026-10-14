@@ -1,0 +1,1215 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index ed1185c..b73cd98 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -4,6 +4,39 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [SemVer](h
+ 
+ ## [Unreleased]
+ 
++## [0.3.0] - 2026-10-14
++
++A maintenance and hardening release. No new feature, no change to the public or staff API, and no change to the database schema.
++
++### Added
++
++- **Graceful shutdown** (`backend/src/shutdown.js`, used by `server.js`). `SIGINT` and `SIGTERM` stop the server from accepting new connections, let the requests in progress finish, and then close the shared SQLite connection with the existing `closeDb()`, so the WAL is checkpointed and its `-wal` and `-shm` files are removed. The whole shutdown is limited to 10 seconds: after that the remaining connections are cut, the database is closed and the process ends with code 1. Repeated signals do nothing extra. Before, the process was killed with the connection still open.
++- `frontend-admin/package.json` with `{ "type": "module" }`, like `frontend/` and `shared/`.
++- 16 new tests: the shutdown logic with a fake server and fake timers (`shutdown.test.js`), a real server stopped with `SIGINT` and `SIGTERM` in a child process (`shutdown-signal.test.js`, skipped on Windows, where signals cannot be delivered to a child), and regression tests for the order in which the test helper loads the database (`db-isolation.test.js`).
++- `README.es.md`, the Spanish version of the README.
++
++### Changed
++
++- Version `0.3.0` in `package.json`, `backend/package.json` and their lock files (made with `npm version`). `GET /api/health` reports it, because it reads the version from `backend/package.json`.
++- **Roadmap:** 0.3.0 was used for this maintenance release, which came before the planned staff accounts (old 0.2.1) and replies (old 0.2.2). So that no number is used twice, those two versions and the planned ones after them were renumbered 0.3.1 to 0.3.5 in `ROADMAP.md`, both READMEs and the docs. No released version changed.
++- `maintenance/` holds the patch from 0.2.0 to 0.3.0 and the notes to apply it to an older checkout.
++
++### Fixed
++
++- The test run no longer prints the `MODULE_TYPELESS_PACKAGE_JSON` warning for `frontend-admin/js/admin-api.js`.
++- Removed the UTF-8 byte order mark from `backend/src/db/database.js` and `backend/tests/helpers/isolate-db.js`. Nothing else in those files changed.
++- The `0.2.0` entry said 192 new tests and 420 in total. The suite of that release already had 423 tests (228 before, 195 new).
++
++### Documentation
++
++- `docs/security.md` now explains that the public lookup has its own limits (30 attempts per client address and 8 per case number, every 15 minutes), that someone who knows a case number can use up the 8 attempts and make the real owner wait, and that the limits did not change.
++- `docs/security.md` and the README describe the shutdown behavior, and `docs/api.md` shows the new version.
++
++### Not changed on purpose
++
++- Rate limit thresholds, keys, eviction and error answers are untouched. The in-memory limiter is still planned for 0.5.1.
++- Retention and deletion tools and automatic backups (0.5.3), and the deadlines feature (now planned for 0.3.3), are not part of this release.
++
+ ## [0.2.0] - 2026-10-12
+ 
+ The internal staff panel. It brings together what the roadmap had planned as 0.2.0 (login), 0.2.1 (list) and 0.2.2 (status workflow and history).
+@@ -24,7 +57,7 @@ The internal staff panel. It brings together what the roadmap had planned as 0.2
+ - **Account tool**: `npm run admin -- create | reset-password | deactivate | activate | list`. Passwords are asked in the terminal (hidden) or read from standard input, never from arguments or the environment. A password reset closes every session of the account. There are no default accounts.
+ - **Migration `002_admin_panel.sql`**: `admins`, `admin_sessions`, `pqrs_audit` and the indexes of the list. Existing requests and case numbers are not touched.
+ - `docs/security.md` with the security model and the deployment checklist.
+-- 192 new tests (228 before, 420 now): hashing, tokens, validation, migrations from every previous schema, login and sessions, authorization and CSRF, the list and its injection resistance, status changes and conflicts, audit and rollback, the account tool, the staff pages and the API client.
++- 195 new tests (228 before, 423 now): hashing, tokens, validation, migrations from every previous schema, login and sessions, authorization and CSRF, the list and its injection resistance, status changes and conflicts, audit and rollback, the account tool, the staff pages and the API client.
+ 
+ ### Changed
+ 
+diff --git a/README.es.md b/README.es.md
+new file mode 100644
+index 0000000..7a8054e
+--- /dev/null
++++ b/README.es.md
+@@ -0,0 +1,272 @@
++# PQRS Flow
++
++[![CI](https://github.com/OAlexProgramerO/pqrs-flow/actions/workflows/ci.yml/badge.svg)](https://github.com/OAlexProgramerO/pqrs-flow/actions/workflows/ci.yml)
++[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
++![Node](https://img.shields.io/badge/node-%3E%3D22-brightgreen.svg)
++
++[English](./README.md) · **Español**
++
++Un sistema web para radicar, consultar y gestionar **PQRS** — _Peticiones, Quejas, Reclamos y Sugerencias_. Está construido de principio a fin con JavaScript, priorizando la simplicidad, la ausencia de un paso de compilación en el frontend y límites de arquitectura claros.
++
++**Estado: v0.3.0** — Los ciudadanos pueden radicar una solicitud, recibir un número de caso y consultar su estado. El personal autorizado ahora inicia sesión en un panel protegido, busca y filtra solicitudes, las mueve por el flujo de estados y deja un historial de auditoría permanente. La versión 0.3.0 es de mantenimiento: apagado limpio, README en español y pruebas de regresión adicionales, sin cambios en la API ni en la base de datos. Es un paso hacia un sistema PQRS completo: el plan de las próximas versiones está en la sección _Versiones futuras_ de este documento y en [ROADMAP.md](./ROADMAP.md). Todavía no ha pasado por un despliegue en producción; lee [docs/security.md](./docs/security.md) antes de exponerlo (ese documento está en inglés).
++
++> Este archivo es la versión en español de [README.md](./README.md). Si algo difiere, el README en inglés y el código son la referencia. Los cambios de la 0.3.0 están en [CHANGELOG.md](./CHANGELOG.md).
++
++---
++
++## 📖 El problema y la solución
++
++Muchas organizaciones todavía gestionan sugerencias, quejas y solicitudes con correos dispersos, formularios en papel o mensajes en redes sociales. Las solicitudes se pierden, las respuestas llegan tarde y las personas se quedan sin respuesta.
++
++**PQRS Flow ofrece:**
++
++1. **Portal público de radicación:** un formulario adaptable a cualquier pantalla que guarda la solicitud y devuelve un número de caso único, como `PQRS-2026-000001`.
++2. **Consulta de estado:** una página pública donde cualquier persona revisa el estado con el número de caso y su correo, sin necesidad de cuenta.
++3. **Panel interno para el personal:** un área protegida (`/admin/`) donde el personal autorizado inicia sesión, revisa los casos entrantes, los busca y filtra, y actualiza su estado (`Radicada → En trámite → Respondida → Cerrada`). Cada cambio queda registrado en un historial de auditoría.
++
++### Estado del proyecto
++
++| Funcionalidad                                                          | Versión | Estado   |
++| ---------------------------------------------------------------------- | ------- | -------- |
++| Servidor Express, endpoint de salud, sitio estático                    | 0.0.1   | Hecho    |
++| Formulario de radicación con validación en el cliente                  | 0.0.2   | Hecho    |
++| Base de datos, migraciones y repositorio                               | 0.0.3   | Hecho    |
++| `POST /api/pqrs`, formulario conectado a la API, número de caso        | 0.1.0   | Hecho    |
++| Consulta de estado con número de caso y correo                         | 0.1.1   | Hecho    |
++| Límite de radicaciones, compresión, configuración de proxy             | 0.1.2   | Hecho    |
++| Cabeceras de caché para archivos estáticos, CORS desde el entorno      | 0.1.3   | Hecho    |
++| Panel del personal: login, tablero, búsqueda, cambios de estado        | 0.2.0   | Hecho    |
++| Historial de auditoría de cada cambio de estado                        | 0.2.0   | Hecho    |
++| Apagado limpio, README en español, pruebas de regresión de aislamiento | 0.3.0   | Hecho    |
++| Roles, respuestas, plazos, adjuntos, correos, reportes                 | 0.3.x+  | Planeado |
++
++## ✨ Qué hace hoy
++
++- Formulario de radicación con validación en vivo, contador de caracteres y mensajes de error accesibles.
++- Las mismas reglas de validación se ejecutan en el navegador y en el servidor (`shared/validation.js`).
++- Almacenamiento en SQLite con migraciones versionadas. Los números de caso se generan de forma atómica, con un contador por año.
++- Pantalla de éxito con el número de caso, un botón para copiarlo y un enlace para consultar la solicitud.
++- Página de consulta: el número de caso más el correo muestran el estado con una línea de tiempo del avance.
++- Privacidad por diseño: la consulta devuelve solo estado, tipo y fechas; un correo incorrecto y un número de caso inexistente se ven igual, y cada intento tiene límite de frecuencia.
++- Campo anti-spam, límite de 16 KB por cuerpo de petición e identificador de petición en cada respuesta.
++- Las radicaciones tienen límite por dirección de cliente (10 cada 15 minutos por defecto, configurable en `.env`).
++- Las respuestas de texto (páginas, estilos, scripts, JSON) se comprimen con gzip o brotli, sin dependencias adicionales.
++- Funciona detrás de un proxy inverso: `TRUST_PROXY` hace que los límites vean al visitante real.
++- Reglas de caché: las páginas siempre se revalidan, los estilos y scripts se conservan una hora en producción y las respuestas de la API nunca se almacenan.
++- CORS está cerrado por defecto, porque las páginas vienen del mismo servidor. `CORS_ORIGINS` lo abre para los sitios que listes.
++- **Login del personal** con hashes de contraseña `scrypt`, sesiones opacas en el servidor (solo se guarda el hash del token), una cookie `HttpOnly` + `SameSite=Strict` (y `Secure` en producción), protección CSRF y límites de intentos de login por dirección y por cuenta.
++- **Panel protegido** bajo `/admin/`: los visitantes anónimos solo ven la página de login. La carpeta del panel está fuera de `frontend/`, así que el servidor de archivos estáticos público no puede servirla.
++- **Tablero**: contadores por estado, una lista paginada con búsqueda, filtros por estado, tipo y rango de fechas, ordenamiento y una página de detalle para cada solicitud. Adaptable a cualquier pantalla y usable con teclado.
++- **Flujo de estados** con transiciones permitidas (`closed` es final) y protección cuando dos personas cambian la misma solicitud.
++- **Historial de auditoría**: cada cambio de estado registra quién, de qué estado a cuál, cuándo y con qué identificador de petición. Se guarda en la misma transacción que el cambio, solo se puede agregar (no modificar) y nunca se muestra al público.
++- **Herramienta de cuentas** (`npm run admin`): crea y recupera cuentas del personal desde la terminal del servidor. No hay cuentas por defecto.
++- Apagado limpio: `Ctrl+C` o `SIGTERM` dejan de aceptar conexiones, permiten terminar las peticiones en curso (hasta 10 segundos) y cierran la base de datos SQLite.
++- Datos de demostración y comandos para reiniciar la base de datos en desarrollo local.
++- Pruebas de validación, base de datos y migraciones, servicio, controlador, limitador de frecuencia, compresión, API, autenticación, autorización, auditoría, utilidades de estado y ambos frontends.
++
++## 🛠️ Tecnologías
++
++Este proyecto evita deliberadamente los frameworks pesados de frontend y los ORM, para mostrar fundamentos sólidos en JavaScript puro, manipulación del DOM, SQL y diseño de APIs REST.
++
++- **Backend:** Node.js 22+, Express (API REST, enrutamiento, middlewares).
++- **Frontend:** HTML5, CSS3 y JavaScript puro (módulos ES), servidos como archivos estáticos.
++- **Base de datos:** SQLite mediante `better-sqlite3` (modo WAL, migraciones SQL versionadas), elegida por su cero configuración y portabilidad en un solo archivo.
++- **Autenticación:** el `crypto` integrado de Node (`scrypt`, tokens aleatorios seguros). No se añadió ninguna librería de autenticación.
++- **Código compartido:** un módulo de validación usado por el navegador y por el servidor.
++- **Calidad y CI:** el ejecutor de pruebas nativo de Node (`node:test`), ESLint, Prettier y GitHub Actions en Node 22 y 24.
++
++### Arquitectura
++
++El backend sigue una estructura por capas **Controlador → Servicio → Repositorio**:
++
++- Las **rutas** asocian los endpoints HTTP con los controladores.
++- Los **controladores** reciben la petición y envían la respuesta.
++- Los **servicios** contienen las reglas de negocio (validación, normalización, números de caso, consulta, login, flujo de estados).
++- Los **repositorios** ejecutan las consultas SQL. Los repositorios del personal están separados del público, de modo que las rutas públicas no pueden alcanzarlos.
++- Los **middlewares** añaden el identificador de petición, comprimen las respuestas, limitan los intentos, verifican la sesión del personal y el token CSRF, y convierten los errores en JSON.
++
++Más detalles en [docs/architecture.md](./docs/architecture.md). La API está documentada en [docs/api.md](./docs/api.md). Esa documentación está en inglés.
++
++```
++pqrs-flow/
++├── backend/        # API REST (Express) y capa de base de datos
++├── frontend/       # Interfaz web pública (radicar y consultar)
++├── frontend-admin/ # Panel del personal, servido bajo /admin tras un login
++├── shared/         # Código usado tanto por el navegador como por el servidor
++├── docs/           # Requisitos, arquitectura, referencia de la API
++└── .github/        # Flujo de CI y plantillas
++```
++
++---
++
++## 🚀 Primeros pasos
++
++### Requisitos previos
++
++- [Node.js](https://nodejs.org/) 22 o superior
++- [Git](https://git-scm.com/)
++
++### Instalación local
++
++```bash
++git clone https://github.com/OAlexProgramerO/pqrs-flow.git
++cd pqrs-flow
++cp .env.example .env
++npm run install:all
++npm run dev
++```
++
++En Windows PowerShell, el equivalente de `cp` es `Copy-Item .env.example .env`.
++
++Luego abre:
++
++- Frontend: <http://localhost:3000>
++- Salud de la API: <http://localhost:3000/api/health>
++
++Para ver datos sin escribirlos, añade solicitudes de demostración con `npm run seed`. Imprime un número de caso y un correo que puedes usar en la página de consulta (`/track.html`). Para empezar con una base de datos vacía, ejecuta `npm run db:reset`.
++
++### Panel del personal: crear el primer administrador
++
++**No hay cuentas por defecto.** El panel permanece cerrado hasta que crees una en la máquina que ejecuta el servidor:
++
++```bash
++npm run admin -- create --email you@example.com --name "Your Name"
++```
++
++El comando pide la contraseña dos veces y no muestra lo que escribes. Necesita al menos 12 caracteres. Para scripts, envíala por la entrada estándar (nunca como argumento, porque los argumentos quedan en el historial del shell y en la lista de procesos):
++
++```bash
++printf '%s' "$PASSWORD" | npm run admin -- create --email you@example.com --name "Your Name" --password-stdin
++```
++
++Luego abre <http://localhost:3000/admin/> e inicia sesión. Otros comandos:
++
++| Comando                                       | Qué hace                                                                                    |
++| --------------------------------------------- | ------------------------------------------------------------------------------------------- |
++| `npm run admin -- list`                       | Muestra las cuentas y si están activas                                                      |
++| `npm run admin -- reset-password --email ...` | Define una contraseña nueva y cierra todas las sesiones de esa cuenta (contraseña olvidada) |
++| `npm run admin -- deactivate --email ...`     | Bloquea una cuenta y cierra sus sesiones al instante                                        |
++| `npm run admin -- activate --email ...`       | Permite de nuevo una cuenta desactivada                                                     |
++
++La herramienta usa la misma base de datos que el servidor (`DB_PATH`). Las cuentas no se pueden crear ni recuperar por HTTP a propósito: quien puede ejecutar el comando ya controla el servidor. Si los límites de login te bloquean, espera a que pase la ventana o reinicia el servidor (los contadores viven en memoria).
++
++### Configuración
++
++| Variable                           | Valor por defecto           | Descripción                                                                               |
++| ---------------------------------- | --------------------------- | ----------------------------------------------------------------------------------------- |
++| `PORT`                             | `3000`                      | Puerto del servidor                                                                       |
++| `NODE_ENV`                         | `development`               | `production` desactiva los comandos seed y reset                                          |
++| `DB_PATH`                          | `data/pqrs.db`              | Archivo SQLite. Las rutas relativas parten de la raíz del proyecto.                       |
++| `SUBMIT_RATE_LIMIT_MAX`            | `10`                        | Solicitudes nuevas que una dirección de cliente puede enviar en cada ventana              |
++| `SUBMIT_RATE_LIMIT_WINDOW_MINUTES` | `15`                        | Duración de esa ventana en minutos                                                        |
++| `TRUST_PROXY`                      | vacío (desactivado)         | Número de proxies inversos delante de la app, por ejemplo `1`. Ver la nota más abajo.     |
++| `CORS_ORIGINS`                     | vacío (ninguno)             | Sitios web autorizados a llamar a la API desde un navegador, separados por comas, o `*`   |
++| `STATIC_CACHE_SECONDS`             | `0`, o `3600` en producción | Segundos que un navegador puede conservar estilos, scripts e imágenes                     |
++| `SESSION_IDLE_MINUTES`             | `30`                        | Una sesión del personal termina tras estos minutos sin uso                                |
++| `SESSION_MAX_HOURS`                | `8`                         | Una sesión del personal termina tras estas horas, aunque se use todo el tiempo            |
++| `SESSION_COOKIE_SECURE`            | `true` en producción        | Añade `Secure` a la cookie, para que solo viaje por HTTPS. Mantenlo activo en producción. |
++| `LOGIN_RATE_LIMIT_MAX`             | `10`                        | Intentos de login del personal por dirección de cliente en cada ventana                   |
++| `LOGIN_ACCOUNT_RATE_LIMIT_MAX`     | `5`                         | Intentos de login del personal por cuenta en cada ventana                                 |
++| `LOGIN_RATE_LIMIT_WINDOW_MINUTES`  | `15`                        | Duración de la ventana de login en minutos                                                |
++
++**Área del personal en producción:** sirve la aplicación por HTTPS (la cookie es `Secure` y usa el prefijo `__Host-`, así que no funciona por HTTP simple), define `TRUST_PROXY` con el número de proxies para que los límites de login vean la dirección real, y lee [docs/security.md](./docs/security.md). El panel del personal funciona solo desde la misma dirección que el sitio público: CORS nunca se abre para él.
++
++**Detrás de un proxy inverso** (Nginx, Render, Railway...) define `TRUST_PROXY` con el número de proxies, normalmente `1`. Sin eso, el servidor ve la dirección del proxy para todos los visitantes, así que todos compartirían un mismo límite de frecuencia. Déjalo vacío cuando nadie esté delante de la aplicación, porque confiar en `X-Forwarded-For` sin un proxy permite que cualquiera falsifique su dirección. Evita `TRUST_PROXY=true` por la misma razón.
++
++### Probar la API
++
++Abre [docs/requests.http](./docs/requests.http) en VS Code con la extensión REST Client, o ejecuta:
++
++```bash
++curl -X POST http://localhost:3000/api/pqrs \
++  -H "Content-Type: application/json" \
++  -d '{"type":"petition","subject":"Street light is broken","description":"The street light in front of my house has been off for two weeks.","requesterName":"Ana Gomez","requesterEmail":"ana@example.com"}'
++```
++
++## 📜 Scripts disponibles
++
++| Comando            | Descripción                                                  |
++| ------------------ | ------------------------------------------------------------ |
++| `npm run dev`      | Inicia el servidor Express con recarga automática            |
++| `npm start`        | Inicia el servidor                                           |
++| `npm test`         | Ejecuta las pruebas con el ejecutor nativo de Node           |
++| `npm run lint`     | Busca problemas de código con ESLint                         |
++| `npm run format`   | Formatea todos los archivos con Prettier                     |
++| `npm run check`    | Ejecuta lint, verificación de formato y pruebas en secuencia |
++| `npm run seed`     | Añade solicitudes de demostración a la base de datos local   |
++| `npm run db:reset` | Borra la base de datos local y sus archivos WAL              |
++| `npm run admin --` | Gestiona las cuentas del personal (ver arriba)               |
++
++`shutdown-signal.test.js` inicia el servidor real y lo detiene con `SIGINT` y `SIGTERM`. Se omite en Windows, donde no se pueden entregar señales a un proceso hijo, y se ejecuta en la CI en Linux. El resto de las pruebas se ejecuta en todas partes.
++
++Para ejecutar un solo archivo de pruebas usa `npm --prefix backend test -- tests/admin-audit.test.js`. Pasar por `npm` es importante: da a las pruebas una base de datos temporal, de modo que nunca tocan `data/pqrs.db`.
++
++## 🩺 Solución de problemas
++
++| Problema                                               | Solución                                                                                                                    |
++| ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
++| `EADDRINUSE` al iniciar                                | Otro proceso usa el puerto. Cambia `PORT` en `.env`.                                                                        |
++| La página de consulta dice "Too many attempts"         | La consulta permite 8 intentos por número de caso cada 15 minutos. Espera, o reinicia el servidor en desarrollo.            |
++| El formulario dice "Too many attempts"                 | Cada dirección puede enviar 10 solicitudes cada 15 minutos. Espera, o aumenta `SUBMIT_RATE_LIMIT_MAX` en `.env`.            |
++| El navegador bloquea la API con un error de CORS       | La página la sirve otro sitio o puerto (por ejemplo Live Server). Añade su dirección a `CORS_ORIGINS`.                      |
++| Un script o estilo modificado no aparece en producción | Los navegadores los conservan durante `STATIC_CACHE_SECONDS`. Redúcelo, o fuerza una recarga con Ctrl+F5.                   |
++| Todos los visitantes se bloquean al mismo tiempo       | La app está detrás de un proxy. Define `TRUST_PROXY=1` en el entorno del servidor.                                          |
++| El pie de página dice que no puede alcanzar la API     | Inicia el servidor con `npm run dev`.                                                                                       |
++| `better-sqlite3` falla al instalarse                   | Usa Node 22 o 24 para que se descargue el binario precompilado.                                                             |
++| Siguen apareciendo datos antiguos                      | Ejecuta `npm run db:reset` y, si quieres datos de demostración, `npm run seed`.                                             |
++| El login dice "Invalid email or password."             | Revisa ambos datos. El mensaje es el mismo para una contraseña incorrecta, una cuenta desconocida y una desactivada.        |
++| El login dice "Too many attempts"                      | Espera a que pase la ventana (15 minutos por defecto) o reinicia el servidor. Aumenta `LOGIN_RATE_LIMIT_MAX` si hace falta. |
++| El login funciona pero el panel me devuelve al login   | En producción la cookie es `Secure`: usa HTTPS. No definas `SESSION_COOKIE_SECURE=false` en producción.                     |
++| "Cross-origin request blocked" en el panel             | La página se abrió desde una dirección distinta a la del servidor (por ejemplo Live Server). Usa la dirección del servidor. |
++| Olvidé mi contraseña                                   | En el servidor: `npm run admin -- reset-password --email you@example.com`.                                                  |
++
++## 🗺️ Versiones futuras
++
++El objetivo es un sistema PQRS completo, construido un paso pequeño y probado a la vez. La versión 0.2.0 es la base del lado del personal y la 0.3.0 la endurece; todo lo que sigue está **planeado, no implementado**. El orden puede cambiar. Los nombres de las ramas y las razones de cada decisión están en [ROADMAP.md](./ROADMAP.md).
++
++| Versión | Trabajo planeado                                                                                                                                                                                                                    |
++| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
++| 0.3.1   | **Cuentas y roles del personal.** Roles de personal y administrador, creación y desactivación de cuentas desde el panel, cambio de la propia contraseña, lista de sesiones activas con opción de cerrarlas.                         |
++| 0.3.2   | **Respuestas y notas internas.** El texto de respuesta que el ciudadano puede leer al consultar, notas privadas entre el personal, asignación de una solicitud a una persona, una pantalla para explorar el historial de auditoría. |
++| 0.3.3   | **Plazos.** Tiempo legal de respuesta por tipo de solicitud, días hábiles y festivos, indicadores de vencida y por vencer en la lista.                                                                                              |
++| 0.3.4   | **Adjuntos.** Cargas seguras (verificación de tamaño, tipo y contenido, archivos fuera de la raíz web) para ciudadanos y personal.                                                                                                  |
++| 0.3.5   | **Notificaciones por correo.** Correo al recibir una solicitud y al responderla, con una bandeja de salida y reintentos para que un fallo de correo nunca pierda una solicitud.                                                     |
++| 0.4.0   | **Reportes.** Solicitudes por tipo y estado a lo largo del tiempo, tiempo promedio de respuesta, tasa de vencimiento.                                                                                                               |
++| 0.4.1   | **Exportación CSV.** Exportación en flujo de la lista filtrada, con protección contra la inyección de fórmulas en hojas de cálculo.                                                                                                 |
++| 0.5.0   | **Calidad.** Informe de cobertura, una prueba de extremo a extremo de todo el flujo en un navegador real, una verificación automática de accesibilidad.                                                                             |
++| 0.5.1   | **Endurecimiento de la autenticación.** Segundo factor (TOTP), límites de login y sesiones que sobreviven a un reinicio y funcionan con más de un proceso del servidor, un registro de eventos de seguridad.                        |
++| 0.5.2   | **Docker.** Imagen multi-etapa y `docker compose`.                                                                                                                                                                                  |
++| 0.5.3   | **Despliegue.** Despliegue en la nube, CI/CD y copias de seguridad automáticas de la base de datos.                                                                                                                                 |
++| 0.9.0   | **Candidata a versión final.** Congelación de funcionalidades, datos de demostración, capturas de pantalla y documentación final.                                                                                                   |
++| 1.0.0   | **Primera versión estable** con una demostración pública.                                                                                                                                                                           |
++
++### Límites conocidos de la 0.3.0
++
++Son deliberados y son la razón de algunas de las versiones anteriores:
++
++- Las cuentas del personal se crean desde la terminal del servidor. Hay un único tipo de usuario del personal: todos pueden ver y modificar todas las solicitudes (0.3.1).
++- El personal puede cambiar el estado, pero todavía no puede escribir una respuesta al ciudadano ni notas (0.3.2).
++- Los límites de login y las sesiones del personal están pensados para **un solo proceso del servidor**. Los contadores de límites viven en memoria y se reinician con el servidor. Con varias instancias detrás de un balanceador, los límites serían por instancia (0.5.1).
++- No hay segundo factor ni correo, por lo que no existe un enlace de "olvidé mi contraseña": la recuperación requiere acceso al servidor (0.5.1, 0.3.5).
++- Un login cuenta cada intento para el límite de la cuenta, así que quien conozca un correo puede hacer esperar a esa cuenta. El personal aún puede recuperarse desde la terminal.
++- Lo mismo ocurre con la consulta pública: permite 8 intentos por número de caso cada 15 minutos, así que quien conozca un número de caso puede hacer esperar a su verdadero dueño. Esto no expone ningún dato. Ver [docs/security.md](./docs/security.md).
++- La búsqueda ignora mayúsculas y minúsculas solo para las letras del inglés (un límite del `LIKE` de SQLite), y las fechas de los filtros están en UTC.
++- Que las pruebas automáticas pasen no significa que el sistema esté listo para producción. Revisa [docs/security.md](./docs/security.md) y pruébalo en tu entorno primero.
++
++## 🤝 Contribuir
++
++Los nombres de las ramas, las convenciones de commits (Conventional Commits), los números de versión y el proceso de publicación se describen en [CONTRIBUTING.md](./CONTRIBUTING.md).
++
++## 🏷️ Versionado
++
++Este proyecto sigue el [Versionado Semántico](https://semver.org) adaptado a fases de aprendizaje:
++
++- `0.X.0`: una capacidad nueva para los usuarios, entregada en un pull request.
++- `0.X.Y`: el siguiente paso dentro de la misma fase.
++- `1.0.0`: primera versión estable con una demostración pública.
++
++El plan está en [ROADMAP.md](./ROADMAP.md) y el historial completo en [CHANGELOG.md](./CHANGELOG.md).
++
++## 📄 Licencia
++
++MIT. Ver [LICENSE](./LICENSE).
+diff --git a/README.md b/README.md
+index 1931cb7..365132e 100644
+--- a/README.md
++++ b/README.md
+@@ -1,12 +1,14 @@
+ # PQRS Flow
+ 
++**English** · [Español](./README.es.md)
++
+ [![CI](https://github.com/OAlexProgramerO/pqrs-flow/actions/workflows/ci.yml/badge.svg)](https://github.com/OAlexProgramerO/pqrs-flow/actions/workflows/ci.yml)
+ [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
+ ![Node](https://img.shields.io/badge/node-%3E%3D22-brightgreen.svg)
+ 
+ A web system to submit, track and manage **PQRS** — _Peticiones, Quejas, Reclamos y Sugerencias_ (Petitions, Complaints, Claims and Suggestions). Built end to end with JavaScript, prioritizing simplicity, no frontend build step and clear architectural boundaries.
+ 
+-**Status: v0.2.0** — Citizens can submit a request, receive a case number and track its status. Authorized staff now log in to a protected panel, search and filter requests, move them through the status workflow and leave a permanent audit trail. It is a step toward a complete PQRS system: the plan for the next versions is in the _Future versions_ section below and in [ROADMAP.md](./ROADMAP.md). It has not been through a production deployment yet, see [docs/security.md](./docs/security.md) before exposing it.
++**Status: v0.3.0** — Citizens can submit a request, receive a case number and track its status. Authorized staff now log in to a protected panel, search and filter requests, move them through the status workflow and leave a permanent audit trail. Version 0.3.0 is a maintenance release: clean shutdown, a Spanish README and extra regression tests, with no change to the API or the database. It is a step toward a complete PQRS system: the plan for the next versions is in the _Future versions_ section below and in [ROADMAP.md](./ROADMAP.md). It has not been through a production deployment yet, see [docs/security.md](./docs/security.md) before exposing it.
+ 
+ ---
+ 
+@@ -22,18 +24,19 @@ Many organizations still handle feedback, complaints and requests through scatte
+ 
+ ### Project status
+ 
+-| Feature                                                   | Version | Status  |
+-| --------------------------------------------------------- | ------- | ------- |
+-| Express server, health endpoint, static site              | 0.0.1   | Done    |
+-| Submission form with client-side validation               | 0.0.2   | Done    |
+-| Database, migrations and repository                       | 0.0.3   | Done    |
+-| `POST /api/pqrs`, form connected to the API, case number  | 0.1.0   | Done    |
+-| Status lookup with case number and email                  | 0.1.1   | Done    |
+-| Rate limit for submissions, compression, proxy settings   | 0.1.2   | Done    |
+-| Cache headers for static files, CORS from the environment | 0.1.3   | Done    |
+-| Staff panel: login, dashboard, search, status changes     | 0.2.0   | Done    |
+-| Audit history of every status change                      | 0.2.0   | Done    |
+-| Roles, replies, deadlines, attachments, emails, reports   | 0.2.x+  | Planned |
++| Feature                                                    | Version | Status  |
++| ---------------------------------------------------------- | ------- | ------- |
++| Express server, health endpoint, static site               | 0.0.1   | Done    |
++| Submission form with client-side validation                | 0.0.2   | Done    |
++| Database, migrations and repository                        | 0.0.3   | Done    |
++| `POST /api/pqrs`, form connected to the API, case number   | 0.1.0   | Done    |
++| Status lookup with case number and email                   | 0.1.1   | Done    |
++| Rate limit for submissions, compression, proxy settings    | 0.1.2   | Done    |
++| Cache headers for static files, CORS from the environment  | 0.1.3   | Done    |
++| Staff panel: login, dashboard, search, status changes      | 0.2.0   | Done    |
++| Audit history of every status change                       | 0.2.0   | Done    |
++| Clean shutdown, Spanish README, isolation regression tests | 0.3.0   | Done    |
++| Roles, replies, deadlines, attachments, emails, reports    | 0.3.x+  | Planned |
+ 
+ ## ✨ What it does today
+ 
+@@ -55,6 +58,7 @@ Many organizations still handle feedback, complaints and requests through scatte
+ - **Status workflow** with permitted transitions (`closed` is final) and protection against two people changing the same request.
+ - **Audit history**: every status change records who, from which status to which, when and with which request id. It is saved in the same transaction as the change, is append-only and is never shown to the public.
+ - **Account tool** (`npm run admin`): create and recover staff accounts from the server's terminal. There are no default accounts.
++- Clean shutdown: `Ctrl+C` or `SIGTERM` stop accepting connections, let running requests finish (up to 10 seconds) and close the SQLite database.
+ - Demo data and database reset commands for local development.
+ - Tests for validation, database and migrations, service, controller, rate limiter, compression, API, authentication, authorization, audit, status helpers and both frontends.
+ 
+@@ -189,6 +193,8 @@ curl -X POST http://localhost:3000/api/pqrs \
+ | `npm run db:reset` | Delete the local database and its WAL files       |
+ | `npm run admin --` | Manage staff accounts (see above)                 |
+ 
++`shutdown-signal.test.js` starts the real server and stops it with `SIGINT` and `SIGTERM`. It is skipped on Windows, where signals cannot be delivered to a child process, and runs in CI on Linux. The rest of the suite runs everywhere.
++
+ To run one test file use `npm --prefix backend test -- tests/admin-audit.test.js`. Going through `npm` matters: it gives the tests a temporary database, so they never touch `data/pqrs.db`.
+ 
+ ## 🩺 Troubleshooting
+@@ -212,15 +218,15 @@ To run one test file use `npm --prefix backend test -- tests/admin-audit.test.js
+ 
+ ## 🗺️ Future versions
+ 
+-The goal is a complete PQRS system, built one small, tested step at a time. Version 0.2.0 is the base of the staff side; everything below is **planned, not implemented**. The order may change. The branch names and the reasons behind each decision are in [ROADMAP.md](./ROADMAP.md).
++The goal is a complete PQRS system, built one small, tested step at a time. Version 0.2.0 is the base of the staff side and 0.3.0 hardens it; everything below is **planned, not implemented**. The order may change. The branch names and the reasons behind each decision are in [ROADMAP.md](./ROADMAP.md).
+ 
+ | Version | Planned work                                                                                                                                                                                           |
+ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+-| 0.2.1   | **Staff accounts and roles.** Staff and administrator roles, creating and deactivating accounts from the panel, change of own password, list of active sessions with the option to close them.         |
+-| 0.2.2   | **Replies and internal notes.** The answer text that the citizen can read when tracking a request, private notes between staff, assigning a request to a person, a screen to browse the audit history. |
+-| 0.3.0   | **Deadlines.** Legal response time per request type, business days and holidays, overdue and soon-to-expire flags in the list.                                                                         |
+-| 0.3.1   | **Attachments.** Safe uploads (size, type and content checks, files stored outside the web root) for citizens and staff.                                                                               |
+-| 0.3.2   | **Email notifications.** Email when a request is received and when it is answered, with an outbox and retries so an email failure never loses a request.                                               |
++| 0.3.1   | **Staff accounts and roles.** Staff and administrator roles, creating and deactivating accounts from the panel, change of own password, list of active sessions with the option to close them.         |
++| 0.3.2   | **Replies and internal notes.** The answer text that the citizen can read when tracking a request, private notes between staff, assigning a request to a person, a screen to browse the audit history. |
++| 0.3.3   | **Deadlines.** Legal response time per request type, business days and holidays, overdue and soon-to-expire flags in the list.                                                                         |
++| 0.3.4   | **Attachments.** Safe uploads (size, type and content checks, files stored outside the web root) for citizens and staff.                                                                               |
++| 0.3.5   | **Email notifications.** Email when a request is received and when it is answered, with an outbox and retries so an email failure never loses a request.                                               |
+ | 0.4.0   | **Reports.** Requests by type and status over time, average response time, overdue rate.                                                                                                               |
+ | 0.4.1   | **CSV export.** Streamed export of the filtered list, with protection against formula injection in spreadsheets.                                                                                       |
+ | 0.5.0   | **Quality.** Coverage report, an end-to-end test of the whole flow in a real browser, an automated accessibility check.                                                                                |
+@@ -230,15 +236,16 @@ The goal is a complete PQRS system, built one small, tested step at a time. Vers
+ | 0.9.0   | **Release candidate.** Feature freeze, demo data, screenshots and final documentation.                                                                                                                 |
+ | 1.0.0   | **First stable release** with a public demo.                                                                                                                                                           |
+ 
+-### Known limits of 0.2.0
++### Known limits of 0.3.0
+ 
+ These are deliberate and are the reason for some of the versions above:
+ 
+-- Staff accounts are created from the server's terminal. There is a single kind of staff user: everyone can see and change every request (0.2.1).
+-- Staff can change the status but cannot write a reply to the citizen or notes yet (0.2.2).
++- Staff accounts are created from the server's terminal. There is a single kind of staff user: everyone can see and change every request (0.3.1).
++- Staff can change the status but cannot write a reply to the citizen or notes yet (0.3.2).
+ - The login limits and the staff sessions are meant for **one server process**. The limit counters live in memory and restart with the server. With several instances behind a load balancer the limits would be per instance (0.5.1).
+-- There is no second factor and no email, so there is no "forgot my password" link: recovery needs access to the server (0.5.1, 0.3.2).
++- There is no second factor and no email, so there is no "forgot my password" link: recovery needs access to the server (0.5.1, 0.3.5).
+ - A login counts every attempt toward the account limit, so someone who knows an email can make that account wait. Staff can still be recovered from the terminal.
++- The same happens with the public lookup: it allows 8 attempts per case number every 15 minutes, so someone who knows a case number can make its real owner wait. No data is exposed by this. See [docs/security.md](./docs/security.md).
+ - The search ignores letter case only for English letters (a limit of SQLite's `LIKE`), and dates in the filters are in UTC.
+ - Passing the automated tests does not mean the system is ready for production. Review [docs/security.md](./docs/security.md) and test it in your environment first.
+ 
+diff --git a/ROADMAP.md b/ROADMAP.md
+index 2f4ba5a..08dbfc1 100644
+--- a/ROADMAP.md
++++ b/ROADMAP.md
+@@ -10,58 +10,62 @@ Path from **v0.0.1** to **v1.0.0**. Each version is one branch, one pull request
+ 
+ ## The plan
+ 
+-| Version | Branch                     | Goal                                                                         | Status   |
+-| ------- | -------------------------- | ---------------------------------------------------------------------------- | -------- |
+-| 0.0.1   | `chore/project-setup`      | Express server, `/api/health`, static site, CI                               | Done     |
+-| 0.0.2   | `feat/submission-form`     | Submission form with client-side validation                                  | Done     |
+-| 0.0.3   | `feat/database`            | SQLite, migrations, repository and case numbers                              | Done     |
+-| 0.1.0   | `feat/submit-pqrs`         | `POST /api/pqrs`, shared validation, form connected, success screen          | Done     |
+-| 0.1.1   | `feat/track-pqrs`          | Lookup with case number **and** email, tracking page, rate limits            | Done     |
+-| 0.1.2   | `chore/hardening`          | Rate limit for submissions, compression, proxy settings                      | Done     |
+-| 0.1.3   | `chore/http-caching`       | Cache headers for static files and CORS origins from the environment         | Done     |
+-| 0.2.0   | `feat/staff-panel`         | Staff login, protected dashboard, search and filters, status workflow, audit | **Done** |
+-| 0.2.1   | `feat/staff-accounts`      | Roles, account management in the panel, change of password, session list     | Planned  |
+-| 0.2.2   | `feat/replies-and-notes`   | Reply text to the citizen, internal notes, assignment, audit viewer          | Planned  |
+-| 0.3.0   | `feat/deadlines`           | Due date per request type, business days, overdue flag                       | Planned  |
+-| 0.3.1   | `feat/attachments`         | Safe file uploads with size and type limits                                  | Planned  |
+-| 0.3.2   | `feat/email-notifications` | Emails on filing and on answer, with an outbox and retries                   | Planned  |
+-| 0.4.0   | `feat/reports`             | Dashboard of cases by type, status and response time                         | Planned  |
+-| 0.4.1   | `feat/csv-export`          | Streamed CSV export with protection against formula injection                | Planned  |
+-| 0.5.0   | `chore/quality`            | Coverage report, end-to-end smoke test, accessibility check                  | Planned  |
+-| 0.5.1   | `chore/auth-hardening`     | Second factor (TOTP), login limits that survive restarts, security log       | Planned  |
+-| 0.5.2   | `chore/docker`             | Multi-stage Dockerfile and `docker compose`                                  | Planned  |
+-| 0.5.3   | `chore/deploy`             | Cloud deployment, CI/CD and database backups                                 | Planned  |
+-| 0.9.0   | `chore/release-candidate`  | Feature freeze, demo data, screenshots and final docs                        | Planned  |
+-| 1.0.0   | `chore/release-1.0`        | First stable release with a public demo                                      | Planned  |
++| Version | Branch                     | Goal                                                                                             | Status   |
++| ------- | -------------------------- | ------------------------------------------------------------------------------------------------ | -------- |
++| 0.0.1   | `chore/project-setup`      | Express server, `/api/health`, static site, CI                                                   | Done     |
++| 0.0.2   | `feat/submission-form`     | Submission form with client-side validation                                                      | Done     |
++| 0.0.3   | `feat/database`            | SQLite, migrations, repository and case numbers                                                  | Done     |
++| 0.1.0   | `feat/submit-pqrs`         | `POST /api/pqrs`, shared validation, form connected, success screen                              | Done     |
++| 0.1.1   | `feat/track-pqrs`          | Lookup with case number **and** email, tracking page, rate limits                                | Done     |
++| 0.1.2   | `chore/hardening`          | Rate limit for submissions, compression, proxy settings                                          | Done     |
++| 0.1.3   | `chore/http-caching`       | Cache headers for static files and CORS origins from the environment                             | Done     |
++| 0.2.0   | `feat/staff-panel`         | Staff login, protected dashboard, search and filters, status workflow, audit                     | **Done** |
++| 0.3.0   | `chore/maintenance`        | Clean shutdown, ESM scope of the staff frontend, test-isolation regression tests, Spanish README | **Done** |
++| 0.3.1   | `feat/staff-accounts`      | Roles, account management in the panel, change of password, session list                         | Planned  |
++| 0.3.2   | `feat/replies-and-notes`   | Reply text to the citizen, internal notes, assignment, audit viewer                              | Planned  |
++| 0.3.3   | `feat/deadlines`           | Due date per request type, business days, overdue flag                                           | Planned  |
++| 0.3.4   | `feat/attachments`         | Safe file uploads with size and type limits                                                      | Planned  |
++| 0.3.5   | `feat/email-notifications` | Emails on filing and on answer, with an outbox and retries                                       | Planned  |
++| 0.4.0   | `feat/reports`             | Dashboard of cases by type, status and response time                                             | Planned  |
++| 0.4.1   | `feat/csv-export`          | Streamed CSV export with protection against formula injection                                    | Planned  |
++| 0.5.0   | `chore/quality`            | Coverage report, end-to-end smoke test, accessibility check                                      | Planned  |
++| 0.5.1   | `chore/auth-hardening`     | Second factor (TOTP), login limits that survive restarts, security log                           | Planned  |
++| 0.5.2   | `chore/docker`             | Multi-stage Dockerfile and `docker compose`                                                      | Planned  |
++| 0.5.3   | `chore/deploy`             | Cloud deployment, CI/CD and database backups                                                     | Planned  |
++| 0.9.0   | `chore/release-candidate`  | Feature freeze, demo data, screenshots and final docs                                            | Planned  |
++| 1.0.0   | `chore/release-1.0`        | First stable release with a public demo                                                          | Planned  |
+ 
+ The old 0.2.1 (`feat/staff-list`) and 0.2.2 (`feat/status-workflow`) were delivered together with the login in 0.2.0, so the panel is useful from its first release.
+ 
++0.3.0 was released as a maintenance version before the planned staff accounts (old 0.2.1) and replies (old 0.2.2). So that no number is used twice, those two versions and the planned ones after them were renumbered 0.3.1 to 0.3.5. No released version changed. Their branch names and goals are the same.
++
+ ## Decisions
+ 
+-| Decision                                                   | Reason                                                                                                          |
+-| ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+-| Public lookup needs the case number **and** the email      | Sequential case numbers can be guessed. With the number alone anyone could read other people's requests.        |
+-| Lookup is a `POST`, not a `GET` with the email in the URL  | URLs end up in logs and browser history.                                                                        |
+-| One validation module shared by browser and server (0.1.0) | The rules live in one place. The server still validates everything again.                                       |
+-| Migrations instead of running a schema file at startup     | The schema can change safely and its history is versioned.                                                      |
+-| Indexes only when a query needs them                       | The panel list (0.2.0) added indexes on date, status and type. Every other column is searched with `LIKE`.      |
+-| Performance and security work has its own version (0.1.2)  | It can be reviewed and measured on its own.                                                                     |
+-| Own in-memory rate limiter instead of a package (0.1.1)    | The lookup needed protection now. It is small, has no dependency and is tested with a fake clock.               |
+-| Lookup limits per client address and per case number       | One limit stops a computer, the other stops many computers guessing one email.                                  |
+-| Submission limit per client address, set in `.env` (0.1.2) | Real people send one or two requests. A shared address still has room and the numbers change without code.      |
+-| Own compression with Node's `zlib`, not a package (0.1.2)  | No new dependency, so the lock file and the audit stay as they are. Tested with files, ranges and slow clients. |
+-| CORS closed by default, `CORS_ORIGINS` opens it (0.1.3)    | The pages and the API share one origin. The staff cookies of 0.2.0 must never be readable from other sites.     |
+-| Static files are not cached in development (0.1.3)         | Their names have no version, so a long cache would hide edits. Production keeps them for an hour.               |
+-| Proxy trust is off by default, `TRUST_PROXY` turns it on   | Trusting `X-Forwarded-For` without a proxy lets anyone fake an address and skip the limits.                     |
+-| Passwords use Node's built-in `scrypt` (0.2.0)             | No extra dependency for the staff login.                                                                        |
+-| Server-side sessions with opaque tokens, not JWT (0.2.0)   | A session can be closed at once (logout, reset, deactivation). Only the token hash is stored.                   |
+-| CSRF token derived from the session token (0.2.0)          | Nothing extra to store, and another site cannot read the HttpOnly cookie to compute it.                         |
+-| Staff pages live in `frontend-admin/`, outside `frontend/` | The public static handler cannot serve them by accident, whatever spelling of the address someone tries.        |
+-| Accounts are managed by a command, not by an HTTP route    | Nobody can create or promote an account from the network. Roles and a panel for it are planned for 0.2.1.       |
+-| `closed` is a final status (0.2.0)                         | A closed case keeps its meaning for reports. More work after closing is a new request.                          |
+-| Audit rows are protected by triggers (0.2.0)               | Even a bug in the application cannot rewrite the history. Status and audit are saved in one transaction.        |
+-| Tests never open `data/pqrs.db` (0.2.0)                    | A migration or a write from a test must not change the database of a developer.                                 |
+-| Node 22 is the minimum, CI runs on 22 and 24               | Node 20 reached end of life in April 2026.                                                                      |
+-| Major dependency upgrades are planned, never automatic     | Express 5 and dotenv 18 can change behavior. Each one gets its own version and a checklist.                     |
+-| A pre-push hook runs the CI checks                         | CI turned red three times because the checks were skipped before pushing to main.                               |
+-| Docker image based on a slim Debian, not Alpine (0.5.1)    | `better-sqlite3` installs from a prebuilt binary instead of compiling.                                          |
++| Decision                                                    | Reason                                                                                                                                              |
++| ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
++| Public lookup needs the case number **and** the email       | Sequential case numbers can be guessed. With the number alone anyone could read other people's requests.                                            |
++| Lookup is a `POST`, not a `GET` with the email in the URL   | URLs end up in logs and browser history.                                                                                                            |
++| One validation module shared by browser and server (0.1.0)  | The rules live in one place. The server still validates everything again.                                                                           |
++| Migrations instead of running a schema file at startup      | The schema can change safely and its history is versioned.                                                                                          |
++| Indexes only when a query needs them                        | The panel list (0.2.0) added indexes on date, status and type. Every other column is searched with `LIKE`.                                          |
++| Performance and security work has its own version (0.1.2)   | It can be reviewed and measured on its own.                                                                                                         |
++| Own in-memory rate limiter instead of a package (0.1.1)     | The lookup needed protection now. It is small, has no dependency and is tested with a fake clock.                                                   |
++| Lookup limits per client address and per case number        | One limit stops a computer, the other stops many computers guessing one email.                                                                      |
++| Submission limit per client address, set in `.env` (0.1.2)  | Real people send one or two requests. A shared address still has room and the numbers change without code.                                          |
++| Own compression with Node's `zlib`, not a package (0.1.2)   | No new dependency, so the lock file and the audit stay as they are. Tested with files, ranges and slow clients.                                     |
++| CORS closed by default, `CORS_ORIGINS` opens it (0.1.3)     | The pages and the API share one origin. The staff cookies of 0.2.0 must never be readable from other sites.                                         |
++| Static files are not cached in development (0.1.3)          | Their names have no version, so a long cache would hide edits. Production keeps them for an hour.                                                   |
++| Proxy trust is off by default, `TRUST_PROXY` turns it on    | Trusting `X-Forwarded-For` without a proxy lets anyone fake an address and skip the limits.                                                         |
++| Passwords use Node's built-in `scrypt` (0.2.0)              | No extra dependency for the staff login.                                                                                                            |
++| Server-side sessions with opaque tokens, not JWT (0.2.0)    | A session can be closed at once (logout, reset, deactivation). Only the token hash is stored.                                                       |
++| CSRF token derived from the session token (0.2.0)           | Nothing extra to store, and another site cannot read the HttpOnly cookie to compute it.                                                             |
++| Staff pages live in `frontend-admin/`, outside `frontend/`  | The public static handler cannot serve them by accident, whatever spelling of the address someone tries.                                            |
++| Accounts are managed by a command, not by an HTTP route     | Nobody can create or promote an account from the network. Roles and a panel for it are planned for 0.3.1.                                           |
++| `closed` is a final status (0.2.0)                          | A closed case keeps its meaning for reports. More work after closing is a new request.                                                              |
++| Audit rows are protected by triggers (0.2.0)                | Even a bug in the application cannot rewrite the history. Status and audit are saved in one transaction.                                            |
++| Tests never open `data/pqrs.db` (0.2.0)                     | A migration or a write from a test must not change the database of a developer.                                                                     |
++| Maintenance release 0.3.0 before the planned 0.2.x features | The audit after 0.2.0 found only small reliability and documentation items. They were shipped first, and the planned versions moved to 0.3.1-0.3.5. |
++| Node 22 is the minimum, CI runs on 22 and 24                | Node 20 reached end of life in April 2026.                                                                                                          |
++| Major dependency upgrades are planned, never automatic      | Express 5 and dotenv 18 can change behavior. Each one gets its own version and a checklist.                                                         |
++| A pre-push hook runs the CI checks                          | CI turned red three times because the checks were skipped before pushing to main.                                                                   |
++| Docker image based on a slim Debian, not Alpine (0.5.1)     | `better-sqlite3` installs from a prebuilt binary instead of compiling.                                                                              |
+diff --git a/backend/package-lock.json b/backend/package-lock.json
+index 5e4ecb2..8d41487 100644
+--- a/backend/package-lock.json
++++ b/backend/package-lock.json
+@@ -1,12 +1,12 @@
+ {
+   "name": "pqrs-flow-backend",
+-  "version": "0.2.0",
++  "version": "0.3.0",
+   "lockfileVersion": 3,
+   "requires": true,
+   "packages": {
+     "": {
+       "name": "pqrs-flow-backend",
+-      "version": "0.2.0",
++      "version": "0.3.0",
+       "dependencies": {
+         "better-sqlite3": "^13.0.3",
+         "cors": "^2.8.5",
+diff --git a/backend/package.json b/backend/package.json
+index 5effd4e..9cae647 100644
+--- a/backend/package.json
++++ b/backend/package.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "pqrs-flow-backend",
+-  "version": "0.2.0",
++  "version": "0.3.0",
+   "private": true,
+   "type": "module",
+   "main": "src/server.js",
+diff --git a/backend/src/db/database.js b/backend/src/db/database.js
+index 78589bf..3d78c3c 100644
+--- a/backend/src/db/database.js
++++ b/backend/src/db/database.js
+@@ -1,4 +1,4 @@
+-﻿import fs from 'node:fs';
++import fs from 'node:fs';
+ import path from 'node:path';
+ import Database from 'better-sqlite3';
+ import { env } from '../config/env.js';
+diff --git a/backend/src/server.js b/backend/src/server.js
+index 490d6e5..f511633 100644
+--- a/backend/src/server.js
++++ b/backend/src/server.js
+@@ -1,5 +1,7 @@
+ import { app } from './app.js';
+ import { env } from './config/env.js';
++import { closeDb } from './db/database.js';
++import { createShutdown, installShutdownHandlers } from './shutdown.js';
+ 
+ if (env.trustProxy === true) {
+   console.warn(
+@@ -24,3 +26,6 @@ const server = app.listen(env.port, () => {
+ // after 5 seconds by default, which shows up as random 502 errors. These values stay above that.
+ server.keepAliveTimeout = 65_000;
+ server.headersTimeout = 66_000;
++
++// Ctrl+C and the stop signal of process managers close the server and the database cleanly
++installShutdownHandlers(createShutdown({ server, closeDatabase: closeDb }));
+diff --git a/backend/src/shutdown.js b/backend/src/shutdown.js
+new file mode 100644
+index 0000000..d51788b
+--- /dev/null
++++ b/backend/src/shutdown.js
+@@ -0,0 +1,109 @@
++/**
++ * Graceful shutdown of the HTTP server and the SQLite connection.
++ *
++ * - server: the http.Server returned by app.listen()
++ * - closeDatabase: closes the shared SQLite connection (closeDb of db/database.js)
++ * - timeoutMs: the longest the whole shutdown may take before the process is forced to stop
++ * - log, exit, setTimer, clearTimer: replaced in tests
++ *
++ * The returned function is idempotent: every call after the first returns the same promise and
++ * does nothing else. It resolves with the exit code (0 on a clean shutdown, 1 on any problem).
++ */
++export const SHUTDOWN_TIMEOUT_MS = 10_000;
++
++export function createShutdown({
++  server,
++  closeDatabase,
++  timeoutMs = SHUTDOWN_TIMEOUT_MS,
++  log = console,
++  exit = (code) => process.exit(code),
++  setTimer = setTimeout,
++  clearTimer = clearTimeout,
++}) {
++  let running;
++
++  // Stops accepting connections and waits for the requests that are still running
++  function closeServer() {
++    return new Promise((resolve, reject) => {
++      server.close((error) => {
++        // A server that is not listening any more has nothing left to close
++        if (error && error.code !== 'ERR_SERVER_NOT_RUNNING') reject(error);
++        else resolve();
++      });
++      // Keep-alive connections without a request would hold the server open for a minute
++      server.closeIdleConnections?.();
++    });
++  }
++
++  async function run(signal) {
++    log.log(`Received ${signal}, shutting down...`);
++
++    let finished = false;
++    let code;
++    let forceStop;
++    const forced = new Promise((resolve) => {
++      forceStop = resolve;
++    });
++
++    const timer = setTimer(() => {
++      if (finished) return;
++      finished = true;
++      log.error(`Shutdown took longer than ${timeoutMs} ms, forcing the process to stop.`);
++      server.closeAllConnections?.();
++      try {
++        closeDatabase();
++      } catch (error) {
++        log.error('Could not close the database:', error);
++      }
++      exit(1);
++      // Only reached when exit is replaced (tests): the caller must not wait for ever
++      forceStop(1);
++    }, timeoutMs);
++    // The timer must never be the only thing keeping the process alive
++    timer?.unref?.();
++
++    const closing = closeServer().then(
++      () => 0,
++      (error) => {
++        log.error('Could not close the HTTP server:', error);
++        return 1;
++      },
++    );
++    code = await Promise.race([closing, forced]);
++
++    // After a forced stop the timer already closed the database and ended the process
++    if (finished) return 1;
++
++    try {
++      closeDatabase();
++    } catch (error) {
++      code = 1;
++      log.error('Could not close the database:', error);
++    }
++
++    finished = true;
++    clearTimer(timer);
++    log.log('Shutdown complete.');
++    return code;
++  }
++
++  return function shutdown(signal = 'shutdown') {
++    running ??= run(signal);
++    return running;
++  };
++}
++
++/**
++ * Connects the shutdown to SIGINT and SIGTERM. The exit code is set, not forced: the process
++ * ends by itself once the server and the database are closed. Repeated signals are absorbed by
++ * the idempotent shutdown.
++ */
++export function installShutdownHandlers(shutdown, proc = process, signals = ['SIGINT', 'SIGTERM']) {
++  for (const signal of signals) {
++    proc.on(signal, () => {
++      shutdown(signal).then((code) => {
++        proc.exitCode = code;
++      });
++    });
++  }
++}
+diff --git a/backend/tests/db-isolation.test.js b/backend/tests/db-isolation.test.js
+new file mode 100644
+index 0000000..5b0ae7a
+--- /dev/null
++++ b/backend/tests/db-isolation.test.js
+@@ -0,0 +1,79 @@
++import { test } from 'node:test';
++import assert from 'node:assert/strict';
++import { spawnSync } from 'node:child_process';
++import fs from 'node:fs';
++import os from 'node:os';
++import path from 'node:path';
++import { fileURLToPath } from 'node:url';
++
++const backendDir = fileURLToPath(new URL('..', import.meta.url));
++const preload = path.join(backendDir, 'tests/helpers/isolate-db.js');
++
++// Runs a script in a child process that loads the preload exactly as `npm test` does,
++// starting without any DB_PATH so the preload has to pick its own temporary database.
++function runWithPreload(script) {
++  const env = { ...process.env };
++  delete env.DB_PATH;
++
++  return spawnSync(process.execPath, ['--import', preload, '--input-type=module', '-e', script], {
++    cwd: backendDir,
++    env,
++    encoding: 'utf8',
++  });
++}
++
++test('the preload does not load the database settings before a test sets DB_PATH', () => {
++  const chosen = path.join(os.tmpdir(), 'pqrs-order-check', 'chosen.db');
++  const script = `
++    process.env.DB_PATH = ${JSON.stringify(chosen)};
++    const { env } = await import('./src/config/env.js');
++    console.log(env.dbPath);
++  `;
++  const result = runWithPreload(script);
++
++  assert.equal(result.status, 0, result.stderr);
++  // If the preload had imported the database module first, the settings would already hold the
++  // preload's own folder and the path chosen by the test would be ignored.
++  assert.equal(result.stdout.trim(), chosen);
++});
++
++test('the preload gives a process its own temporary database and removes it afterwards', () => {
++  const script = `
++    console.log(process.env.DB_PATH);
++    const { openDatabase } = await import('./src/db/database.js');
++    const db = openDatabase({ filename: process.env.DB_PATH });
++    db.prepare('INSERT INTO case_counters (year, last_value) VALUES (2000, 1)').run();
++    db.close();
++  `;
++  const result = runWithPreload(script);
++  assert.equal(result.status, 0, result.stderr);
++
++  const dbPath = result.stdout.trim().split('\n')[0];
++  assert.ok(dbPath.startsWith(os.tmpdir() + path.sep));
++  assert.notEqual(path.resolve(dbPath), path.resolve(backendDir, '../data/pqrs.db'));
++  for (const suffix of ['', '-wal', '-shm']) {
++    assert.equal(fs.existsSync(dbPath + suffix), false, `${suffix || 'database'} was left behind`);
++  }
++  assert.equal(fs.existsSync(path.dirname(dbPath)), false, 'the temporary folder was left behind');
++});
++
++test('the shared connection opened during a run is closed and its files are removed', () => {
++  const script = `
++    console.log(process.env.DB_PATH);
++    const { getDb } = await import('./src/db/database.js');
++    getDb().prepare('INSERT INTO case_counters (year, last_value) VALUES (2000, 1)').run();
++  `;
++  const result = runWithPreload(script);
++  assert.equal(result.status, 0, result.stderr);
++
++  const dbPath = result.stdout.trim().split('\n')[0];
++  assert.equal(fs.existsSync(path.dirname(dbPath)), false, 'the temporary folder was left behind');
++});
++
++test('the preload helper keeps the database module out of its static imports', () => {
++  const source = fs.readFileSync(preload, 'utf8');
++
++  assert.doesNotMatch(source, /^\s*import[^;]*['"][^'"]*db\/database[^'"]*['"]/m);
++  assert.doesNotMatch(source, /^\s*import[^;]*['"][^'"]*config\/env[^'"]*['"]/m);
++  assert.match(source, /await import\(['"][^'"]*db\/database\.js['"]\)/);
++});
+diff --git a/backend/tests/helpers/isolate-db.js b/backend/tests/helpers/isolate-db.js
+index bfc2856..a814c92 100644
+--- a/backend/tests/helpers/isolate-db.js
++++ b/backend/tests/helpers/isolate-db.js
+@@ -1,4 +1,4 @@
+-﻿import fs from 'node:fs';
++import fs from 'node:fs';
+ import os from 'node:os';
+ import path from 'node:path';
+ 
+diff --git a/backend/tests/shutdown-signal.test.js b/backend/tests/shutdown-signal.test.js
+new file mode 100644
+index 0000000..4886bf3
+--- /dev/null
++++ b/backend/tests/shutdown-signal.test.js
+@@ -0,0 +1,92 @@
++import { test } from 'node:test';
++import assert from 'node:assert/strict';
++import { spawn } from 'node:child_process';
++import fs from 'node:fs';
++import net from 'node:net';
++import os from 'node:os';
++import path from 'node:path';
++import { once } from 'node:events';
++import { fileURLToPath } from 'node:url';
++
++const serverFile = fileURLToPath(new URL('../src/server.js', import.meta.url));
++
++// Windows cannot deliver SIGINT or SIGTERM to a child process: kill() ends it at once, without
++// running any handler. There the behavior is covered by shutdown.test.js, and CI runs this file
++// on Linux.
++const skip = process.platform === 'win32' ? 'POSIX signals are not available on Windows' : false;
++
++async function freePort() {
++  const probe = net.createServer().listen(0, '127.0.0.1');
++  await once(probe, 'listening');
++  const { port } = probe.address();
++  await new Promise((resolve) => probe.close(resolve));
++  return port;
++}
++
++async function waitFor(check, what) {
++  for (let i = 0; i < 100; i += 1) {
++    if (await check()) return;
++    await new Promise((resolve) => setTimeout(resolve, 50));
++  }
++  throw new Error(`Timed out waiting for ${what}`);
++}
++
++for (const signal of ['SIGINT', 'SIGTERM']) {
++  test(`the real server closes the HTTP port and the database on ${signal}`, { skip }, async () => {
++    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pqrs-shutdown-'));
++    const dbFile = path.join(dir, 'pqrs.db');
++    const port = await freePort();
++
++    // A temporary database, so the developer database is never opened
++    const child = spawn(process.execPath, [serverFile], {
++      env: { ...process.env, NODE_ENV: 'test', PORT: String(port), DB_PATH: dbFile },
++      stdio: ['ignore', 'pipe', 'pipe'],
++    });
++    let output = '';
++    child.stdout.on('data', (chunk) => (output += chunk));
++    child.stderr.on('data', (chunk) => (output += chunk));
++    const exited = new Promise((resolve) =>
++      child.on('exit', (code, sig) => resolve({ code, sig })),
++    );
++
++    try {
++      await waitFor(() => output.includes('listening'), 'the server to start');
++
++      // One write opens the database in WAL mode, which leaves -wal and -shm files behind
++      const created = await fetch(`http://127.0.0.1:${port}/api/pqrs`, {
++        method: 'POST',
++        headers: { 'Content-Type': 'application/json' },
++        body: JSON.stringify({
++          type: 'petition',
++          subject: 'Street light is broken',
++          description: 'The street light in front of my house has been off for two weeks.',
++          requesterName: 'Ana Gomez',
++          requesterEmail: 'ana@example.com',
++        }),
++      });
++      assert.equal(created.status, 201);
++      assert.equal(fs.existsSync(`${dbFile}-wal`), true);
++
++      child.kill(signal);
++      // A repeated signal must be absorbed by the idempotent shutdown
++      child.kill(signal);
++
++      const { code, sig } = await exited;
++      assert.equal(sig, null, 'the process must end by itself, not be killed by the signal');
++      assert.equal(code, 0);
++      assert.match(output, /shutting down/);
++      assert.equal(output.match(/Shutdown complete/g)?.length, 1);
++
++      // A closed SQLite connection removes its WAL files
++      assert.equal(fs.existsSync(`${dbFile}-wal`), false);
++      assert.equal(fs.existsSync(`${dbFile}-shm`), false);
++      assert.equal(fs.existsSync(dbFile), true);
++
++      // The port no longer accepts connections
++      await assert.rejects(fetch(`http://127.0.0.1:${port}/api/health`));
++    } finally {
++      child.kill('SIGKILL');
++      fs.rmSync(dir, { recursive: true, force: true });
++    }
++  });
++}
+diff --git a/backend/tests/shutdown.test.js b/backend/tests/shutdown.test.js
+new file mode 100644
+index 0000000..e291d6d
+--- /dev/null
++++ b/backend/tests/shutdown.test.js
+@@ -0,0 +1,173 @@
++import { test } from 'node:test';
++import assert from 'node:assert/strict';
++import { EventEmitter } from 'node:events';
++import { createShutdown, installShutdownHandlers, SHUTDOWN_TIMEOUT_MS } from '../src/shutdown.js';
++
++// A stand-in for http.Server: close() answers when the test says so
++function fakeServer({ closeError, hang = false } = {}) {
++  const calls = [];
++  return {
++    calls,
++    close(callback) {
++      calls.push('close');
++      if (!hang) queueMicrotask(() => callback(closeError));
++    },
++    closeIdleConnections: () => calls.push('closeIdleConnections'),
++    closeAllConnections: () => calls.push('closeAllConnections'),
++  };
++}
++
++function setup({ server = fakeServer(), closeDatabase, timeoutMs } = {}) {
++  const events = [];
++  const timers = [];
++  const logs = { log: [], error: [] };
++  const exits = [];
++  const shutdown = createShutdown({
++    server,
++    closeDatabase:
++      closeDatabase ??
++      (() => {
++        events.push('db');
++      }),
++    timeoutMs,
++    log: { log: (m) => logs.log.push(m), error: (...a) => logs.error.push(a) },
++    exit: (code) => exits.push(code),
++    setTimer: (fn, ms) => {
++      const timer = { fn, ms, cleared: false, unref() {} };
++      timers.push(timer);
++      return timer;
++    },
++    clearTimer: (timer) => {
++      timer.cleared = true;
++    },
++  });
++  return { shutdown, server, events, timers, logs, exits };
++}
++
++test('stops the server, then closes the database, and resolves 0', async () => {
++  const { shutdown, server, events, exits } = setup();
++
++  assert.equal(await shutdown('SIGTERM'), 0);
++  assert.deepEqual(server.calls, ['close', 'closeIdleConnections']);
++  assert.deepEqual(events, ['db']);
++  assert.deepEqual(exits, []);
++});
++
++test('the database is closed only after the server has finished closing', async () => {
++  const order = [];
++  const server = {
++    close(callback) {
++      order.push('server closing');
++      setTimeout(() => {
++        order.push('server closed');
++        callback();
++      }, 20);
++    },
++  };
++  const { shutdown } = setup({ server, closeDatabase: () => order.push('db closed') });
++
++  await shutdown('SIGINT');
++  assert.deepEqual(order, ['server closing', 'server closed', 'db closed']);
++});
++
++test('repeated calls share one shutdown: no second close of the server or the database', async () => {
++  const { shutdown, server, events } = setup();
++
++  const results = await Promise.all([shutdown('SIGINT'), shutdown('SIGTERM'), shutdown('SIGINT')]);
++  assert.deepEqual(results, [0, 0, 0]);
++  assert.equal(await shutdown('SIGTERM'), 0);
++  assert.equal(server.calls.filter((c) => c === 'close').length, 1);
++  assert.deepEqual(events, ['db']);
++});
++
++test('the timeout is bounded, uses the default and is cleared after a clean shutdown', async () => {
++  const { shutdown, timers } = setup();
++  await shutdown('SIGTERM');
++
++  assert.equal(timers.length, 1);
++  assert.equal(timers[0].ms, SHUTDOWN_TIMEOUT_MS);
++  assert.ok(SHUTDOWN_TIMEOUT_MS > 0 && SHUTDOWN_TIMEOUT_MS <= 30_000);
++  assert.equal(timers[0].cleared, true);
++});
++
++test('when requests never finish, the timeout closes the database and forces exit(1)', async () => {
++  const { shutdown, server, events, timers, exits, logs } = setup({
++    server: fakeServer({ hang: true }),
++    timeoutMs: 50,
++  });
++
++  const pending = shutdown('SIGTERM');
++  assert.equal(timers[0].ms, 50);
++  timers[0].fn();
++
++  assert.equal(await pending, 1);
++  assert.deepEqual(exits, [1]);
++  assert.deepEqual(events, ['db']);
++  assert.ok(server.calls.includes('closeAllConnections'));
++  assert.match(String(logs.error[0][0]), /longer than 50 ms/);
++});
++
++test('a late server close after the forced stop does not close the database again', async () => {
++  let release;
++  const server = {
++    close(callback) {
++      release = callback;
++    },
++  };
++  const { shutdown, events, timers, exits } = setup({ server });
++
++  const pending = shutdown('SIGTERM');
++  timers[0].fn();
++  release();
++
++  assert.equal(await pending, 1);
++  assert.deepEqual(events, ['db']);
++  assert.deepEqual(exits, [1]);
++});
++
++test('an error while closing the server is reported, the database is still closed', async () => {
++  const { shutdown, events, logs } = setup({
++    server: fakeServer({ closeError: new Error('boom') }),
++  });
++
++  assert.equal(await shutdown('SIGTERM'), 1);
++  assert.deepEqual(events, ['db']);
++  assert.match(logs.error[0][0], /HTTP server/);
++});
++
++test('a server that is not running is not an error', async () => {
++  const closeError = Object.assign(new Error('not running'), { code: 'ERR_SERVER_NOT_RUNNING' });
++  const { shutdown, events } = setup({ server: fakeServer({ closeError }) });
++
++  assert.equal(await shutdown('SIGTERM'), 0);
++  assert.deepEqual(events, ['db']);
++});
++
++test('an error while closing the database is reported and gives exit code 1', async () => {
++  const { shutdown, logs, timers } = setup({
++    closeDatabase: () => {
++      throw new Error('disk');
++    },
++  });
++
++  assert.equal(await shutdown('SIGTERM'), 1);
++  assert.match(logs.error[0][0], /database/);
++  assert.equal(timers[0].cleared, true);
++});
++
++test('installShutdownHandlers listens to SIGINT and SIGTERM and sets the exit code', async () => {
++  const proc = new EventEmitter();
++  const received = [];
++  installShutdownHandlers(async (signal) => {
++    received.push(signal);
++    return 0;
++  }, proc);
++
++  assert.deepEqual(proc.eventNames().sort(), ['SIGINT', 'SIGTERM']);
++  proc.emit('SIGINT');
++  proc.emit('SIGTERM');
++  await new Promise((resolve) => setImmediate(resolve));
++
++  assert.deepEqual(received, ['SIGINT', 'SIGTERM']);
++  assert.equal(proc.exitCode, 0);
++});
+diff --git a/docs/api.md b/docs/api.md
+index cdd5486..3f8d39d 100644
+--- a/docs/api.md
++++ b/docs/api.md
+@@ -29,7 +29,7 @@ Checks that the server is running. Used by the frontend and by monitoring tools.
+ {
+   "status": "ok",
+   "service": "pqrs-flow",
+-  "version": "0.2.0",
++  "version": "0.3.0",
+   "timestamp": "2026-10-04T12:00:00.000Z"
+ }
+ ```
+@@ -353,5 +353,5 @@ Planned for later versions (see the README):
+ 
+ | Method | Path                        | Version | Description                |
+ | ------ | --------------------------- | ------- | -------------------------- |
+-| `POST` | `/api/admin/pqrs/:id/reply` | 0.2.2   | Reply text for the citizen |
+-| `GET`  | `/api/admin/users`          | 0.2.1   | Staff accounts and roles   |
++| `POST` | `/api/admin/pqrs/:id/reply` | 0.3.2   | Reply text for the citizen |
++| `GET`  | `/api/admin/users`          | 0.3.1   | Staff accounts and roles   |
+diff --git a/docs/requirements.md b/docs/requirements.md
+index 6a3d898..9a4bcec 100644
+--- a/docs/requirements.md
++++ b/docs/requirements.md
+@@ -12,8 +12,8 @@
+ ## Actors
+ 
+ - **Citizen:** submits and tracks requests (no account needed).
+-- **Staff member:** logs in to the panel, reviews cases and changes their status (0.2.0). Answering cases arrives in 0.2.2.
+-- **Administrator:** manages accounts. In 0.2.0 an account is created and recovered from the server's terminal; roles and a screen for it arrive in 0.2.1.
++- **Staff member:** logs in to the panel, reviews cases and changes their status (0.2.0). Answering cases arrives in 0.3.2.
++- **Administrator:** manages accounts. In 0.2.0 an account is created and recovered from the server's terminal; roles and a screen for it arrive in 0.3.1.
+ 
+ ## Functional requirements (MVP)
+ 
+diff --git a/docs/security.md b/docs/security.md
+index ca99370..59fbdcb 100644
+--- a/docs/security.md
++++ b/docs/security.md
+@@ -1,6 +1,6 @@
+ # Security
+ 
+-This document describes the security model of PQRS Flow 0.2.0, what to do before putting it online, and what it does **not** cover. Passing the automated tests is not a security review. Test the system in your own environment before exposing it.
++This document describes the security model of PQRS Flow 0.3.0, what to do before putting it online, and what it does **not** cover. Passing the automated tests is not a security review. Test the system in your own environment before exposing it.
+ 
+ ## What is protected and how
+ 
+@@ -38,14 +38,16 @@ This document describes the security model of PQRS Flow 0.2.0, what to do before
+ - **Someone left the team:** `npm run admin -- deactivate --email ...`. The sessions end at once and the audit history keeps their name.
+ - **Suspect a stolen session:** reset the password of the account (it closes its sessions). To close every session, stop the server and run `DELETE FROM admin_sessions;` on the database.
+ - **Locked by the login limits:** wait for the window or restart the server.
+-- **Audit history:** it can be read with SQL on the server (`pqrs_audit`). A screen for it is planned for 0.2.2.
++- **Stopping the server:** `Ctrl+C` (`SIGINT`) and `SIGTERM` close the server cleanly: new connections are refused, requests in progress get up to 10 seconds, and the SQLite connection is closed so the `-wal` and `-shm` files are checkpointed and removed. Process managers usually send `SIGTERM` when they stop a service, so leave them at least that long before they force a kill. `SIGKILL`, a crash or a power cut cannot be handled: SQLite recovers the database from its WAL the next time it opens.
++- **Audit history:** it can be read with SQL on the server (`pqrs_audit`). A screen for it is planned for 0.3.2.
+ 
+-## Known limits of 0.2.0
++## Known limits of 0.3.0
+ 
+ - **One process.** Login counters are in memory. With several processes each one counts alone, so the effective limit is higher. Sessions are in SQLite and would be shared. Persistent, shared limits are planned for 0.5.1.
+ - **No second factor.** A stolen password gives access. TOTP is planned for 0.5.1.
+ - **No "forgot my password" link** and no email. Recovery needs the server terminal.
+-- **One kind of staff user.** Every active account can see and change every request. Roles are planned for 0.2.1.
++- **One kind of staff user.** Every active account can see and change every request. Roles are planned for 0.3.1.
++- **Lookup lockout by others.** The public lookup (`POST /api/pqrs/lookup`) has two limits in memory, counted every 15 minutes: 30 attempts per client address and 8 attempts per case number. They are fixed values in `backend/src/app.js` and are not set in `.env`. The limit per case number counts every attempt, wrong or right, whoever makes it, so a person who knows (or guesses) a case number can use up its 8 attempts and make the real owner see "Too many attempts" until the window ends or the server restarts. This does not reveal any data: the answer is the same for every case number, and a lookup still needs the email. It only delays a legitimate check of that one case. Version 0.3.0 does not change these limits. The shared, persistent limits planned for 0.5.1 are the roadmap work that applies to them.
+ - **Account lockout by others.** The per-account limit counts every attempt, so a person who knows an email can make that account wait. The per-address limit and the terminal recovery are the mitigation.
+ - **Sessions are not bound to a device.** A stolen token works from anywhere until it ends (30 idle minutes, 8 hours at most) or is closed.
+ - **No security event log** (logins, failures, changes of password) other than the access log and the audit of status changes. Planned for 0.5.1.
+diff --git a/frontend-admin/package.json b/frontend-admin/package.json
+new file mode 100644
+index 0000000..3dbc1ca
+--- /dev/null
++++ b/frontend-admin/package.json
+@@ -0,0 +1,3 @@
++{
++  "type": "module"
++}
+diff --git a/package-lock.json b/package-lock.json
+index b75aac5..a0fd996 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -1,12 +1,12 @@
+ {
+   "name": "pqrs-flow",
+-  "version": "0.2.0",
++  "version": "0.3.0",
+   "lockfileVersion": 3,
+   "requires": true,
+   "packages": {
+     "": {
+       "name": "pqrs-flow",
+-      "version": "0.2.0",
++      "version": "0.3.0",
+       "license": "MIT",
+       "devDependencies": {
+         "@eslint/js": "^10.0.1",
+diff --git a/package.json b/package.json
+index 5cc27f3..8d375c6 100644
+--- a/package.json
++++ b/package.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "pqrs-flow",
+-  "version": "0.2.0",
++  "version": "0.3.0",
+   "description": "Web system to submit, track and manage PQRS (Petitions, Complaints, Claims and Suggestions) built with JavaScript",
+   "private": true,
+   "author": "OAlexProgramerO",

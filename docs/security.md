@@ -1,6 +1,6 @@
 # Security
 
-This document describes the security model of PQRS Flow 0.2.0, what to do before putting it online, and what it does **not** cover. Passing the automated tests is not a security review. Test the system in your own environment before exposing it.
+This document describes the security model of PQRS Flow 0.3.0, what to do before putting it online, and what it does **not** cover. Passing the automated tests is not a security review. Test the system in your own environment before exposing it.
 
 ## What is protected and how
 
@@ -38,14 +38,16 @@ This document describes the security model of PQRS Flow 0.2.0, what to do before
 - **Someone left the team:** `npm run admin -- deactivate --email ...`. The sessions end at once and the audit history keeps their name.
 - **Suspect a stolen session:** reset the password of the account (it closes its sessions). To close every session, stop the server and run `DELETE FROM admin_sessions;` on the database.
 - **Locked by the login limits:** wait for the window or restart the server.
-- **Audit history:** it can be read with SQL on the server (`pqrs_audit`). A screen for it is planned for 0.2.2.
+- **Stopping the server:** `Ctrl+C` (`SIGINT`) and `SIGTERM` close the server cleanly: new connections are refused, requests in progress get up to 10 seconds, and the SQLite connection is closed so the `-wal` and `-shm` files are checkpointed and removed. Process managers usually send `SIGTERM` when they stop a service, so leave them at least that long before they force a kill. `SIGKILL`, a crash or a power cut cannot be handled: SQLite recovers the database from its WAL the next time it opens.
+- **Audit history:** it can be read with SQL on the server (`pqrs_audit`). A screen for it is planned for 0.3.2.
 
-## Known limits of 0.2.0
+## Known limits of 0.3.0
 
 - **One process.** Login counters are in memory. With several processes each one counts alone, so the effective limit is higher. Sessions are in SQLite and would be shared. Persistent, shared limits are planned for 0.5.1.
 - **No second factor.** A stolen password gives access. TOTP is planned for 0.5.1.
 - **No "forgot my password" link** and no email. Recovery needs the server terminal.
-- **One kind of staff user.** Every active account can see and change every request. Roles are planned for 0.2.1.
+- **One kind of staff user.** Every active account can see and change every request. Roles are planned for 0.3.1.
+- **Lookup lockout by others.** The public lookup (`POST /api/pqrs/lookup`) has two limits in memory, counted every 15 minutes: 30 attempts per client address and 8 attempts per case number. They are fixed values in `backend/src/app.js` and are not set in `.env`. The limit per case number counts every attempt, wrong or right, whoever makes it, so a person who knows (or guesses) a case number can use up its 8 attempts and make the real owner see "Too many attempts" until the window ends or the server restarts. This does not reveal any data: the answer is the same for every case number, and a lookup still needs the email. It only delays a legitimate check of that one case. Version 0.3.0 does not change these limits. The shared, persistent limits planned for 0.5.1 are the roadmap work that applies to them.
 - **Account lockout by others.** The per-account limit counts every attempt, so a person who knows an email can make that account wait. The per-address limit and the terminal recovery are the mitigation.
 - **Sessions are not bound to a device.** A stolen token works from anywhere until it ends (30 idle minutes, 8 hours at most) or is closed.
 - **No security event log** (logins, failures, changes of password) other than the access log and the audit of status changes. Planned for 0.5.1.

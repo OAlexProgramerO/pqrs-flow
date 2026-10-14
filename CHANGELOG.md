@@ -4,6 +4,39 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [SemVer](h
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-14
+
+A maintenance and hardening release. No new feature, no change to the public or staff API, and no change to the database schema.
+
+### Added
+
+- **Graceful shutdown** (`backend/src/shutdown.js`, used by `server.js`). `SIGINT` and `SIGTERM` stop the server from accepting new connections, let the requests in progress finish, and then close the shared SQLite connection with the existing `closeDb()`, so the WAL is checkpointed and its `-wal` and `-shm` files are removed. The whole shutdown is limited to 10 seconds: after that the remaining connections are cut, the database is closed and the process ends with code 1. Repeated signals do nothing extra. Before, the process was killed with the connection still open.
+- `frontend-admin/package.json` with `{ "type": "module" }`, like `frontend/` and `shared/`.
+- 16 new tests: the shutdown logic with a fake server and fake timers (`shutdown.test.js`), a real server stopped with `SIGINT` and `SIGTERM` in a child process (`shutdown-signal.test.js`, skipped on Windows, where signals cannot be delivered to a child), and regression tests for the order in which the test helper loads the database (`db-isolation.test.js`).
+- `README.es.md`, the Spanish version of the README.
+
+### Changed
+
+- Version `0.3.0` in `package.json`, `backend/package.json` and their lock files (made with `npm version`). `GET /api/health` reports it, because it reads the version from `backend/package.json`.
+- **Roadmap:** 0.3.0 was used for this maintenance release, which came before the planned staff accounts (old 0.2.1) and replies (old 0.2.2). So that no number is used twice, those two versions and the planned ones after them were renumbered 0.3.1 to 0.3.5 in `ROADMAP.md`, both READMEs and the docs. No released version changed.
+- `maintenance/` holds the patch from 0.2.0 to 0.3.0 and the notes to apply it to an older checkout.
+
+### Fixed
+
+- The test run no longer prints the `MODULE_TYPELESS_PACKAGE_JSON` warning for `frontend-admin/js/admin-api.js`.
+- Removed the UTF-8 byte order mark from `backend/src/db/database.js` and `backend/tests/helpers/isolate-db.js`. Nothing else in those files changed.
+- The `0.2.0` entry said 192 new tests and 420 in total. The suite of that release already had 423 tests (228 before, 195 new).
+
+### Documentation
+
+- `docs/security.md` now explains that the public lookup has its own limits (30 attempts per client address and 8 per case number, every 15 minutes), that someone who knows a case number can use up the 8 attempts and make the real owner wait, and that the limits did not change.
+- `docs/security.md` and the README describe the shutdown behavior, and `docs/api.md` shows the new version.
+
+### Not changed on purpose
+
+- Rate limit thresholds, keys, eviction and error answers are untouched. The in-memory limiter is still planned for 0.5.1.
+- Retention and deletion tools and automatic backups (0.5.3), and the deadlines feature (now planned for 0.3.3), are not part of this release.
+
 ## [0.2.0] - 2026-10-12
 
 The internal staff panel. It brings together what the roadmap had planned as 0.2.0 (login), 0.2.1 (list) and 0.2.2 (status workflow and history).
@@ -24,7 +57,7 @@ The internal staff panel. It brings together what the roadmap had planned as 0.2
 - **Account tool**: `npm run admin -- create | reset-password | deactivate | activate | list`. Passwords are asked in the terminal (hidden) or read from standard input, never from arguments or the environment. A password reset closes every session of the account. There are no default accounts.
 - **Migration `002_admin_panel.sql`**: `admins`, `admin_sessions`, `pqrs_audit` and the indexes of the list. Existing requests and case numbers are not touched.
 - `docs/security.md` with the security model and the deployment checklist.
-- 192 new tests (228 before, 420 now): hashing, tokens, validation, migrations from every previous schema, login and sessions, authorization and CSRF, the list and its injection resistance, status changes and conflicts, audit and rollback, the account tool, the staff pages and the API client.
+- 195 new tests (228 before, 423 now): hashing, tokens, validation, migrations from every previous schema, login and sessions, authorization and CSRF, the list and its injection resistance, status changes and conflicts, audit and rollback, the account tool, the staff pages and the API client.
 
 ### Changed
 
