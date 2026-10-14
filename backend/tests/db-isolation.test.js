@@ -4,7 +4,7 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const backendDir = fileURLToPath(new URL('..', import.meta.url));
 const preload = path.join(backendDir, 'tests/helpers/isolate-db.js');
@@ -15,11 +15,17 @@ function runWithPreload(script) {
   const env = { ...process.env };
   delete env.DB_PATH;
 
-  return spawnSync(process.execPath, ['--import', preload, '--input-type=module', '-e', script], {
-    cwd: backendDir,
-    env,
-    encoding: 'utf8',
-  });
+  const preloadUrl = pathToFileURL(preload).href;
+
+  return spawnSync(
+    process.execPath,
+    ['--import', preloadUrl, '--input-type=module', '-e', script],
+    {
+      cwd: backendDir,
+      env,
+      encoding: 'utf8',
+    },
+  );
 }
 
 test('the preload does not load the database settings before a test sets DB_PATH', () => {
