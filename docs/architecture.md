@@ -113,7 +113,7 @@ backend/src/
   services/status-workflow.js     → the four statuses and their transitions
   services/admin-pqrs.service.js  → list, detail, change status
   services/admin-validation.js    → every staff input is checked here
-  services/admin-accounts.js      → create, reset, deactivate accounts (used by the command)
+  services/admin-accounts.js      → account lifecycle, passwords, permissions and sessions
   repositories/admin*.js, session.repository.js, admin-pqrs.repository.js
   cli/admin-cli.js + scripts/admin.js → `npm run admin`
   admin-context.js                → builds the staff objects on one database connection
@@ -154,6 +154,18 @@ The staff repositories are separate from `pqrs.repository.js`. The public routes
 ### Migration `002_admin_panel.sql`
 
 Adds `admins`, `admin_sessions`, `pqrs_audit`, the triggers and three indexes on `pqrs`. The migration runner now repairs the legacy `pqrs` table **before** running migrations, so an old database gets a complete table before indexes and foreign keys point to it.
+
+### Roles, accounts and security (v0.3.1)
+
+`services/permissions.js` is the single permission map: administrators can manage accounts and use the PQRS panel; staff can read and process PQRS but cannot manage accounts. Both roles can currently access every request; assignment-level restrictions are not implemented. `admin.routes.js` applies the permission guard to every protected route, while the page gate protects account and security pages.
+
+`003_staff_roles_accounts.sql` adds a role and the forced-password-change flag to `admins`, plus append-only `account_audit`. It never edits migrations `001` or `002`. All pre-existing accounts become administrators to preserve their old access; new HTTP-created accounts default to staff. Audit writes for account, role, password and session-management changes share the transaction with the associated database change. Triggers reject audit updates and deletions.
+
+`admin.repository.js` performs account edits, password updates and last-active-administrator checks inside immediate transactions. Password updates use a conditional hash match to prevent a concurrent reset from being overwritten. `session.repository.js` exposes only session IDs and timestamps, filters expired or idle sessions, and audits explicit revocations. Login rechecks active status and the verified password hash inside the transaction that creates the new session.
+
+`/admin/accounts.html` is administrator-only and supports account lifecycle actions. `/admin/security.html` supports own-password changes and session review/revocation. New and reset accounts must change their temporary password before accessing other protected routes.
+
+Sensitive management operations are limited to 30 requests per client address and 10 per administrator account every 15 minutes. These counters, like login counters, are in memory.
 
 ### Known limits
 

@@ -4,6 +4,31 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [SemVer](h
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-10-16
+
+### Added
+
+- Role-based staff authorization: administrators manage accounts; staff can access PQRS but not account administration. Existing accounts become administrators during migration `003` to preserve access; new panel-created accounts default to `staff`.
+- Administrator account screens and API for searching, creating, editing, activating/deactivating and resetting accounts. New and reset accounts from the panel must change the temporary password at next login.
+- Self-service password changes with current-password verification, preservation of the current session and revocation of other sessions.
+- Session review and revocation, including logout auditing. Session responses expose only identifiers and timestamps, never tokens or hashes.
+- Append-only account audit records for account, role, password and session-management changes, including actor, target, request id and non-secret metadata.
+- Migration `003_staff_roles_accounts.sql`, which adds roles, password-update requirements and the account audit table without changing prior migrations, requests or case numbers.
+- Administrator protection against self-demotion/self-deactivation and against removing the last active administrator.
+
+### Changed
+
+- Existing login and session responses include the account role and whether a password update is required. Accounts with a temporary password can only change it or log out until updated.
+- Login revalidates account activity and the password hash in the transaction that creates a session, preventing a concurrent account or credential change from opening a stale session.
+- Account-management and sensitive session/password operations are rate-limited and protected by the existing CSRF and same-origin guards.
+- Documentation now describes v0.3.1 behavior, migration guarantees, account/session endpoints and remaining security limitations.
+
+### Validation
+
+- `npm run check`: passed — lint and format checks passed; 453 tests total, 451 passed, 0 failed and 2 skipped because Windows cannot deliver the tested shutdown signals to child processes.
+- `git diff --check`: passed.
+- Startup smoke test: a fresh temporary SQLite database migrated successfully; `/api/health` returned `0.3.1` and `/admin/login.html` returned HTTP `200`. Temporary database and log files were removed.
+
 ## [0.3.0] - 2026-10-14
 
 A maintenance and hardening release. No new feature, no change to the public or staff API, and no change to the database schema.

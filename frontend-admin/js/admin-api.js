@@ -114,3 +114,48 @@ export function changeStatus(caseNumber, { status, expectedStatus }) {
     body: { status, expectedStatus },
   });
 }
+
+export function listStaff(params) {
+  return request('/api/admin/staff/search', { method: 'POST', body: params });
+}
+
+export function createStaff(data) {
+  return request('/api/admin/staff', { method: 'POST', body: data });
+}
+
+export function updateStaff(id, changes) {
+  return request(`/api/admin/staff/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: changes,
+  });
+}
+
+export function resetStaffPassword(id, { password, confirmPassword }) {
+  return request(`/api/admin/staff/${encodeURIComponent(id)}/password-reset`, {
+    method: 'POST',
+    body: { password, confirmPassword },
+  });
+}
+
+export function getStaffAudit(id, params) {
+  return request(`/api/admin/staff/${encodeURIComponent(id)}/audit${buildQuery(params)}`);
+}
+
+export function changePassword({ currentPassword, newPassword, confirmPassword }) {
+  return request('/api/admin/password/change', {
+    method: 'POST',
+    body: { currentPassword, newPassword, confirmPassword },
+  });
+}
+
+export function getSessions() {
+  return request('/api/admin/sessions');
+}
+
+export function revokeSession(sessionId) {
+  return request(`/api/admin/sessions/${encodeURIComponent(sessionId)}`, { method: 'DELETE' });
+}
+
+export function revokeOtherSessions() {
+  return request('/api/admin/sessions/others', { method: 'DELETE' });
+}

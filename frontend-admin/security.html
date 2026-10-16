@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Account security · PQRS Flow staff</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/css/styles.css" />
+    <link rel="stylesheet" href="/admin/css/admin.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to the content</a>
+    <header class="admin-header">
+      <div class="admin-brand"><strong>PQRS Flow</strong><span>Staff</span></div>
+      <nav class="admin-nav" aria-label="Staff">
+        <a href="/admin/">Dashboard</a>
+        <a href="/admin/accounts.html" data-admin-only hidden>Staff accounts</a>
+        <a href="/admin/security.html" aria-current="page">Account security</a>
+        <a href="/" target="_blank" rel="noopener">Public site</a>
+      </nav>
+      <div class="admin-user">
+        <span id="adminName" class="admin-name"></span>
+        <button type="button" class="btn btn-secondary" id="logoutBtn">Log out</button>
+      </div>
+    </header>
+    <main class="admin-main" id="main">
+      <h1>Account security</h1>
+      <p id="forcedPasswordNotice" class="message error" role="alert" hidden>
+        An administrator reset your password. Change it before using the staff panel.
+      </p>
+      <section class="panel" aria-labelledby="password-title">
+        <h2 id="password-title">Change your password</h2>
+        <p class="hint">Use 12–128 characters. Your other active sessions will be closed.</p>
+        <form id="passwordForm" class="security-form" novalidate>
+          <div class="form-group">
+            <label for="currentPassword">Current password</label>
+            <input
+              id="currentPassword"
+              name="currentPassword"
+              type="password"
+              required
+              maxlength="128"
+              autocomplete="current-password"
+            />
+            <small class="field-error" id="currentPassword-error"></small>
+          </div>
+          <div class="form-group">
+            <label for="newPassword">New password</label>
+            <input
+              id="newPassword"
+              name="newPassword"
+              type="password"
+              required
+              minlength="12"
+              maxlength="128"
+              autocomplete="new-password"
+            />
+            <small class="field-error" id="newPassword-error"></small>
+          </div>
+          <div class="form-group">
+            <label for="confirmPassword">Confirm new password</label>
+            <input
+              id="confirmPassword"
+              name="confirmPassword"
+              type="password"
+              required
+              minlength="12"
+              maxlength="128"
+              autocomplete="new-password"
+            />
+            <small class="field-error" id="confirmPassword-error"></small>
+          </div>
+          <button class="btn btn-primary" id="passwordBtn" type="submit">Update password</button>
+        </form>
+        <div id="passwordMessage" class="message" role="status" aria-live="polite" hidden></div>
+      </section>
+      <section class="panel" aria-labelledby="sessions-title">
+        <div class="panel-heading">
+          <div>
+            <h2 id="sessions-title">Active sessions</h2>
+            <p class="hint">
+              Only your own sessions are shown. Revoke any session you do not recognize.
+            </p>
+          </div>
+          <button type="button" class="btn btn-secondary" id="revokeOthersBtn">
+            Revoke other sessions
+          </button>
+        </div>
+        <div id="sessionsState" class="message" role="status" aria-live="polite">
+          Loading sessions…
+        </div>
+        <div class="table-wrap" id="sessionsWrap" hidden>
+          <table>
+            <caption class="visually-hidden">
+              Your active sessions
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Started</th>
+                <th scope="col">Last activity</th>
+                <th scope="col">Expires</th>
+                <th scope="col">This session</th>
+                <th scope="col">Action</th>
+              </tr>
+            </thead>
+            <tbody id="sessionRows"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+    <script type="module" src="/admin/js/security.js"></script>
+  </body>
+</html>

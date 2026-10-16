@@ -315,6 +315,11 @@ test('logging out twice, or without a session, is not an error', async () => {
 
 test('a deactivated account loses access at once, and so does a password reset', async () => {
   const app = await setup();
+  await app.admin.accountService.create({
+    email: 'backup@example.com',
+    displayName: 'Backup Administrator',
+    password: OTHER_PASSWORD,
+  });
   const client = await app.loggedIn();
   app.admin.accountService.setActive(TEST_EMAIL, false);
   assert.equal((await client.get('/api/admin/session')).status, 401);

@@ -1,6 +1,7 @@
 import readline from 'node:readline';
 import { Writable } from 'node:stream';
 import { AccountError } from '../services/admin-accounts.js';
+import { AccountConflictError } from '../errors/account-conflict.js';
 
 export const USAGE = `Usage: npm run admin -- <command> [options]
 
@@ -181,7 +182,7 @@ export async function runAdminCli(
         return 1;
     }
   } catch (error) {
-    if (!(error instanceof AccountError)) throw error;
+    if (!(error instanceof AccountError) && !(error instanceof AccountConflictError)) throw error;
 
     logError(error.message);
     for (const message of Object.values(error.details ?? {})) logError(`  - ${message}`);

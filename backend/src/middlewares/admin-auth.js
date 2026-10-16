@@ -1,6 +1,8 @@
 import { HttpError } from '../errors/http-error.js';
 import { AUTH_REQUIRED_MESSAGE } from '../services/auth.service.js';
 import { safeEqual } from '../services/session-token.js';
+import { hasPermission } from '../services/permissions.js';
+import { PERMISSIONS } from '../services/permissions.js';
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
@@ -86,6 +88,7 @@ export function createAdminAuth({ getAuthService, cookieSecure, maxAgeMs, trustP
     }
 
     req.admin = session.admin;
+    req.sessionId = session.sessionId;
     req.sessionToken = token;
     req.csrfToken = session.csrfToken;
     req.sessionExpiresAt = session.expiresAt;
@@ -118,6 +121,23 @@ export function createAdminAuth({ getAuthService, cookieSecure, maxAgeMs, trustP
       } catch (error) {
         next(error);
       }
+    },
+
+    requirePermission(permission) {
+      return (req, _res, next) => {
+        if (!req.admin) return next(new HttpError(401, AUTH_REQUIRED_MESSAGE));
+        if (!hasPermission(req.admin.role, permission)) {
+          return next(new HttpError(403, 'You do not have permission to perform this action.'));
+        }
+        return next();
+      };
+    },
+
+    requirePasswordUpdate(req, _res, next) {
+      if (req.admin?.credentialUpdateRequired) {
+        return next(new HttpError(403, 'Set a new password before continuing.'));
+      }
+      return next();
     },
 
     /** Like requireAdmin, but an anonymous request goes on (used by logout). */
@@ -182,7 +202,15 @@ export function createAdminAuth({ getAuthService, cookieSecure, maxAgeMs, trustP
       if (reading && PUBLIC_ADMIN_FILES.has(req.path)) return next();
 
       try {
-        if (loadSession(req, res)) return next();
+        if (loadSession(req, res)) {
+          if (
+            req.path === '/accounts.html' &&
+            !hasPermission(req.admin.role, PERMISSIONS.STAFF_MANAGE)
+          ) {
+            return res.redirect(302, '/admin/');
+          }
+          return next();
+        }
       } catch (error) {
         return next(error);
       }

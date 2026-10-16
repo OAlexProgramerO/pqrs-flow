@@ -53,8 +53,10 @@ form.addEventListener('submit', async (event) => {
   submitBtn.textContent = 'Logging in…';
 
   try {
-    await login({ email: data.email.trim(), password: data.password });
-    window.location.assign('/admin/');
+    const result = await login({ email: data.email.trim(), password: data.password });
+    window.location.assign(
+      result.admin.credentialUpdateRequired ? '/admin/security.html' : '/admin/',
+    );
   } catch (error) {
     // The password is cleared on any failure, so it does not stay in the form
     form.elements.password.value = '';
@@ -74,7 +76,9 @@ form.addEventListener('submit', async (event) => {
 
 // Someone who is already logged in goes straight to the dashboard
 getSession()
-  .then(() => window.location.replace('/admin/'))
+  .then(({ admin }) =>
+    window.location.replace(admin.credentialUpdateRequired ? '/admin/security.html' : '/admin/'),
+  )
   .catch(() => {
     if (new URLSearchParams(window.location.search).has('expired')) {
       showMessage('Your session ended. Please log in again.', 'error');

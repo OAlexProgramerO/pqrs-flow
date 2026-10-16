@@ -41,7 +41,7 @@ export function createAuthService({
      * `previousToken` is the cookie the browser already had: that session is closed, so a
      * login always gives a brand new session (no session fixation).
      */
-    async login(input, { previousToken } = {}) {
+    async login(input, { previousToken, requestId } = {}) {
       const { valid, errors, data } = validateLogin(input);
       if (!valid) throw new ValidationError(errors);
 
@@ -59,15 +59,20 @@ export function createAuthService({
       const expiresAt = new Date(issuedAt.getTime() + sessionPolicy.maxAgeMs);
       const token = generateToken();
 
-      sessionRepository.create(
+      const opened = sessionRepository.create(
         {
           adminId: account.id,
           tokenHash: hashToken(token),
           createdAt: issuedAt.toISOString(),
           expiresAt: expiresAt.toISOString(),
         },
-        { replacingHash: isWellFormedToken(previousToken) ? hashToken(previousToken) : null },
+        {
+          replacingHash: isWellFormedToken(previousToken) ? hashToken(previousToken) : null,
+          passwordHash: account.passwordHash,
+          requestId,
+        },
       );
+      if (!opened) throw new HttpError(401, INVALID_CREDENTIALS_MESSAGE);
 
       adminRepository.recordLogin(account.id, issuedAt);
 
@@ -79,7 +84,13 @@ export function createAuthService({
 
       return {
         token,
-        admin: { id: account.id, email: account.email, displayName: account.displayName },
+        admin: {
+          id: account.id,
+          email: account.email,
+          displayName: account.displayName,
+          role: account.role,
+          credentialUpdateRequired: account.needsPasswordUpdate,
+        },
         expiresAt: expiresAt.toISOString(),
         csrfToken: deriveCsrfToken(token),
       };
@@ -114,16 +125,23 @@ export function createAuthService({
       }
 
       return {
-        admin: { id: row.adminId, email: row.email, displayName: row.displayName },
+        admin: {
+          id: row.adminId,
+          email: row.email,
+          displayName: row.displayName,
+          role: row.role,
+          credentialUpdateRequired: row.needsPasswordUpdate,
+        },
+        sessionId: row.sessionId,
         expiresAt: row.expiresAt,
         csrfToken: deriveCsrfToken(token),
       };
     },
 
     /** Ends the session of a cookie value. Returns true when a session was removed. */
-    logout(token) {
+    logout(token, requestId) {
       if (!isWellFormedToken(token)) return false;
-      return sessionRepository.deleteByTokenHash(hashToken(token)) > 0;
+      return sessionRepository.revokeByTokenHash(hashToken(token), { requestId, now: now() });
     },
 
     /** Ends every session of an administrator. */

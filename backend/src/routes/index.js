@@ -10,6 +10,7 @@ export function createRoutes({
   getAdmin,
   adminAuth,
   loginLimiters,
+  managementLimiters,
 }) {
   const router = Router();
 
@@ -18,11 +19,11 @@ export function createRoutes({
   router.use(
     '/admin',
     createAdminRoutes({
-      getAuthService: () => getAdmin().authService,
-      getAdminPqrsRepository: () => getAdmin().adminPqrsRepository,
+      getAdmin,
       getNow: () => getAdmin().now(),
       adminAuth,
       loginLimiters,
+      managementLimiters,
     }),
   );
 

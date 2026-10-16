@@ -7,6 +7,7 @@ export function createAdminAuthController({ getAuthService, adminAuth }) {
       try {
         const result = await getAuthService().login(req.body, {
           previousToken: adminAuth.readSessionToken(req),
+          requestId: req.id,
         });
 
         adminAuth.setSessionCookie(res, result.token);
@@ -32,7 +33,7 @@ export function createAdminAuthController({ getAuthService, adminAuth }) {
     // Always succeeds: logging out twice, or with a dead cookie, is not an error
     logout(req, res, next) {
       try {
-        if (req.sessionToken) getAuthService().logout(req.sessionToken);
+        if (req.sessionToken) getAuthService().logout(req.sessionToken, req.id);
         adminAuth.clearSessionCookie(res);
         res.status(204).end();
       } catch (error) {

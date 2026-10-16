@@ -47,6 +47,10 @@ const defaultSubmitLimit = env.submitRateLimit;
 
 // Staff login attempts are limited per client address and per account. Also from the environment.
 const defaultLoginLimits = env.loginRateLimit;
+const defaultManagementLimits = {
+  ip: { windowMs: FIFTEEN_MINUTES, max: 30 },
+  account: { windowMs: FIFTEEN_MINUTES, max: 10 },
+};
 
 function noStore(_req, res, next) {
   res.set('Cache-Control', 'no-store');
@@ -94,6 +98,7 @@ export function createApp({
   lookupLimits = defaultLookupLimits,
   submitLimit = defaultSubmitLimit,
   loginLimits = defaultLoginLimits,
+  managementLimits = defaultManagementLimits,
   session = env.session,
   trustProxy = env.trustProxy,
   corsOrigins = env.corsOrigins,
@@ -114,6 +119,16 @@ export function createApp({
     createRateLimiter({
       ...loginLimits.account,
       key: (req) => `account:${normalizeEmail(req.body?.email).slice(0, 254)}`,
+    }),
+  ];
+  const managementLimiters = [
+    createRateLimiter({
+      ...managementLimits.ip,
+      key: (req) => `ip:${req.ip}`,
+    }),
+    createRateLimiter({
+      ...managementLimits.account,
+      key: (req) => `account:${req.admin?.id ?? 'anonymous'}`,
     }),
   ];
 
@@ -149,6 +164,7 @@ export function createApp({
       getAdmin,
       adminAuth,
       loginLimiters,
+      managementLimiters,
     }),
   );
   app.use('/api', notFoundHandler);

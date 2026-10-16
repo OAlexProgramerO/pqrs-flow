@@ -1,6 +1,7 @@
 import { env } from './config/env.js';
 import { createAdminPqrsRepository } from './repositories/admin-pqrs.repository.js';
 import { createAdminRepository } from './repositories/admin.repository.js';
+import { createAccountAuditRepository } from './repositories/account-audit.repository.js';
 import { createSessionRepository } from './repositories/session.repository.js';
 import { createAccountService } from './services/admin-accounts.js';
 import { createAuthService } from './services/auth.service.js';
@@ -11,17 +12,26 @@ import { createAuthService } from './services/auth.service.js';
  * and a cheap password cost.
  */
 export function createAdminContext(db, { sessionPolicy = env.session, passwordParams, now } = {}) {
-  const adminRepository = createAdminRepository(db);
-  const sessionRepository = createSessionRepository(db);
+  const accountAuditRepository = createAccountAuditRepository(db);
+  const adminRepository = createAdminRepository(db, accountAuditRepository);
+  const sessionRepository = createSessionRepository(db, accountAuditRepository);
   const adminPqrsRepository = createAdminPqrsRepository(db);
 
   const clock = now ?? (() => new Date());
-  const options = { adminRepository, sessionRepository, passwordParams, now: clock };
+  const options = {
+    adminRepository,
+    sessionRepository,
+    accountAuditRepository,
+    sessionPolicy,
+    passwordParams,
+    now: clock,
+  };
 
   return {
     now: clock,
     adminRepository,
     sessionRepository,
+    accountAuditRepository,
     adminPqrsRepository,
     authService: createAuthService({ ...options, sessionPolicy }),
     accountService: createAccountService(options),

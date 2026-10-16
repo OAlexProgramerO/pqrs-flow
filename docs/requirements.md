@@ -12,8 +12,8 @@
 ## Actors
 
 - **Citizen:** submits and tracks requests (no account needed).
-- **Staff member:** logs in to the panel, reviews cases and changes their status (0.2.0). Answering cases arrives in 0.3.2.
-- **Administrator:** manages accounts. In 0.2.0 an account is created and recovered from the server's terminal; roles and a screen for it arrive in 0.3.1.
+- **Staff member:** logs in to the panel, reviews cases and changes their status (0.2.0). In 0.3.1, staff can read and process all PQRS but cannot manage accounts.
+- **Administrator:** manages staff accounts and has the same PQRS access as staff (0.3.1). The first administrator is created from the server's terminal; there are no default accounts.
 
 ## Functional requirements (MVP)
 
@@ -26,7 +26,12 @@
 7. FR-07: Staff open the detail of a request.
 8. FR-08: Staff change the status only through the permitted transitions. A move that is not permitted, or based on an old view, is refused.
 9. FR-09: Every status change is recorded with who, when, and the previous and new status.
-10. FR-10: Staff accounts are created and recovered with a command, with no default account.
+10. FR-10: The first administrator is created and accounts can be recovered with a server-side command; there are no default accounts.
+11. FR-11: Administrators can create accounts, search and filter the account list, edit account details, assign the `staff` or `administrator` role, activate/deactivate accounts, and reset another account's password.
+12. FR-12: New accounts and administrator password resets require a password change at next login. Users can change their own password after confirming their current password.
+13. FR-13: Users can list their active sessions and revoke one session or all other sessions. Password changes keep the current session and revoke the others.
+14. FR-14: The system must always retain at least one active administrator. An administrator cannot change their own role or deactivate themselves.
+15. FR-15: Account, role, password and session changes are recorded in an append-only account audit with the actor, target, time, request id and non-secret metadata.
 
 ## Non-functional requirements
 
@@ -40,6 +45,9 @@
 - NFR-08: A status change and its audit record are saved together or not at all. The audit history cannot be changed by the application and is never public.
 - NFR-09: The staff panel is responsive and usable with a keyboard and a screen reader (labels, focus, text on every status).
 - NFR-10: Migrations keep existing requests and case numbers.
+- NFR-11: Existing accounts retain their previous full access after migration by becoming administrators; newly-created accounts default to the `staff` role. The migration does not rewrite prior migrations.
+- NFR-12: Account endpoints enforce permissions on the server; hiding UI controls is not an authorization boundary.
+- NFR-13: Passwords, password hashes, session tokens and token hashes must not appear in API responses or account-audit records.
 
 ## Request statuses
 

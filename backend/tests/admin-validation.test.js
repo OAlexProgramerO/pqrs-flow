@@ -59,6 +59,7 @@ test('a new administrator needs a valid email, a name and a good password', () =
     email: 'ana@example.com',
     displayName: 'Ana Gomez',
     password: 'a long enough pass',
+    role: 'administrator',
   });
 
   const bad = validateNewAdmin({ email: 'nope', displayName: 'A', password: 'short' });
