@@ -30,6 +30,14 @@ function releaseOneMigrations() {
   return dir;
 }
 
+function releaseTwoMigrations() {
+  const dir = tempDir();
+  for (const filename of ['001_initial.sql', '002_admin_panel.sql']) {
+    fs.copyFileSync(path.join(MIGRATIONS, filename), path.join(dir, filename));
+  }
+  return dir;
+}
+
 function raw(filename = ':memory:') {
   const db = new Database(filename);
   db.pragma('foreign_keys = ON');
@@ -58,12 +66,19 @@ const insertAdmin = (db, email = 'a@example.com') =>
     )
     .run(email).lastInsertRowid;
 
-test('a fresh database ends at version 2 with every new table, index and trigger', () => {
+test('a fresh database ends at version 3 with every new table, index and trigger', () => {
   const db = openDatabase({ filename: ':memory:' });
   open.push(db);
 
-  assert.equal(db.pragma('user_version', { simple: true }), 2);
-  for (const table of ['admins', 'admin_sessions', 'pqrs_audit', 'pqrs', 'case_counters']) {
+  assert.equal(db.pragma('user_version', { simple: true }), 3);
+  for (const table of [
+    'admins',
+    'admin_sessions',
+    'pqrs_audit',
+    'account_audit',
+    'pqrs',
+    'case_counters',
+  ]) {
     assert.ok(names(db, 'table').includes(table), table);
   }
   for (const index of [
@@ -73,10 +88,18 @@ test('a fresh database ends at version 2 with every new table, index and trigger
     'idx_pqrs_created_at',
     'idx_pqrs_status',
     'idx_pqrs_type',
+    'idx_admins_role_active',
+    'idx_account_audit_target',
+    'idx_account_audit_created',
   ]) {
     assert.ok(names(db, 'index').includes(index), index);
   }
-  assert.deepEqual(names(db, 'trigger').sort(), ['pqrs_audit_no_delete', 'pqrs_audit_no_update']);
+  assert.deepEqual(names(db, 'trigger').sort(), [
+    'account_audit_no_delete',
+    'account_audit_no_update',
+    'pqrs_audit_no_delete',
+    'pqrs_audit_no_update',
+  ]);
 });
 
 test('a database made by v0.1.3 keeps its requests and case numbers when it is migrated', () => {
@@ -98,7 +121,7 @@ test('a database made by v0.1.3 keeps its requests and case numbers when it is m
   const db = openDatabase({ filename });
   open.push(db);
 
-  assert.equal(db.pragma('user_version', { simple: true }), 2);
+  assert.equal(db.pragma('user_version', { simple: true }), 3);
   assert.deepEqual(db.prepare('SELECT id, case_number, status FROM pqrs ORDER BY id').all(), [
     { id: 1, case_number: 'PQRS-2026-000001', status: 'filed' },
     { id: 2, case_number: 'PQRS-2026-000002', status: 'answered' },
@@ -110,12 +133,39 @@ test('a database made by v0.1.3 keeps its requests and case numbers when it is m
   assert.ok(names(db, 'table').includes('pqrs_audit'));
 });
 
+test('a pre-v0.3.1 database keeps records and sessions and maps legacy full-access accounts to administrators', () => {
+  const filename = path.join(tempDir(), 'v030.db');
+  const old = new Database(filename);
+  old.pragma('foreign_keys = ON');
+  runMigrations(old, releaseTwoMigrations());
+  insertPqrs(old, 'PQRS-2026-000019');
+  const adminId = insertAdmin(old, 'legacy@example.com');
+  old
+    .prepare(
+      `INSERT INTO admin_sessions (admin_id, token_hash, created_at, last_seen_at, expires_at)
+     VALUES (?, 'legacy-session-hash', 'a', 'a', 'b')`,
+    )
+    .run(adminId);
+  old.close();
+
+  const db = openDatabase({ filename });
+  open.push(db);
+  assert.equal(db.pragma('user_version', { simple: true }), 3);
+  assert.deepEqual(db.prepare('SELECT email, role FROM admins').all(), [
+    { email: 'legacy@example.com', role: 'administrator' },
+  ]);
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM admin_sessions').get().n, 1);
+  assert.equal(db.prepare('SELECT case_number FROM pqrs').get().case_number, 'PQRS-2026-000019');
+  const newId = insertAdmin(db, 'least-privilege@example.com');
+  assert.equal(db.prepare('SELECT role FROM admins WHERE id = ?').get(newId).role, 'staff');
+});
+
 test('a database from the broken pre-migration schema is repaired and then migrated', () => {
   const db = raw();
   db.exec('CREATE TABLE pqrs (case_number TEXT, subject TEXT, type TEXT)');
   db.exec("INSERT INTO pqrs VALUES ('PQRS-2025-000007', 'Old subject', 'claim')");
 
-  assert.equal(runMigrations(db), 2);
+  assert.equal(runMigrations(db), 3);
   assert.deepEqual(db.prepare('SELECT case_number, subject, status FROM pqrs').all(), [
     { case_number: 'PQRS-2025-000007', subject: 'Old subject', status: 'filed' },
   ]);
@@ -125,10 +175,10 @@ test('a database from the broken pre-migration schema is repaired and then migra
 test('running the migrations again does nothing, so a restart is safe', () => {
   const db = raw();
 
-  assert.equal(runMigrations(db), 2);
+  assert.equal(runMigrations(db), 3);
   const adminId = insertAdmin(db);
-  assert.equal(runMigrations(db), 2);
-  assert.equal(runMigrations(db), 2);
+  assert.equal(runMigrations(db), 3);
+  assert.equal(runMigrations(db), 3);
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM admins WHERE id = ?').get(adminId).n, 1);
 });
 
@@ -143,7 +193,7 @@ test('a database file survives being closed and opened again', () => {
   const second = openDatabase({ filename });
   open.push(second);
   assert.equal(second.prepare('SELECT COUNT(*) AS n FROM admins').get().n, 1);
-  assert.equal(second.pragma('user_version', { simple: true }), 2);
+  assert.equal(second.pragma('user_version', { simple: true }), 3);
   second.close();
   removeDatabaseFiles(filename);
 });
@@ -163,6 +213,28 @@ test('a migration that fails leaves the version and the data untouched', () => {
   assert.equal(db.pragma('user_version', { simple: true }), 1);
   assert.equal(names(db, 'table').includes('half_done'), false);
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM pqrs').get().n, 1);
+});
+
+test('a failed staff-role migration rolls back its schema and preserves the v0.3.0 data', () => {
+  const dir = releaseTwoMigrations();
+  const db = raw();
+  runMigrations(db, dir);
+  const adminId = insertAdmin(db, 'legacy@example.com');
+  fs.writeFileSync(
+    path.join(dir, '003_broken.sql'),
+    'ALTER TABLE admins ADD COLUMN role TEXT; INSERT INTO missing_table VALUES (1);',
+  );
+
+  assert.throws(() => runMigrations(db, dir));
+  assert.equal(db.pragma('user_version', { simple: true }), 2);
+  assert.equal(
+    db.pragma('table_info(admins)').some((column) => column.name === 'role'),
+    false,
+  );
+  assert.equal(
+    db.prepare('SELECT email FROM admins WHERE id = ?').get(adminId).email,
+    'legacy@example.com',
+  );
 });
 
 test('administrator emails are stored in lowercase and are unique', () => {

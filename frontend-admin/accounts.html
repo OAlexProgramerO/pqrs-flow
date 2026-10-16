@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Staff accounts · PQRS Flow</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/css/styles.css" />
+    <link rel="stylesheet" href="/admin/css/admin.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to the content</a>
+    <header class="admin-header">
+      <div class="admin-brand"><strong>PQRS Flow</strong><span>Staff</span></div>
+      <nav class="admin-nav" aria-label="Staff">
+        <a href="/admin/">Dashboard</a>
+        <a href="/admin/accounts.html" aria-current="page" data-admin-only hidden>Staff accounts</a>
+        <a href="/admin/security.html">Account security</a>
+        <a href="/" target="_blank" rel="noopener">Public site</a>
+      </nav>
+      <div class="admin-user">
+        <span id="adminName" class="admin-name"></span>
+        <button type="button" class="btn btn-secondary" id="logoutBtn">Log out</button>
+      </div>
+    </header>
+    <main class="admin-main" id="main">
+      <h1>Staff accounts</h1>
+      <section class="panel" aria-labelledby="create-title">
+        <h2 id="create-title">Create a staff account</h2>
+        <p class="hint">
+          The account must change this initial password when it first signs in. Share it with the
+          staff member out of band.
+        </p>
+        <form id="createForm" class="account-form" novalidate>
+          <div class="form-group">
+            <label for="createName">Name</label>
+            <input
+              id="createName"
+              name="displayName"
+              required
+              minlength="2"
+              maxlength="100"
+              autocomplete="name"
+            />
+            <small class="field-error" id="displayName-error"></small>
+          </div>
+          <div class="form-group">
+            <label for="createEmail">Email address</label>
+            <input
+              id="createEmail"
+              name="email"
+              type="email"
+              required
+              maxlength="254"
+              autocomplete="email"
+            />
+            <small class="field-error" id="email-error"></small>
+          </div>
+          <div class="form-group">
+            <label for="createPassword">Initial password</label>
+            <input
+              id="createPassword"
+              name="password"
+              type="password"
+              required
+              minlength="12"
+              maxlength="128"
+              autocomplete="new-password"
+            />
+            <small class="field-error" id="password-error"></small>
+          </div>
+          <div class="form-group">
+            <label for="createConfirmPassword">Confirm initial password</label>
+            <input
+              id="createConfirmPassword"
+              name="confirmPassword"
+              type="password"
+              required
+              minlength="12"
+              maxlength="128"
+              autocomplete="new-password"
+            />
+            <small class="field-error" id="confirmPassword-error"></small>
+          </div>
+          <div class="form-group">
+            <label for="createRole">Role</label>
+            <select id="createRole" name="role">
+              <option value="staff">Staff</option>
+              <option value="administrator">Administrator</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary" id="createBtn">Create account</button>
+        </form>
+        <div id="createMessage" class="message" role="status" aria-live="polite" hidden></div>
+      </section>
+
+      <section class="panel" aria-labelledby="accounts-title">
+        <h2 id="accounts-title">Accounts</h2>
+        <form id="filterForm" class="filters" novalidate>
+          <div class="form-group filter-search">
+            <label for="search">Search name or email</label>
+            <input id="search" name="q" type="search" maxlength="100" autocomplete="off" />
+          </div>
+          <div class="form-group">
+            <label for="roleFilter">Role</label>
+            <select id="roleFilter" name="role">
+              <option value="">All roles</option>
+              <option value="staff">Staff</option>
+              <option value="administrator">Administrator</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="statusFilter">Status</label>
+            <select id="statusFilter" name="status">
+              <option value="">All statuses</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary" id="searchBtn">Search accounts</button>
+        </form>
+        <div id="accountsState" class="message" role="status" aria-live="polite">
+          Loading accounts…
+        </div>
+        <div id="accountsWrap" class="table-wrap" hidden>
+          <table>
+            <caption class="visually-hidden">
+              Staff accounts
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Name</th>
+                <th scope="col">Email</th>
+                <th scope="col">Role</th>
+                <th scope="col">Status</th>
+                <th scope="col">Password</th>
+                <th scope="col">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="accountRows"></tbody>
+          </table>
+        </div>
+        <nav class="pagination" id="pagination" aria-label="Account pages" hidden>
+          <button type="button" class="btn btn-secondary" id="previousBtn">Previous</button>
+          <span id="pageInfo"></span>
+          <button type="button" class="btn btn-secondary" id="nextBtn">Next</button>
+        </nav>
+      </section>
+    </main>
+    <dialog id="auditDialog" aria-labelledby="auditTitle">
+      <div class="panel">
+        <h2 id="auditTitle">Account activity</h2>
+        <div id="auditState" class="message" role="status" aria-live="polite"></div>
+        <ol id="auditItems" class="history"></ol>
+        <button type="button" class="btn btn-secondary" id="closeAudit">Close</button>
+      </div>
+    </dialog>
+    <script type="module" src="/admin/js/accounts.js"></script>
+  </body>
+</html>

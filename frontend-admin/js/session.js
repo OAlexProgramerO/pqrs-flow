@@ -27,7 +27,9 @@ export async function startSession() {
   try {
     const { admin } = await getSession();
     document.getElementById('adminName').textContent = admin.displayName;
-
+    for (const link of document.querySelectorAll('[data-admin-only]')) {
+      link.hidden = admin.role !== 'administrator';
+    }
     logoutBtn.addEventListener('click', async () => {
       logoutBtn.disabled = true;
 
@@ -43,6 +45,11 @@ export async function startSession() {
         logoutBtn.textContent = 'Log out failed, try again';
       }
     });
+
+    if (admin.credentialUpdateRequired && !window.location.pathname.endsWith('/security.html')) {
+      window.location.replace('/admin/security.html');
+      return new Promise(() => {});
+    }
 
     return admin;
   } catch (error) {

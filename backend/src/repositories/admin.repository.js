@@ -4,6 +4,7 @@ const PUBLIC_COLUMNS = `
   email,
   display_name AS displayName,
   is_active AS isActive,
+  role,
   created_at AS createdAt,
   last_login_at AS lastLoginAt
 `;
@@ -13,35 +14,150 @@ function toAdmin(row) {
 }
 
 /**
- * Data access for staff accounts.
- * Only `findCredentialsByEmail` returns the password hash, and only the auth service uses it.
+ * Data access for staff accounts. Credential queries are limited to authentication and
+ * password services; account-list queries never select password hashes.
  */
-export function createAdminRepository(db) {
+export function createAdminRepository(db, accountAuditRepository) {
   const insert = db.prepare(`
-    INSERT INTO admins (email, display_name, password_hash, created_at)
-    VALUES (@email, @displayName, @passwordHash, @createdAt)
+    INSERT INTO admins (
+      email, display_name, password_hash, role, must_change_password, created_at
+    ) VALUES (
+      @email, @displayName, @passwordHash, @role, @mustChangePassword, @createdAt
+    )
   `);
   const selectById = db.prepare(`SELECT ${PUBLIC_COLUMNS} FROM admins WHERE id = ?`);
   const selectByEmail = db.prepare(`SELECT ${PUBLIC_COLUMNS} FROM admins WHERE email = ?`);
   const selectCredentials = db.prepare(`
-    SELECT id, email, display_name AS displayName, is_active AS isActive, password_hash AS passwordHash
+    SELECT id, email, display_name AS displayName, is_active AS isActive, role,
+      must_change_password AS needsPasswordUpdate, password_hash AS passwordHash
     FROM admins
     WHERE email = ?
   `);
-  const selectAll = db.prepare(`SELECT ${PUBLIC_COLUMNS} FROM admins ORDER BY id`);
-  const updatePassword = db.prepare('UPDATE admins SET password_hash = ? WHERE id = ?');
-  const updateActive = db.prepare('UPDATE admins SET is_active = ? WHERE id = ?');
+  const selectCredentialsById = db.prepare(`
+    SELECT id, email, password_hash AS passwordHash FROM admins WHERE id = ?
+  `);
+  const selectCount = db.prepare(`
+    SELECT COUNT(*) AS total FROM admins
+    WHERE role = 'administrator' AND is_active = 1
+  `);
+  const updatePassword = db.prepare(`
+    UPDATE admins SET password_hash = @passwordHash,
+      must_change_password = @mustChangePassword
+    WHERE id = @id
+      AND (@expectedPasswordHash IS NULL OR password_hash = @expectedPasswordHash)
+      AND (@requireActive = 0 OR is_active = 1)
+  `);
   const updateLogin = db.prepare('UPDATE admins SET last_login_at = ? WHERE id = ?');
+  const updateAccount = db.prepare(`
+    UPDATE admins SET email = @email, display_name = @displayName, role = @role,
+      is_active = @isActive WHERE id = @id
+  `);
+
+  const createAccount = db.transaction((data, audit) => {
+    if (selectByEmail.get(data.email)) return { conflict: 'duplicate_email' };
+    const { lastInsertRowid } = insert.run(data);
+    accountAuditRepository.insert({ ...audit, targetAdminId: lastInsertRowid });
+    return toAdmin(selectById.get(lastInsertRowid));
+  });
+
+  const saveAccount = db.transaction((id, changes, audit, revoke) => {
+    const before = toAdmin(selectById.get(id));
+    if (!before) return null;
+    if (changes.email !== undefined && changes.email !== before.email) {
+      const existing = selectByEmail.get(changes.email);
+      if (existing && existing.id !== id) return { conflict: 'duplicate_email' };
+    }
+
+    if (
+      before.role === 'administrator' &&
+      before.isActive &&
+      ((changes.role !== undefined && changes.role !== 'administrator') ||
+        changes.isActive === false) &&
+      selectCount.get().total <= 1
+    ) {
+      return { conflict: 'last_active_administrator' };
+    }
+
+    updateAccount.run({
+      id,
+      email: changes.email ?? before.email,
+      displayName: changes.displayName ?? before.displayName,
+      role: changes.role ?? before.role,
+      isActive:
+        changes.isActive === undefined ? (before.isActive ? 1 : 0) : changes.isActive ? 1 : 0,
+    });
+    if (changes.isActive === false) revoke?.();
+
+    const saved = toAdmin(selectById.get(id));
+    if (before.email !== saved.email || before.displayName !== saved.displayName) {
+      const fields = [];
+      if (before.email !== saved.email) fields.push('email');
+      if (before.displayName !== saved.displayName) fields.push('displayName');
+      accountAuditRepository.insert({
+        ...audit,
+        targetAdminId: id,
+        action: 'account_updated',
+        metadata: { fields },
+      });
+    }
+    if (before.role !== saved.role) {
+      accountAuditRepository.insert({
+        ...audit,
+        targetAdminId: id,
+        action: 'role_changed',
+        metadata: { from: before.role, to: saved.role },
+      });
+    }
+    if (before.isActive !== saved.isActive) {
+      accountAuditRepository.insert({
+        ...audit,
+        targetAdminId: id,
+        action: saved.isActive ? 'account_activated' : 'account_deactivated',
+      });
+    }
+    return saved;
+  });
+
+  const savePassword = db.transaction(
+    (id, passwordHash, mustChangePassword, audit, revoke, expectedPasswordHash, requireActive) => {
+      if (
+        updatePassword.run({
+          id,
+          passwordHash,
+          mustChangePassword: mustChangePassword ? 1 : 0,
+          expectedPasswordHash: expectedPasswordHash ?? null,
+          requireActive: requireActive ? 1 : 0,
+        }).changes !== 1
+      ) {
+        return { conflict: 'account_changed' };
+      }
+      revoke?.();
+      accountAuditRepository.insert({ ...audit, targetAdminId: id });
+      return toAdmin(selectById.get(id));
+    },
+  );
 
   return {
-    create({ email, displayName, passwordHash }, { now = new Date() } = {}) {
-      const { lastInsertRowid } = insert.run({
-        email,
-        displayName,
-        passwordHash,
-        createdAt: now.toISOString(),
-      });
-      return toAdmin(selectById.get(lastInsertRowid));
+    create(
+      { email, displayName, passwordHash, role = 'administrator', mustChangePassword = false },
+      { now = new Date(), audit } = {},
+    ) {
+      return createAccount(
+        {
+          email,
+          displayName,
+          passwordHash,
+          role,
+          mustChangePassword: mustChangePassword ? 1 : 0,
+          createdAt: now.toISOString(),
+        },
+        {
+          ...audit,
+          action: 'account_created',
+          metadata: { role },
+          now,
+        },
+      );
     },
 
     findById(id) {
@@ -52,22 +168,83 @@ export function createAdminRepository(db) {
       return toAdmin(selectByEmail.get(email));
     },
 
+    findCredentialsById(id) {
+      return selectCredentialsById.get(id) ?? null;
+    },
+
     /** The only query that returns the password hash. */
     findCredentialsByEmail(email) {
       const row = selectCredentials.get(email);
-      return row ? { ...row, isActive: row.isActive === 1 } : null;
+      return row
+        ? {
+            ...row,
+            isActive: row.isActive === 1,
+            needsPasswordUpdate: row.needsPasswordUpdate === 1,
+          }
+        : null;
+    },
+
+    listPage({ q = '', role, isActive, page = 1, pageSize = 20 } = {}) {
+      const filters = [];
+      const params = {};
+      if (q) {
+        filters.push(`(email LIKE @q ESCAPE '\\' OR display_name LIKE @q ESCAPE '\\')`);
+        params.q = `%${q.replace(/[\\%_]/g, '\\$&')}%`;
+      }
+      if (role) {
+        filters.push('role = @role');
+        params.role = role;
+      }
+      if (isActive !== undefined) {
+        filters.push('is_active = @isActive');
+        params.isActive = isActive ? 1 : 0;
+      }
+      const where = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
+      const { totalItems } = db
+        .prepare(`SELECT COUNT(*) AS totalItems FROM admins ${where}`)
+        .get(params);
+      const items = db
+        .prepare(
+          `SELECT ${PUBLIC_COLUMNS} FROM admins ${where}
+          ORDER BY id LIMIT @limit OFFSET @offset`,
+        )
+        .all({ ...params, limit: pageSize, offset: (page - 1) * pageSize })
+        .map(toAdmin);
+      return { items, totalItems };
+    },
+
+    listAll() {
+      return db.prepare(`SELECT ${PUBLIC_COLUMNS} FROM admins ORDER BY id`).all().map(toAdmin);
     },
 
     list() {
-      return selectAll.all().map(toAdmin);
+      return this.listAll();
     },
 
-    updatePasswordHash(id, passwordHash) {
-      return updatePassword.run(passwordHash, id).changes === 1;
+    updateAccount(id, changes, audit, revoke) {
+      return saveAccount.immediate(id, changes, audit, revoke);
     },
 
-    setActive(id, isActive) {
-      return updateActive.run(isActive ? 1 : 0, id).changes === 1;
+    updatePasswordHash(
+      id,
+      passwordHash,
+      {
+        mustChangePassword = false,
+        audit,
+        revoke,
+        expectedPasswordHash,
+        requireActive = false,
+      } = {},
+    ) {
+      return savePassword.immediate(
+        id,
+        passwordHash,
+        mustChangePassword,
+        audit,
+        revoke,
+        expectedPasswordHash,
+        requireActive,
+      );
     },
 
     recordLogin(id, when) {

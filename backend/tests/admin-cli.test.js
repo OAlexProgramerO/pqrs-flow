@@ -190,6 +190,9 @@ test('a reset does not reactivate a deactivated account', async () => {
   await t.run(['create', '--email', 'a@b.co', '--name', 'Ana Gomez', '--password-stdin'], {
     stdin: stdinWith(TEST_PASSWORD),
   });
+  await t.run(['create', '--email', 'b@b.co', '--name', 'Backup Admin', '--password-stdin'], {
+    stdin: stdinWith(TEST_PASSWORD),
+  });
   await t.run(['deactivate', '--email', 'a@b.co']);
   await t.run(['reset-password', '--email', 'a@b.co', '--password-stdin'], {
     stdin: stdinWith(OTHER_PASSWORD),
@@ -208,6 +211,9 @@ test('deactivate closes the sessions of the account', async () => {
   await t.run(['create', '--email', 'a@b.co', '--name', 'Ana Gomez', '--password-stdin'], {
     stdin: stdinWith(TEST_PASSWORD),
   });
+  await t.run(['create', '--email', 'b@b.co', '--name', 'Backup Admin', '--password-stdin'], {
+    stdin: stdinWith(TEST_PASSWORD),
+  });
   const { token } = await t.authService.login({ email: 'a@b.co', password: TEST_PASSWORD });
 
   assert.equal(await t.run(['deactivate', '--email', 'a@b.co']), 0);
@@ -221,6 +227,9 @@ test('list shows the accounts and whether they are active', async () => {
   assert.match(t.out[0], /no administrators yet/);
 
   await t.run(['create', '--email', 'a@b.co', '--name', 'Ana Gomez', '--password-stdin'], {
+    stdin: stdinWith(TEST_PASSWORD),
+  });
+  await t.run(['create', '--email', 'b@b.co', '--name', 'Backup Admin', '--password-stdin'], {
     stdin: stdinWith(TEST_PASSWORD),
   });
   await t.run(['deactivate', '--email', 'a@b.co']);

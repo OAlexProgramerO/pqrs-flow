@@ -8,9 +8,9 @@
 
 Un sistema web para radicar, consultar y gestionar **PQRS** — _Peticiones, Quejas, Reclamos y Sugerencias_. Está construido de principio a fin con JavaScript, priorizando la simplicidad, la ausencia de un paso de compilación en el frontend y límites de arquitectura claros.
 
-**Estado: v0.3.0** — Los ciudadanos pueden radicar una solicitud, recibir un número de caso y consultar su estado. El personal autorizado ahora inicia sesión en un panel protegido, busca y filtra solicitudes, las mueve por el flujo de estados y deja un historial de auditoría permanente. La versión 0.3.0 es de mantenimiento: apagado limpio, README en español y pruebas de regresión adicionales, sin cambios en la API ni en la base de datos. Es un paso hacia un sistema PQRS completo: el plan de las próximas versiones está en la sección _Versiones futuras_ de este documento y en [ROADMAP.md](./ROADMAP.md). Todavía no ha pasado por un despliegue en producción; lee [docs/security.md](./docs/security.md) antes de exponerlo (ese documento está en inglés).
+**Estado: v0.3.1** — La ciudadanía puede radicar y consultar solicitudes; el personal puede gestionarlas desde un panel protegido. Esta versión incorpora roles de administrador y personal, gestión de cuentas, cambio obligatorio de contraseñas nuevas o restablecidas, cambio de contraseña propio, gestión de sesiones y una auditoría de cuentas de solo adición. La migración `003` conserva el acceso de administrador de las cuentas existentes; las solicitudes y sus números de caso no cambian. Aún no se ha desplegado en producción; lee [docs/security.md](./docs/security.md) antes de exponerlo (ese documento está en inglés).
 
-> Este archivo es la versión en español de [README.md](./README.md). Si algo difiere, el README en inglés y el código son la referencia. Los cambios de la 0.3.0 están en [CHANGELOG.md](./CHANGELOG.md).
+> Este archivo es la versión en español de [README.md](./README.md). Si algo difiere, el README en inglés y el código son la referencia. Los cambios de la 0.3.1 están en [CHANGELOG.md](./CHANGELOG.md).
 
 ---
 
@@ -38,7 +38,8 @@ Muchas organizaciones todavía gestionan sugerencias, quejas y solicitudes con c
 | Panel del personal: login, tablero, búsqueda, cambios de estado        | 0.2.0   | Hecho    |
 | Historial de auditoría de cada cambio de estado                        | 0.2.0   | Hecho    |
 | Apagado limpio, README en español, pruebas de regresión de aislamiento | 0.3.0   | Hecho    |
-| Roles, respuestas, plazos, adjuntos, correos, reportes                 | 0.3.x+  | Planeado |
+| Roles, cuentas y seguridad del personal                                | 0.3.1   | Hecho    |
+| Respuestas, plazos, adjuntos, correos, reportes                        | 0.3.2+  | Planeado |
 
 ## ✨ Qué hace hoy
 
@@ -59,7 +60,11 @@ Muchas organizaciones todavía gestionan sugerencias, quejas y solicitudes con c
 - **Tablero**: contadores por estado, una lista paginada con búsqueda, filtros por estado, tipo y rango de fechas, ordenamiento y una página de detalle para cada solicitud. Adaptable a cualquier pantalla y usable con teclado.
 - **Flujo de estados** con transiciones permitidas (`closed` es final) y protección cuando dos personas cambian la misma solicitud.
 - **Historial de auditoría**: cada cambio de estado registra quién, de qué estado a cuál, cuándo y con qué identificador de petición. Se guarda en la misma transacción que el cambio, solo se puede agregar (no modificar) y nunca se muestra al público.
-- **Herramienta de cuentas** (`npm run admin`): crea y recupera cuentas del personal desde la terminal del servidor. No hay cuentas por defecto.
+- **Acceso por roles**: los administradores gestionan cuentas; el personal puede consultar y tramitar PQRS, pero no administrar cuentas. Ambos roles pueden acceder a todas las PQRS; aún no hay permisos por asignación.
+- **Gestión de cuentas**: los administradores pueden crear y editar cuentas, asignar roles, activar/desactivar cuentas y restablecer contraseñas en `/admin/accounts.html`. Las cuentas nuevas y restablecidas deben cambiar su contraseña temporal al iniciar sesión.
+- **Seguridad** (`/admin/security.html`): cada persona puede cambiar su contraseña, consultar sus sesiones activas y revocar una o todas las demás sesiones. El cambio de contraseña conserva la sesión actual y revoca las demás.
+- **Auditoría de solo adición de cuentas**: los cambios de cuenta, rol, contraseña y sesiones se registran en transacciones, con el identificador de petición. Nunca se guardan contraseñas, tokens ni hashes en la auditoría.
+- **Herramienta de cuentas** (`npm run admin`): permite crear la primera cuenta o recuperarla desde la terminal del servidor. No hay cuentas por defecto.
 - Apagado limpio: `Ctrl+C` o `SIGTERM` dejan de aceptar conexiones, permiten terminar las peticiones en curso (hasta 10 segundos) y cierran la base de datos SQLite.
 - Datos de demostración y comandos para reiniciar la base de datos en desarrollo local.
 - Pruebas de validación, base de datos y migraciones, servicio, controlador, limitador de frecuencia, compresión, API, autenticación, autorización, auditoría, utilidades de estado y ambos frontends.
@@ -148,7 +153,9 @@ Luego abre <http://localhost:3000/admin/> e inicia sesión. Otros comandos:
 | `npm run admin -- deactivate --email ...`     | Bloquea una cuenta y cierra sus sesiones al instante                                        |
 | `npm run admin -- activate --email ...`       | Permite de nuevo una cuenta desactivada                                                     |
 
-La herramienta usa la misma base de datos que el servidor (`DB_PATH`). Las cuentas no se pueden crear ni recuperar por HTTP a propósito: quien puede ejecutar el comando ya controla el servidor. Si los límites de login te bloquean, espera a que pase la ventana o reinicia el servidor (los contadores viven en memoria).
+La herramienta usa la misma base de datos que el servidor (`DB_PATH`). Usa la terminal para crear el primer administrador o recuperar el acceso si ningún administrador puede iniciar sesión; después, los administradores pueden crear y gestionar cuentas desde el panel protegido. Si los límites de login te bloquean, espera a que pase la ventana o reinicia el servidor (los contadores viven en memoria).
+
+Después de crear la primera cuenta, usa `/admin/accounts.html` para añadir cuentas de personal o administradores. Las cuentas nuevas usan por defecto el rol menos privilegiado (`staff`) y deben cambiar la contraseña inicial en el primer inicio de sesión. Las cuentas existentes se migran como administradores para conservar el acceso previo. Siempre debe quedar al menos un administrador activo; un administrador no puede degradar ni desactivar su propia cuenta.
 
 ### Configuración
 
@@ -222,33 +229,34 @@ Para ejecutar un solo archivo de pruebas usa `npm --prefix backend test -- tests
 
 ## 🗺️ Versiones futuras
 
-El objetivo es un sistema PQRS completo, construido un paso pequeño y probado a la vez. La versión 0.2.0 es la base del lado del personal y la 0.3.0 la endurece; todo lo que sigue está **planeado, no implementado**. El orden puede cambiar. Los nombres de las ramas y las razones de cada decisión están en [ROADMAP.md](./ROADMAP.md).
+El objetivo es un sistema PQRS completo, construido un paso pequeño y probado a la vez. La versión 0.3.1 incorpora roles y seguridad de cuentas; las versiones posteriores a 0.3.1 que aparecen abajo están **planeadas, no implementadas**. El orden puede cambiar. Los nombres de las ramas y las razones de cada decisión están en [ROADMAP.md](./ROADMAP.md).
 
-| Versión | Trabajo planeado                                                                                                                                                                                                                    |
-| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0.3.1   | **Cuentas y roles del personal.** Roles de personal y administrador, creación y desactivación de cuentas desde el panel, cambio de la propia contraseña, lista de sesiones activas con opción de cerrarlas.                         |
-| 0.3.2   | **Respuestas y notas internas.** El texto de respuesta que el ciudadano puede leer al consultar, notas privadas entre el personal, asignación de una solicitud a una persona, una pantalla para explorar el historial de auditoría. |
-| 0.3.3   | **Plazos.** Tiempo legal de respuesta por tipo de solicitud, días hábiles y festivos, indicadores de vencida y por vencer en la lista.                                                                                              |
-| 0.3.4   | **Adjuntos.** Cargas seguras (verificación de tamaño, tipo y contenido, archivos fuera de la raíz web) para ciudadanos y personal.                                                                                                  |
-| 0.3.5   | **Notificaciones por correo.** Correo al recibir una solicitud y al responderla, con una bandeja de salida y reintentos para que un fallo de correo nunca pierda una solicitud.                                                     |
-| 0.4.0   | **Reportes.** Solicitudes por tipo y estado a lo largo del tiempo, tiempo promedio de respuesta, tasa de vencimiento.                                                                                                               |
-| 0.4.1   | **Exportación CSV.** Exportación en flujo de la lista filtrada, con protección contra la inyección de fórmulas en hojas de cálculo.                                                                                                 |
-| 0.5.0   | **Calidad.** Informe de cobertura, una prueba de extremo a extremo de todo el flujo en un navegador real, una verificación automática de accesibilidad.                                                                             |
-| 0.5.1   | **Endurecimiento de la autenticación.** Segundo factor (TOTP), límites de login y sesiones que sobreviven a un reinicio y funcionan con más de un proceso del servidor, un registro de eventos de seguridad.                        |
-| 0.5.2   | **Docker.** Imagen multi-etapa y `docker compose`.                                                                                                                                                                                  |
-| 0.5.3   | **Despliegue.** Despliegue en la nube, CI/CD y copias de seguridad automáticas de la base de datos.                                                                                                                                 |
-| 0.9.0   | **Candidata a versión final.** Congelación de funcionalidades, datos de demostración, capturas de pantalla y documentación final.                                                                                                   |
-| 1.0.0   | **Primera versión estable** con una demostración pública.                                                                                                                                                                           |
+| Versión | Trabajo                                                                                                                                                                                                      |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 0.3.1   | **Cuentas y roles del personal.** Entregado: acceso por roles, gestión de cuentas, cambios obligatorios de contraseña, cambio propio, gestión de sesiones y auditoría de cuentas.                            |
+| 0.3.2   | **Respuestas y notas internas.** El texto de respuesta que la ciudadanía puede leer al consultar, notas privadas entre el personal, asignación de una solicitud a una persona y visor de auditoría de PQRS.  |
+| 0.3.3   | **Plazos.** Tiempo legal de respuesta por tipo de solicitud, días hábiles y festivos, indicadores de vencida y por vencer en la lista.                                                                       |
+| 0.3.4   | **Adjuntos.** Cargas seguras (verificación de tamaño, tipo y contenido, archivos fuera de la raíz web) para ciudadanos y personal.                                                                           |
+| 0.3.5   | **Notificaciones por correo.** Correo al recibir una solicitud y al responderla, con una bandeja de salida y reintentos para que un fallo de correo nunca pierda una solicitud.                              |
+| 0.4.0   | **Reportes.** Solicitudes por tipo y estado a lo largo del tiempo, tiempo promedio de respuesta, tasa de vencimiento.                                                                                        |
+| 0.4.1   | **Exportación CSV.** Exportación en flujo de la lista filtrada, con protección contra la inyección de fórmulas en hojas de cálculo.                                                                          |
+| 0.5.0   | **Calidad.** Informe de cobertura, una prueba de extremo a extremo de todo el flujo en un navegador real, una verificación automática de accesibilidad.                                                      |
+| 0.5.1   | **Endurecimiento de la autenticación.** Segundo factor (TOTP), límites de login y sesiones que sobreviven a un reinicio y funcionan con más de un proceso del servidor, un registro de eventos de seguridad. |
+| 0.5.2   | **Docker.** Imagen multi-etapa y `docker compose`.                                                                                                                                                           |
+| 0.5.3   | **Despliegue.** Despliegue en la nube, CI/CD y copias de seguridad automáticas de la base de datos.                                                                                                          |
+| 0.9.0   | **Candidata a versión final.** Congelación de funcionalidades, datos de demostración, capturas de pantalla y documentación final.                                                                            |
+| 1.0.0   | **Primera versión estable** con una demostración pública.                                                                                                                                                    |
 
-### Límites conocidos de la 0.3.0
+### Límites conocidos de la 0.3.1
 
 Son deliberados y son la razón de algunas de las versiones anteriores:
 
-- Las cuentas del personal se crean desde la terminal del servidor. Hay un único tipo de usuario del personal: todos pueden ver y modificar todas las solicitudes (0.3.1).
+- Todos los usuarios activos de ambos roles pueden ver y modificar todas las solicitudes; todavía no hay restricciones por asignación.
 - El personal puede cambiar el estado, pero todavía no puede escribir una respuesta al ciudadano ni notas (0.3.2).
 - Los límites de login y las sesiones del personal están pensados para **un solo proceso del servidor**. Los contadores de límites viven en memoria y se reinician con el servidor. Con varias instancias detrás de un balanceador, los límites serían por instancia (0.5.1).
 - No hay segundo factor ni correo, por lo que no existe un enlace de "olvidé mi contraseña": la recuperación requiere acceso al servidor (0.5.1, 0.3.5).
 - Un login cuenta cada intento para el límite de la cuenta, así que quien conozca un correo puede hacer esperar a esa cuenta. El personal aún puede recuperarse desde la terminal.
+- Los inicios de sesión y sus fallos no se registran en una bitácora de eventos de seguridad. Los cambios de cuenta, contraseña y sesiones sí quedan en la auditoría append-only de cuentas; los cambios de estado tienen su propia auditoría. Una bitácora de eventos más amplia está planeada para 0.5.1.
 - Lo mismo ocurre con la consulta pública: permite 8 intentos por número de caso cada 15 minutos, así que quien conozca un número de caso puede hacer esperar a su verdadero dueño. Esto no expone ningún dato. Ver [docs/security.md](./docs/security.md).
 - La búsqueda ignora mayúsculas y minúsculas solo para las letras del inglés (un límite del `LIKE` de SQLite), y las fechas de los filtros están en UTC.
 - Que las pruebas automáticas pasen no significa que el sistema esté listo para producción. Revisa [docs/security.md](./docs/security.md) y pruébalo en tu entorno primero.

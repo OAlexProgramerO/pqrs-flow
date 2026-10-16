@@ -29,7 +29,7 @@ Checks that the server is running. Used by the frontend and by monitoring tools.
 {
   "status": "ok",
   "service": "pqrs-flow",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "timestamp": "2026-10-04T12:00:00.000Z"
 }
 ```
@@ -173,9 +173,18 @@ Any request under `/api` that does not match a route returns `404`:
 
 Unhandled errors return `500` with the request id. Details are logged on the server together with that id and never sent to the client.
 
-## Staff API (v0.2.0)
+## Staff API (v0.3.1)
 
 Everything under `/api/admin` is for authorized staff. The public endpoints above never need a login.
+
+### Roles and account security
+
+| Role            | PQRS access                    | Account management |
+| --------------- | ------------------------------ | ------------------ |
+| `administrator` | Read and process every request | Full access        |
+| `staff`         | Read and process every request | None               |
+
+Both roles currently have access to every PQRS; per-request assignment permissions are not implemented. Permissions are checked by the server, not inferred from which controls the frontend displays. Existing accounts are migrated as `administrator` to preserve their previous access; newly-created panel accounts default to `staff`. There must always be at least one active administrator.
 
 ### Authentication model
 
@@ -185,7 +194,7 @@ Everything under `/api/admin` is for authorized staff. The public endpoints abov
 | Cookie         | `pqrs_session`, or `__Host-pqrs_session` when `Secure` is on (production). Always `HttpOnly`, `SameSite=Strict`, `Path=/`, never a `Domain`.                                                                                               |
 | Lifetime       | Ends after `SESSION_IDLE_MINUTES` (30) without use, or after `SESSION_MAX_HOURS` (8). `Max-Age` of the cookie is the maximum.                                                                                                              |
 | Rotation       | Every login creates a new session and closes the one the browser sent. A token chosen by the client is never accepted.                                                                                                                     |
-| Logout         | `POST /api/admin/logout` deletes the session on the server and clears the cookie.                                                                                                                                                          |
+| Logout         | `POST /api/admin/logout` deletes the session on the server, records the revocation and clears the cookie.                                                                                                                                  |
 | CSRF           | Every request that is not `GET`, `HEAD` or `OPTIONS` needs the header `X-CSRF-Token` with the value of `csrfToken` (from login or session).                                                                                                |
 | Origin check   | A request that changes something and carries an `Origin` from another site, or `Sec-Fetch-Site: cross-site` or `same-site`, gets `403`. Login included. Requests with neither header (curl) pass this check and still need the CSRF token. |
 | CORS           | Not used. A website in `CORS_ORIGINS` cannot log in or change a request.                                                                                                                                                                   |
@@ -194,16 +203,19 @@ Everything under `/api/admin` is for authorized staff. The public endpoints abov
 
 Errors of the staff API:
 
-| Status | Body                                                              | When                                                                                         |
-| ------ | ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `400`  | `{ "error": "Validation failed", "details": { "field": "..." } }` | A body field or a query parameter is invalid                                                 |
-| `401`  | `{ "error": "Authentication required." }`                         | No session, a malformed or unknown token, expired or idle session, deactivated account       |
-| `401`  | `{ "error": "Invalid email or password." }`                       | Login failed. The same answer for a wrong password, an unknown account and a deactivated one |
-| `403`  | `{ "error": "Invalid or missing CSRF token." }`                   | A change without the right `X-CSRF-Token`                                                    |
-| `403`  | `{ "error": "Cross-origin request blocked." }`                    | The request comes from another site                                                          |
-| `404`  | `{ "error": "Request not found." }`                               | No request has that case number                                                              |
-| `409`  | `{ "error": "...", "details": { "currentStatus": "..." } }`       | The status move is not allowed, or the request changed meanwhile                             |
-| `429`  | `{ "error": "Too many attempts. Please try again later." }`       | Too many login attempts. `Retry-After` says how long                                         |
+| Status | Body                                                                | When                                                                                         |
+| ------ | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `400`  | `{ "error": "Validation failed", "details": { "field": "..." } }`   | A body field or a query parameter is invalid                                                 |
+| `401`  | `{ "error": "Authentication required." }`                           | No session, a malformed or unknown token, expired or idle session, deactivated account       |
+| `401`  | `{ "error": "Invalid email or password." }`                         | Login failed. The same answer for a wrong password, an unknown account and a deactivated one |
+| `403`  | `{ "error": "Invalid or missing CSRF token." }`                     | A change without the right `X-CSRF-Token`                                                    |
+| `403`  | `{ "error": "Cross-origin request blocked." }`                      | The request comes from another site                                                          |
+| `403`  | `{ "error": "You do not have permission to perform this action." }` | The role lacks the required permission                                                       |
+| `403`  | `{ "error": "Set a new password before continuing." }`              | The account must replace its temporary password                                              |
+| `404`  | `{ "error": "Request not found." }`                                 | No request has that case number                                                              |
+| `404`  | `{ "error": "Staff account not found." }`                           | No staff account has that id                                                                 |
+| `409`  | `{ "error": "...", "details": { "currentStatus": "..." } }`         | A request changed meanwhile, an email already exists, or the last administrator is protected |
+| `429`  | `{ "error": "Too many attempts. Please try again later." }`         | Too many login or account-management attempts. `Retry-After` says how long                   |
 
 ### `POST /api/admin/login`
 
@@ -213,7 +225,13 @@ Errors of the staff API:
 
 ```json
 {
-  "admin": { "id": 1, "email": "staff@example.com", "displayName": "Ana Gomez" },
+  "admin": {
+    "id": 1,
+    "email": "staff@example.com",
+    "displayName": "Ana Gomez",
+    "role": "administrator",
+    "credentialUpdateRequired": false
+  },
   "csrfToken": "u3Kx...",
   "expiresAt": "2026-10-12T20:00:00.000Z"
 }
@@ -236,7 +254,52 @@ Needs the CSRF token when there is a session. Answers `204` with no body, also w
 
 ### `GET /api/admin/session`
 
-Who is logged in. Answers `200` with the same body as the login (`admin`, `csrfToken`, `expiresAt`) or `401`. The pages call it on load to get the CSRF token.
+Who is logged in. Answers `200` with the same body as the login (`admin`, including `role` and `credentialUpdateRequired`, `csrfToken`, `expiresAt`) or `401`. The pages call it on load to get the CSRF token.
+
+### `POST /api/admin/password/change`
+
+Needs the CSRF token. New passwords must have 12–128 characters and cannot be the account email; the current password is required and reusing it is refused.
+
+**Request body** `{ "currentPassword": "...", "newPassword": "...", "confirmPassword": "..." }`.
+
+**Response `204 No Content`**. The current session stays active and all other sessions are revoked. An account provisioned with a temporary password must use this endpoint before it can access the rest of the protected API.
+
+### `GET /api/admin/sessions`
+
+Lists the signed-in account's sessions that have not expired or exceeded the idle timeout. The response contains no token, token hash, IP address or user-agent:
+
+```json
+{
+  "sessions": [
+    {
+      "sessionId": 12,
+      "createdAt": "2026-10-16T09:00:00.000Z",
+      "lastSeenAt": "2026-10-16T09:30:00.000Z",
+      "expiresAt": "2026-10-16T17:00:00.000Z",
+      "current": true
+    }
+  ]
+}
+```
+
+### `DELETE /api/admin/sessions/:sessionId` and `DELETE /api/admin/sessions/others`
+
+Revoke one owned session (`204`; the cookie is also cleared if it was the current session), or revoke every other session (`200 { "revoked": 2 }`) while retaining the current one. Revocations are recorded in the account audit.
+
+### Account administration (administrator only)
+
+These routes require the `administrator` role and are blocked until any required temporary-password change is complete. Sensitive write, password and session-revocation operations are rate-limited to 30 requests per client address and 10 per administrator account per 15 minutes.
+
+| Method and path                            | Purpose                                                                                                                                                                                                                 |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/admin/staff`                     | Paginated account list. Accepts `role` (`staff`/`administrator`), `status` (`active`/`inactive`), `page` and `pageSize` (1–100).                                                                                        |
+| `POST /api/admin/staff/search`             | Same filters plus `q` (up to 100 chars) in a JSON body; use this for private name/email searches instead of putting search terms in URLs.                                                                               |
+| `POST /api/admin/staff`                    | Create an account. Body: `email`, `displayName`, `password`, `confirmPassword`, optional `role` (defaults to `staff`). New accounts must change the supplied password at first login. Returns `201 { "account": ... }`. |
+| `PATCH /api/admin/staff/:id`               | Update one or more of `email`, `displayName`, `role`, `isActive`. Returns `200 { "account": ... }`.                                                                                                                     |
+| `POST /api/admin/staff/:id/password-reset` | Reset another account's password. Body: `password`, `confirmPassword`. Returns `200 { "account": ..., "mustSetNewPassword": true }`; closes that account's sessions.                                                    |
+| `GET /api/admin/staff/:id/audit`           | Paginated audit events for the account (`page`, `pageSize`; maximum 100).                                                                                                                                               |
+
+Account responses include `id`, `email`, `displayName`, `isActive`, `role`, `createdAt` and `lastLoginAt`; they never include a password or hash. A user cannot change their own role or deactivate themselves, and the last active administrator cannot be demoted or deactivated. Account changes, password changes/resets and session revocations are written to the append-only `account_audit` table in the same transaction as the change.
 
 ### `GET /api/admin/stats`
 
@@ -324,7 +387,7 @@ Needs the CSRF token.
 
 **Response `200 OK`**: the same body as the detail, already updated, with the new audit record at the end of `history`. The status and its audit record are saved in one transaction.
 
-Only `status` and `expectedStatus` are read. Any other field is ignored. There is no route to create, edit or delete requests, or to write or read the audit history except through the detail.
+Only `status` and `expectedStatus` are read. Any other field is ignored. There is no route to create, edit or delete requests, or to write or read the PQRS status audit history except through the detail.
 
 ### Status transitions
 
@@ -354,4 +417,3 @@ Planned for later versions (see the README):
 | Method | Path                        | Version | Description                |
 | ------ | --------------------------- | ------- | -------------------------- |
 | `POST` | `/api/admin/pqrs/:id/reply` | 0.3.2   | Reply text for the citizen |
-| `GET`  | `/api/admin/users`          | 0.3.1   | Staff accounts and roles   |
