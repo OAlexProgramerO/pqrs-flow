@@ -59,11 +59,22 @@ function buildHistoryItem({ when, text }) {
 function showHistory(pqrs, history) {
   // Filing a request is done by the citizen, so it has no audit record: it is the first line
   const entries = [{ when: pqrs.createdAt, text: 'Request received (filed by the requester).' }];
+  const descriptions = {
+    response_created: 'Official response draft created',
+    response_updated: 'Official response updated',
+    response_published: 'Official response published',
+    note_created: 'Internal staff note added',
+    assignment_changed: 'Request assignment changed',
+  };
 
   for (const entry of history) {
+    const description =
+      entry.action === 'status_change'
+        ? `${describeStatus(entry.previousStatus).label} → ${describeStatus(entry.newStatus).label}`
+        : (descriptions[entry.action] ?? 'Request activity recorded');
     entries.push({
       when: entry.createdAt,
-      text: `${describeStatus(entry.previousStatus).label} → ${describeStatus(entry.newStatus).label} by ${entry.admin.displayName}`,
+      text: `${description} by ${entry.admin.displayName}`,
     });
   }
 

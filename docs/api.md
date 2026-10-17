@@ -29,7 +29,7 @@ Checks that the server is running. Used by the frontend and by monitoring tools.
 {
   "status": "ok",
   "service": "pqrs-flow",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "timestamp": "2026-10-04T12:00:00.000Z"
 }
 ```
@@ -131,6 +131,10 @@ Checks the status of a request. It needs the case number **and** the email used 
 ```
 
 `status` is one of `filed`, `in_progress`, `answered`, `closed`. The response never contains the subject, the description, the name or the email, and it carries `Cache-Control: no-store`.
+If staff have published an official response, the response also contains
+`"officialResponse": { "text": "...", "publishedAt": "..." }`. Draft responses and
+internal notes are never included. Without a published response, the original response
+shape is unchanged.
 
 **Errors**
 
@@ -143,12 +147,12 @@ Checks the status of a request. It needs the case number **and** the email used 
 
 **Why it works this way**
 
-| Choice                                                      | Reason                                                                                   |
-| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| Case number **and** email are both required                 | Case numbers are sequential, so anyone could guess them. The email proves who is asking. |
-| A wrong email and an unknown case number get the same `404` | Nobody can use the API to find out which case numbers exist.                             |
-| `POST` instead of `GET`                                     | URLs are stored in logs and in the browser history. A body is not.                       |
-| Only status, type and dates are returned                    | The person already knows the rest, and less data means less to leak.                     |
+| Choice                                                      | Reason                                                                                                                         |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Case number **and** email are both required                 | Case numbers are sequential, so anyone could guess them. The email proves who is asking.                                       |
+| A wrong email and an unknown case number get the same `404` | Nobody can use the API to find out which case numbers exist.                                                                   |
+| `POST` instead of `GET`                                     | URLs are stored in logs and in the browser history. A body is not.                                                             |
+| Only public status, type and dates are returned             | The person already knows the rest, and less data means less to leak. A published official answer is the only additional field. |
 
 **Rate limits**
 
@@ -378,6 +382,30 @@ One request. The case number is normalized (uppercase, no spaces) and must have 
 ```
 
 `history` is oldest first. Filing the request is done by the citizen and has no audit record: it is the `createdAt` of the request. `allowedTransitions` comes from the server, so the interface never decides the workflow.
+When available, this detail also includes the latest official `response`, private `notes`,
+and the current `assignment`. This route is protected by the staff session and
+`pqrs:read` permission; these fields are never returned by public endpoints.
+
+### `GET` and `PATCH /api/admin/pqrs/:caseNumber/reply`
+
+Both roles with `pqrs:read` may read the detail (including a draft response). A write
+requires `pqrs:update` and the CSRF token. Send `{ "text": "...", "state": "draft" }`
+or `{ "text": "...", "state": "published" }`; text must contain 1–2000 characters.
+Saving returns the updated request detail. Only a response in `published` state appears
+in public lookup.
+
+### `GET` and `POST /api/admin/pqrs/:caseNumber/notes`
+
+Notes are visible only through the authenticated staff API. Creating one requires
+`pqrs:update`, a CSRF token, and `{ "text": "..." }` with 1–2000 characters. Citizen
+lookup and all public routes omit note text.
+
+### `PATCH /api/admin/pqrs/:caseNumber/assignment`
+
+Requires `pqrs:update` and a CSRF token. Send `{ "assigneeId": 1 }` to assign an active
+staff account, or `{ "assigneeId": null }` to unassign. Invalid or inactive accounts are
+rejected. Each effective change is recorded with its request id in the append-only
+request audit.
 
 ### `PATCH /api/admin/pqrs/:caseNumber/status`
 
@@ -387,7 +415,7 @@ Needs the CSRF token.
 
 **Response `200 OK`**: the same body as the detail, already updated, with the new audit record at the end of `history`. The status and its audit record are saved in one transaction.
 
-Only `status` and `expectedStatus` are read. Any other field is ignored. There is no route to create, edit or delete requests, or to write or read the PQRS status audit history except through the detail.
+Only `status` and `expectedStatus` are read. Any other field is ignored. There is no route to create, edit or delete requests, or to write the PQRS audit history.
 
 ### Status transitions
 
@@ -409,11 +437,3 @@ A status that is not one of the four is `400`. A move that is not in the table, 
 ### Staff pages
 
 `GET /admin/` and the pages under it need a session. Without one, a page request is answered with a `302` to `/admin/login.html` and anything else with `401`. Only the login page and the four files it needs are public. Pages are sent with `Cache-Control: no-store`.
-
-## Planned
-
-Planned for later versions (see the README):
-
-| Method | Path                        | Version | Description                |
-| ------ | --------------------------- | ------- | -------------------------- |
-| `POST` | `/api/admin/pqrs/:id/reply` | 0.3.2   | Reply text for the citizen |

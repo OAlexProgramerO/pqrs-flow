@@ -38,6 +38,18 @@ function releaseTwoMigrations() {
   return dir;
 }
 
+function releaseThreeMigrations() {
+  const dir = tempDir();
+  for (const filename of [
+    '001_initial.sql',
+    '002_admin_panel.sql',
+    '003_staff_roles_accounts.sql',
+  ]) {
+    fs.copyFileSync(path.join(MIGRATIONS, filename), path.join(dir, filename));
+  }
+  return dir;
+}
+
 function raw(filename = ':memory:') {
   const db = new Database(filename);
   db.pragma('foreign_keys = ON');
@@ -66,11 +78,11 @@ const insertAdmin = (db, email = 'a@example.com') =>
     )
     .run(email).lastInsertRowid;
 
-test('a fresh database ends at version 3 with every new table, index and trigger', () => {
+test('a fresh database ends at version 4 with every new table, index and trigger', () => {
   const db = openDatabase({ filename: ':memory:' });
   open.push(db);
 
-  assert.equal(db.pragma('user_version', { simple: true }), 3);
+  assert.equal(db.pragma('user_version', { simple: true }), 4);
   for (const table of [
     'admins',
     'admin_sessions',
@@ -78,6 +90,9 @@ test('a fresh database ends at version 3 with every new table, index and trigger
     'account_audit',
     'pqrs',
     'case_counters',
+    'pqrs_responses',
+    'pqrs_notes',
+    'pqrs_assignments',
   ]) {
     assert.ok(names(db, 'table').includes(table), table);
   }
@@ -85,9 +100,12 @@ test('a fresh database ends at version 3 with every new table, index and trigger
     'idx_admin_sessions_admin_id',
     'idx_admin_sessions_expires_at',
     'idx_pqrs_audit_pqrs_id',
+    'idx_pqrs_audit_action_created',
     'idx_pqrs_created_at',
     'idx_pqrs_status',
     'idx_pqrs_type',
+    'idx_pqrs_notes_pqrs_id',
+    'idx_pqrs_assignments_assignee',
     'idx_admins_role_active',
     'idx_account_audit_target',
     'idx_account_audit_created',
@@ -100,6 +118,86 @@ test('a fresh database ends at version 3 with every new table, index and trigger
     'pqrs_audit_no_delete',
     'pqrs_audit_no_update',
   ]);
+  assert.deepEqual(
+    db.pragma('table_info(pqrs_audit)').map((column) => column.name),
+    [
+      'id',
+      'pqrs_id',
+      'case_number',
+      'admin_id',
+      'action',
+      'previous_status',
+      'new_status',
+      'request_id',
+      'created_at',
+    ],
+  );
+});
+
+test('the v0.3.1 audit history survives migration without adding non-contract fields', () => {
+  const filename = path.join(tempDir(), 'v031-audit.db');
+  const old = raw(filename);
+  runMigrations(old, releaseThreeMigrations());
+  const pqrsId = insertPqrs(old);
+  const adminId = insertAdmin(old);
+  old
+    .prepare(
+      `INSERT INTO pqrs_audit (
+        pqrs_id, case_number, admin_id, action, previous_status, new_status, request_id
+      ) VALUES (?, 'PQRS-2026-000001', ?, 'status_change', 'filed', 'in_progress', 'legacy-req')`,
+    )
+    .run(pqrsId, adminId);
+  old.close();
+
+  const db = openDatabase({ filename });
+  open.push(db);
+  assert.equal(db.pragma('user_version', { simple: true }), 4);
+  assert.deepEqual(
+    db
+      .prepare(
+        'SELECT case_number, action, previous_status, new_status, request_id FROM pqrs_audit',
+      )
+      .all(),
+    [
+      {
+        case_number: 'PQRS-2026-000001',
+        action: 'status_change',
+        previous_status: 'filed',
+        new_status: 'in_progress',
+        request_id: 'legacy-req',
+      },
+    ],
+  );
+  const columns = db.pragma('table_info(pqrs_audit)').map((column) => column.name);
+  assert.equal(columns.includes('metadata'), false);
+  assert.equal(columns.includes('actor_admin_id'), false);
+  assert.equal(columns.includes('target_admin_id'), false);
+});
+
+test('response visibility and assignment state are constrained by the migration schema', () => {
+  const db = raw();
+  runMigrations(db);
+  const pqrsId = insertPqrs(db);
+  const adminId = insertAdmin(db);
+  const insertResponse = db.prepare(`
+    INSERT INTO pqrs_responses (pqrs_id, author_admin_id, text, state, published_at)
+    VALUES (?, ?, ?, ?, ?)
+  `);
+
+  assert.throws(
+    () => insertResponse.run(pqrsId, adminId, 'Draft', 'draft', '2026-10-11T12:00:00Z'),
+    /CHECK/,
+  );
+  assert.throws(() => insertResponse.run(pqrsId, adminId, 'Published', 'published', null), /CHECK/);
+  insertResponse.run(pqrsId, adminId, 'Published', 'published', '2026-10-11T12:00:00Z');
+
+  const insertAssignment = db.prepare(`
+    INSERT INTO pqrs_assignments (
+      pqrs_id, assignee_admin_id, assigned_by_admin_id, removed_at
+    ) VALUES (?, ?, ?, ?)
+  `);
+  assert.throws(() => insertAssignment.run(pqrsId, null, adminId, null), /CHECK/);
+  insertAssignment.run(pqrsId, adminId, adminId, null);
 });
 
 test('a database made by v0.1.3 keeps its requests and case numbers when it is migrated', () => {
@@ -121,7 +219,7 @@ test('a database made by v0.1.3 keeps its requests and case numbers when it is m
   const db = openDatabase({ filename });
   open.push(db);
 
-  assert.equal(db.pragma('user_version', { simple: true }), 3);
+  assert.equal(db.pragma('user_version', { simple: true }), 4);
   assert.deepEqual(db.prepare('SELECT id, case_number, status FROM pqrs ORDER BY id').all(), [
     { id: 1, case_number: 'PQRS-2026-000001', status: 'filed' },
     { id: 2, case_number: 'PQRS-2026-000002', status: 'answered' },
@@ -150,7 +248,7 @@ test('a pre-v0.3.1 database keeps records and sessions and maps legacy full-acce
 
   const db = openDatabase({ filename });
   open.push(db);
-  assert.equal(db.pragma('user_version', { simple: true }), 3);
+  assert.equal(db.pragma('user_version', { simple: true }), 4);
   assert.deepEqual(db.prepare('SELECT email, role FROM admins').all(), [
     { email: 'legacy@example.com', role: 'administrator' },
   ]);
@@ -165,7 +263,7 @@ test('a database from the broken pre-migration schema is repaired and then migra
   db.exec('CREATE TABLE pqrs (case_number TEXT, subject TEXT, type TEXT)');
   db.exec("INSERT INTO pqrs VALUES ('PQRS-2025-000007', 'Old subject', 'claim')");
 
-  assert.equal(runMigrations(db), 3);
+  assert.equal(runMigrations(db), 4);
   assert.deepEqual(db.prepare('SELECT case_number, subject, status FROM pqrs').all(), [
     { case_number: 'PQRS-2025-000007', subject: 'Old subject', status: 'filed' },
   ]);
@@ -175,10 +273,10 @@ test('a database from the broken pre-migration schema is repaired and then migra
 test('running the migrations again does nothing, so a restart is safe', () => {
   const db = raw();
 
-  assert.equal(runMigrations(db), 3);
+  assert.equal(runMigrations(db), 4);
   const adminId = insertAdmin(db);
-  assert.equal(runMigrations(db), 3);
-  assert.equal(runMigrations(db), 3);
+  assert.equal(runMigrations(db), 4);
+  assert.equal(runMigrations(db), 4);
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM admins WHERE id = ?').get(adminId).n, 1);
 });
 
@@ -193,7 +291,7 @@ test('a database file survives being closed and opened again', () => {
   const second = openDatabase({ filename });
   open.push(second);
   assert.equal(second.prepare('SELECT COUNT(*) AS n FROM admins').get().n, 1);
-  assert.equal(second.pragma('user_version', { simple: true }), 3);
+  assert.equal(second.pragma('user_version', { simple: true }), 4);
   second.close();
   removeDatabaseFiles(filename);
 });

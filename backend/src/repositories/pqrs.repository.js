@@ -32,9 +32,16 @@ export function createPqrsRepository(db) {
 
   // Only the columns a citizen may see. The email is compared without caring about case.
   const selectForLookup = db.prepare(`
-    SELECT case_number AS caseNumber, type, status, created_at AS createdAt
-    FROM pqrs
-    WHERE case_number = ? AND lower(requester_email) = ?
+    SELECT
+      p.case_number AS caseNumber,
+      p.type,
+      p.status,
+      p.created_at AS createdAt,
+      r.text AS officialResponse,
+      r.published_at AS publishedAt
+    FROM pqrs p
+    LEFT JOIN pqrs_responses r ON r.pqrs_id = p.id AND r.state = 'published'
+    WHERE p.case_number = ? AND lower(p.requester_email) = ?
   `);
 
   // One transaction: if the insert fails, the counter does not advance
@@ -69,7 +76,11 @@ export function createPqrsRepository(db) {
      * Returns the public columns, or null. A wrong email and an unknown case number look the same.
      */
     findForLookup(caseNumber, requesterEmail) {
-      return selectForLookup.get(caseNumber, String(requesterEmail).toLowerCase()) ?? null;
+      const found = selectForLookup.get(caseNumber, String(requesterEmail).toLowerCase());
+      if (!found) return null;
+
+      const { officialResponse, publishedAt, ...publicRecord } = found;
+      return officialResponse ? { ...publicRecord, officialResponse, publishedAt } : publicRecord;
     },
   };
 }

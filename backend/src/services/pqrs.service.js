@@ -17,7 +17,7 @@ export function submitPqrs(repository, input, options) {
 
 /**
  * Finds a request by case number and email.
- * Returns only the public fields: case number, type, status and creation date.
+ * Returns public tracking fields and an official response only after publication.
  */
 export function lookupPqrs(repository, input) {
   const { valid, errors, data } = validateLookup(input);
@@ -26,5 +26,17 @@ export function lookupPqrs(repository, input) {
   const found = repository.findForLookup(data.caseNumber, data.requesterEmail);
   if (!found) throw new HttpError(404, LOOKUP_NOT_FOUND_MESSAGE);
 
-  return found;
+  const publicRecord = {
+    caseNumber: found.caseNumber,
+    type: found.type,
+    status: found.status,
+    createdAt: found.createdAt,
+  };
+  if (found.officialResponse) {
+    publicRecord.officialResponse = {
+      text: found.officialResponse,
+      publishedAt: found.publishedAt,
+    };
+  }
+  return publicRecord;
 }

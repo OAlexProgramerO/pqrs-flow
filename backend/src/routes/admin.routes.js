@@ -85,6 +85,28 @@ export function createAdminRoutes({
   router.get('/stats', pqrs.summary);
   router.get('/pqrs', pqrs.list);
   router.get('/pqrs/:caseNumber', pqrs.detail);
+  router.get('/pqrs/:caseNumber/reply', pqrs.getReply);
+  router.post(
+    '/pqrs/:caseNumber/reply',
+    adminAuth.requirePermission(PERMISSIONS.PQRS_UPDATE),
+    pqrs.saveReply,
+  );
+  router.patch(
+    '/pqrs/:caseNumber/reply',
+    adminAuth.requirePermission(PERMISSIONS.PQRS_UPDATE),
+    pqrs.saveReply,
+  );
+  router.get('/pqrs/:caseNumber/notes', pqrs.listNotes);
+  router.post(
+    '/pqrs/:caseNumber/notes',
+    adminAuth.requirePermission(PERMISSIONS.PQRS_UPDATE),
+    pqrs.createNote,
+  );
+  router.patch(
+    '/pqrs/:caseNumber/assignment',
+    adminAuth.requirePermission(PERMISSIONS.PQRS_UPDATE),
+    pqrs.changeAssignment,
+  );
   router.patch(
     '/pqrs/:caseNumber/status',
     adminAuth.requirePermission(PERMISSIONS.PQRS_UPDATE),
