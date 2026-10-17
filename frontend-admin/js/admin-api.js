@@ -115,6 +115,35 @@ export function changeStatus(caseNumber, { status, expectedStatus }) {
   });
 }
 
+export function getReply(caseNumber) {
+  return request(`/api/admin/pqrs/${encodeURIComponent(caseNumber)}/reply`);
+}
+
+export function saveReply(caseNumber, { text, state = 'draft' }) {
+  return request(`/api/admin/pqrs/${encodeURIComponent(caseNumber)}/reply`, {
+    method: 'PATCH',
+    body: { text, state },
+  });
+}
+
+export function getNotes(caseNumber) {
+  return request(`/api/admin/pqrs/${encodeURIComponent(caseNumber)}/notes`);
+}
+
+export function createNote(caseNumber, text) {
+  return request(`/api/admin/pqrs/${encodeURIComponent(caseNumber)}/notes`, {
+    method: 'POST',
+    body: { text },
+  });
+}
+
+export function changeAssignment(caseNumber, assigneeId) {
+  return request(`/api/admin/pqrs/${encodeURIComponent(caseNumber)}/assignment`, {
+    method: 'PATCH',
+    body: { assigneeId },
+  });
+}
+
 export function listStaff(params) {
   return request('/api/admin/staff/search', { method: 'POST', body: params });
 }

@@ -289,6 +289,8 @@ export function validateListQuery(query = {}) {
     type: null,
     from: null,
     to: null,
+    assigneeId: null,
+    unassigned: null,
     sort: 'createdAt',
     order: 'desc',
     page: 1,
@@ -369,6 +371,19 @@ export function validateListQuery(query = {}) {
       data.pageSize = Number(pageSize);
     } else
       errors.pageSize = `Page size must be a whole number from 1 to ${PAGINATION.maxPageSize}.`;
+  }
+
+  const assigneeId = read('assigneeId');
+  if (assigneeId !== null) {
+    if (/^\d+$/.test(assigneeId) && Number(assigneeId) > 0) data.assigneeId = Number(assigneeId);
+    else errors.assigneeId = 'Assignee id must be a positive integer.';
+  }
+
+  const unassigned = read('unassigned');
+  if (unassigned !== null) {
+    if (unassigned === 'true' || unassigned === 'false') {
+      data.unassigned = unassigned === 'true';
+    } else errors.unassigned = 'Unassigned must be true or false.';
   }
 
   // The end date includes the whole day, so the query asks for "before the next day"

@@ -225,30 +225,30 @@ To run one test file use `npm --prefix backend test -- tests/admin-audit.test.js
 
 ## 🗺️ Future versions
 
-The goal is a complete PQRS system, built one small, tested step at a time. Version 0.3.1 adds staff roles and account security; versions after 0.3.1 below are **planned, not implemented**. The order may change. The branch names and the reasons behind each decision are in [ROADMAP.md](./ROADMAP.md).
+The goal is a complete PQRS system, built one small, tested step at a time. Version 0.3.1 adds staff roles and account security. Version 0.3.2 is under development: its response, note, assignment and request-audit APIs are present, but the corresponding staff-panel UI is not complete. Later versions remain planned. The order may change. The branch names and the reasons behind each decision are in [ROADMAP.md](./ROADMAP.md).
 
-| Version | Work                                                                                                                                                                                                        |
-| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0.3.1   | **Staff accounts and roles.** Shipped: role-based access, account management, forced password changes, self-service password changes, session management and account audit.                                 |
-| 0.3.2   | **Replies and internal notes.** The answer text that the citizen can read when tracking a request, private notes between staff, assigning a request to a person, a screen to browse the PQRS audit history. |
-| 0.3.3   | **Deadlines.** Legal response time per request type, business days and holidays, overdue and soon-to-expire flags in the list.                                                                              |
-| 0.3.4   | **Attachments.** Safe uploads (size, type and content checks, files stored outside the web root) for citizens and staff.                                                                                    |
-| 0.3.5   | **Email notifications.** Email when a request is received and when it is answered, with an outbox and retries so an email failure never loses a request.                                                    |
-| 0.4.0   | **Reports.** Requests by type and status over time, average response time, overdue rate.                                                                                                                    |
-| 0.4.1   | **CSV export.** Streamed export of the filtered list, with protection against formula injection in spreadsheets.                                                                                            |
-| 0.5.0   | **Quality.** Coverage report, an end-to-end test of the whole flow in a real browser, an automated accessibility check.                                                                                     |
-| 0.5.1   | **Authentication hardening.** Second factor (TOTP), login limits and sessions that survive a restart and work with more than one server process, a security event log.                                      |
-| 0.5.2   | **Docker.** Multi-stage image and `docker compose`.                                                                                                                                                         |
-| 0.5.3   | **Deployment.** Cloud deployment, CI/CD and automatic database backups.                                                                                                                                     |
-| 0.9.0   | **Release candidate.** Feature freeze, demo data, screenshots and final documentation.                                                                                                                      |
-| 1.0.0   | **First stable release** with a public demo.                                                                                                                                                                |
+| Version | Work                                                                                                                                                                                                                     |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 0.3.1   | **Staff accounts and roles.** Shipped: role-based access, account management, forced password changes, self-service password changes, session management and account audit.                                              |
+| 0.3.2   | **Replies and internal notes (in progress).** Backend APIs support published citizen responses, private staff notes, assignment, and request-level audit events. The staff-panel UI and audit explorer are not complete. |
+| 0.3.3   | **Deadlines.** Legal response time per request type, business days and holidays, overdue and soon-to-expire flags in the list.                                                                                           |
+| 0.3.4   | **Attachments.** Safe uploads (size, type and content checks, files stored outside the web root) for citizens and staff.                                                                                                 |
+| 0.3.5   | **Email notifications.** Email when a request is received and when it is answered, with an outbox and retries so an email failure never loses a request.                                                                 |
+| 0.4.0   | **Reports.** Requests by type and status over time, average response time, overdue rate.                                                                                                                                 |
+| 0.4.1   | **CSV export.** Streamed export of the filtered list, with protection against formula injection in spreadsheets.                                                                                                         |
+| 0.5.0   | **Quality.** Coverage report, an end-to-end test of the whole flow in a real browser, an automated accessibility check.                                                                                                  |
+| 0.5.1   | **Authentication hardening.** Second factor (TOTP), login limits and sessions that survive a restart and work with more than one server process, a security event log.                                                   |
+| 0.5.2   | **Docker.** Multi-stage image and `docker compose`.                                                                                                                                                                      |
+| 0.5.3   | **Deployment.** Cloud deployment, CI/CD and automatic database backups.                                                                                                                                                  |
+| 0.9.0   | **Release candidate.** Feature freeze, demo data, screenshots and final documentation.                                                                                                                                   |
+| 1.0.0   | **First stable release** with a public demo.                                                                                                                                                                             |
 
-### Known limits of 0.3.1
+### Known limits of 0.3.1 and current 0.3.2 work
 
 These are deliberate and are the reason for some of the versions above:
 
 - Everyone with either staff role can see and change every request; per-request assignment and access restrictions are not implemented.
-- Staff can change the status but cannot write a reply to the citizen or notes yet (0.3.2).
+- The 0.3.2 API supports responses, notes, and assignments, but the staff panel does not yet provide their workflow UI or a broad audit explorer.
 - The login limits and the staff sessions are meant for **one server process**. The limit counters live in memory and restart with the server. With several instances behind a load balancer the limits would be per instance (0.5.1).
 - There is no second factor or email, so there is no "forgot my password" link: recovery needs access to the server (0.5.1, 0.3.5).
 - A login counts every attempt toward the account limit, so someone who knows an email can make that account wait. Accounts can still be recovered from the terminal.
