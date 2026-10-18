@@ -4,6 +4,26 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [SemVer](h
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-10-18
+
+### Added
+
+- Administrator-only API configuration for per-request-type business-day rules and explicit holidays. No deadline values or jurisdiction-specific holidays are seeded.
+- Versioned deadline snapshots on new requests, including the due date, rule version, calculation policy and applicable holiday dates. Requests already in the database and requests filed without a configured rule remain unchanged and deadline-unavailable.
+- UTC business-day calculations: submission date is day zero; weekend or holiday submissions begin counting on the next business day; weekends and configured holidays are skipped; due dates always fall on business days.
+- Staff-only deadline status and remaining-business-day information in request list and detail responses, with accessible text indicators for on-track, approaching, overdue, completed and unavailable requests.
+- Migration `005_deadline_management.sql`, which adds deadline snapshot columns and constrained rule and holiday tables without rewriting existing requests.
+
+### Changed
+
+- Bumped package versions to `0.3.3`. The implementation is local only and has not been committed, tagged, published or deployed.
+- Updated English and Spanish READMEs, roadmap, API, architecture and security documentation. Documentation explicitly requires administrators to verify configured rules against authoritative jurisdictional sources and organizational policy.
+
+### Validation
+
+- Baseline before changes: `npm run check` passed — 459 tests total, 457 passed, 0 failed and 2 skipped on Windows.
+- Final checks: `npm run check` passed — lint and formatting checks passed; 465 tests total, 463 passed, 0 failed and 2 skipped because Windows cannot deliver the tested shutdown signals to child processes. `git diff --check` passed.
+
 ## [0.3.1] - 2026-10-16
 
 ### Added

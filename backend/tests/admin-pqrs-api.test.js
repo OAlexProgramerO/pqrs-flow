@@ -51,6 +51,7 @@ test('the list shows less than the detail: no description, no email, no internal
   assert.deepEqual(Object.keys(item).sort(), [
     'caseNumber',
     'createdAt',
+    'deadline',
     'requesterName',
     'status',
     'subject',
@@ -295,6 +296,7 @@ test('the detail has the fields the staff needs and nothing internal', async () 
   assert.deepEqual(Object.keys(res.json.pqrs).sort(), [
     'caseNumber',
     'createdAt',
+    'deadline',
     'description',
     'requesterEmail',
     'requesterName',

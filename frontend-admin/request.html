@@ -53,6 +53,22 @@
             <dd id="createdAt"></dd>
           </div>
           <div>
+            <dt>Deadline</dt>
+            <dd id="deadlineDueDate"></dd>
+          </div>
+          <div>
+            <dt>Deadline status</dt>
+            <dd id="deadlineStatus"></dd>
+          </div>
+          <div>
+            <dt>Time remaining</dt>
+            <dd id="deadlineRemaining"></dd>
+          </div>
+          <div>
+            <dt>Rule</dt>
+            <dd id="deadlineRule"></dd>
+          </div>
+          <div>
             <dt>Requester</dt>
             <dd id="requesterName"></dd>
           </div>
@@ -68,6 +84,11 @@
 
         <h2>Description</h2>
         <p class="description" id="description"></p>
+        <p class="hint">
+          Deadlines use UTC business dates. The submission date is day zero; weekends and the
+          holiday calendar saved when the request was received are excluded. Later rule or holiday
+          changes do not alter this request's saved deadline.
+        </p>
       </article>
 
       <section id="statusPanel" class="panel" aria-labelledby="status-title" hidden>

@@ -13,7 +13,7 @@ export function createAdminPqrsController({ getRepository, getNow = () => new Da
   return {
     list(req, res, next) {
       try {
-        res.status(200).json(listRequests(getRepository(), req.query));
+        res.status(200).json(listRequests(getRepository(), req.query, getNow()));
       } catch (error) {
         next(error);
       }
@@ -29,7 +29,7 @@ export function createAdminPqrsController({ getRepository, getNow = () => new Da
 
     detail(req, res, next) {
       try {
-        res.status(200).json(getRequestDetail(getRepository(), req.params.caseNumber));
+        res.status(200).json(getRequestDetail(getRepository(), req.params.caseNumber, getNow()));
       } catch (error) {
         next(error);
       }
@@ -52,7 +52,7 @@ export function createAdminPqrsController({ getRepository, getNow = () => new Da
 
     getReply(req, res, next) {
       try {
-        res.status(200).json(getRequestDetail(getRepository(), req.params.caseNumber));
+        res.status(200).json(getRequestDetail(getRepository(), req.params.caseNumber, getNow()));
       } catch (error) {
         next(error);
       }

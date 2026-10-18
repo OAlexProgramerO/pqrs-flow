@@ -5,6 +5,7 @@ import {
   validateStatusChange,
 } from './admin-validation.js';
 import { allowedTransitions, canTransition } from './status-workflow.js';
+import { deadlineDetails } from './deadlines.js';
 
 export const REQUEST_NOT_FOUND_MESSAGE = 'Request not found.';
 export const STATUS_CONFLICT_MESSAGE =
@@ -14,7 +15,7 @@ function trimText(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-function toAdminView(row) {
+function toAdminView(row, now) {
   const result = {
     caseNumber: row.caseNumber,
     type: row.type,
@@ -24,6 +25,7 @@ function toAdminView(row) {
     requesterEmail: row.requesterEmail,
     status: row.status,
     createdAt: row.createdAt,
+    deadline: deadlineDetails(row, now),
   };
   if (row.assigneeId) {
     result.assignee = { id: row.assigneeId, displayName: row.assigneeName };
@@ -42,7 +44,7 @@ function toHistoryEntry(row) {
   };
 }
 
-function toListItem(row) {
+function toListItem(row, now) {
   const result = {
     caseNumber: row.caseNumber,
     type: row.type,
@@ -50,6 +52,7 @@ function toListItem(row) {
     requesterName: row.requesterName,
     status: row.status,
     createdAt: row.createdAt,
+    deadline: deadlineDetails(row, now),
   };
   if (row.assigneeId) {
     result.assignee = { id: row.assigneeId, displayName: row.assigneeName };
@@ -57,14 +60,14 @@ function toListItem(row) {
   return result;
 }
 
-export function listRequests(repository, query) {
+export function listRequests(repository, query, now = new Date()) {
   const { valid, errors, data } = validateListQuery(query);
   if (!valid) throw new ValidationError(errors);
 
   const { items, totalItems } = repository.list(data);
 
   return {
-    data: items.map(toListItem),
+    data: items.map((item) => toListItem(item, now)),
     pagination: {
       page: data.page,
       pageSize: data.pageSize,
@@ -80,7 +83,7 @@ export function getSummary(repository, _currentAdminId = undefined) {
   return { total, byStatus };
 }
 
-export function getRequestDetail(repository, caseNumberParam) {
+export function getRequestDetail(repository, caseNumberParam, now = new Date()) {
   const check = validateCaseNumberParam(caseNumberParam);
   if (!check.valid) throw new ValidationError(check.errors);
 
@@ -92,7 +95,7 @@ export function getRequestDetail(repository, caseNumberParam) {
   const assignment = repository.getAssignment(found.id);
 
   const result = {
-    pqrs: toAdminView(found),
+    pqrs: toAdminView(found, now),
     allowedTransitions: allowedTransitions(found.status),
     history: repository.listAudit(found.id).map(toHistoryEntry),
   };
@@ -161,7 +164,7 @@ export function changeStatus(
 
   if (!updated) throw new HttpError(404, REQUEST_NOT_FOUND_MESSAGE);
 
-  return getRequestDetail(repository, updated.caseNumber);
+  return getRequestDetail(repository, updated.caseNumber, now);
 }
 
 export function upsertOfficialResponse(
@@ -194,7 +197,7 @@ export function upsertOfficialResponse(
   });
   if (!saved) throw new Error('The response could not be saved.');
 
-  return getRequestDetail(repository, pqrs.caseNumber);
+  return getRequestDetail(repository, pqrs.caseNumber, now);
 }
 
 export function listNotes(repository, caseNumberParam) {

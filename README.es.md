@@ -8,9 +8,9 @@
 
 Un sistema web para radicar, consultar y gestionar **PQRS** — _Peticiones, Quejas, Reclamos y Sugerencias_. Está construido de principio a fin con JavaScript, priorizando la simplicidad, la ausencia de un paso de compilación en el frontend y límites de arquitectura claros.
 
-**Estado: v0.3.1** — La ciudadanía puede radicar y consultar solicitudes; el personal puede gestionarlas desde un panel protegido. Esta versión incorpora roles de administrador y personal, gestión de cuentas, cambio obligatorio de contraseñas nuevas o restablecidas, cambio de contraseña propio, gestión de sesiones y una auditoría de cuentas de solo adición. La migración `003` conserva el acceso de administrador de las cuentas existentes; las solicitudes y sus números de caso no cambian. Aún no se ha desplegado en producción; lee [docs/security.md](./docs/security.md) antes de exponerlo (ese documento está en inglés).
+**Implementación local: v0.3.3 — Gestión de plazos** — El personal ve indicadores de plazo; los administradores configuran reglas de días hábiles por tipo y festivos explícitos. No hay reglas legales precargadas: el administrador debe verificarlas y configurarlas antes del uso operativo. Los plazos se guardan al radicar la solicitud; los cambios de configuración solo afectan nuevas solicitudes. Este checkout no se ha publicado ni desplegado; lee [docs/security.md](./docs/security.md) antes de exponerlo (ese documento está en inglés).
 
-> Este archivo es la versión en español de [README.md](./README.md). Si algo difiere, el README en inglés y el código son la referencia. Los cambios de la 0.3.1 están en [CHANGELOG.md](./CHANGELOG.md).
+> Este archivo es la versión en español de [README.md](./README.md). Si algo difiere, el README en inglés y el código son la referencia. Los cambios de la implementación local 0.3.3 están en [CHANGELOG.md](./CHANGELOG.md).
 
 ---
 
@@ -26,20 +26,22 @@ Muchas organizaciones todavía gestionan sugerencias, quejas y solicitudes con c
 
 ### Estado del proyecto
 
-| Funcionalidad                                                          | Versión | Estado   |
-| ---------------------------------------------------------------------- | ------- | -------- |
-| Servidor Express, endpoint de salud, sitio estático                    | 0.0.1   | Hecho    |
-| Formulario de radicación con validación en el cliente                  | 0.0.2   | Hecho    |
-| Base de datos, migraciones y repositorio                               | 0.0.3   | Hecho    |
-| `POST /api/pqrs`, formulario conectado a la API, número de caso        | 0.1.0   | Hecho    |
-| Consulta de estado con número de caso y correo                         | 0.1.1   | Hecho    |
-| Límite de radicaciones, compresión, configuración de proxy             | 0.1.2   | Hecho    |
-| Cabeceras de caché para archivos estáticos, CORS desde el entorno      | 0.1.3   | Hecho    |
-| Panel del personal: login, tablero, búsqueda, cambios de estado        | 0.2.0   | Hecho    |
-| Historial de auditoría de cada cambio de estado                        | 0.2.0   | Hecho    |
-| Apagado limpio, README en español, pruebas de regresión de aislamiento | 0.3.0   | Hecho    |
-| Roles, cuentas y seguridad del personal                                | 0.3.1   | Hecho    |
-| Respuestas, plazos, adjuntos, correos, reportes                        | 0.3.2+  | Planeado |
+| Funcionalidad                                                          | Versión | Estado                  |
+| ---------------------------------------------------------------------- | ------- | ----------------------- |
+| Servidor Express, endpoint de salud, sitio estático                    | 0.0.1   | Hecho                   |
+| Formulario de radicación con validación en el cliente                  | 0.0.2   | Hecho                   |
+| Base de datos, migraciones y repositorio                               | 0.0.3   | Hecho                   |
+| `POST /api/pqrs`, formulario conectado a la API, número de caso        | 0.1.0   | Hecho                   |
+| Consulta de estado con número de caso y correo                         | 0.1.1   | Hecho                   |
+| Límite de radicaciones, compresión, configuración de proxy             | 0.1.2   | Hecho                   |
+| Cabeceras de caché para archivos estáticos, CORS desde el entorno      | 0.1.3   | Hecho                   |
+| Panel del personal: login, tablero, búsqueda, cambios de estado        | 0.2.0   | Hecho                   |
+| Historial de auditoría de cada cambio de estado                        | 0.2.0   | Hecho                   |
+| Apagado limpio, README en español, pruebas de regresión de aislamiento | 0.3.0   | Hecho                   |
+| Roles, cuentas y seguridad del personal                                | 0.3.1   | Hecho                   |
+| Respuestas, notas internas, asignación y auditoría de solicitudes      | 0.3.2   | En curso                |
+| Reglas configurables de plazos hábiles y calendario de festivos        | 0.3.3   | Implementado localmente |
+| Adjuntos, correos y reportes                                           | 0.3.4+  | Planeado                |
 
 ## ✨ Qué hace hoy
 
@@ -48,7 +50,7 @@ Muchas organizaciones todavía gestionan sugerencias, quejas y solicitudes con c
 - Almacenamiento en SQLite con migraciones versionadas. Los números de caso se generan de forma atómica, con un contador por año.
 - Pantalla de éxito con el número de caso, un botón para copiarlo y un enlace para consultar la solicitud.
 - Página de consulta: el número de caso más el correo muestran el estado con una línea de tiempo del avance.
-- Privacidad por diseño: la consulta devuelve solo estado, tipo y fechas; un correo incorrecto y un número de caso inexistente se ven igual, y cada intento tiene límite de frecuencia.
+- Privacidad por diseño: la consulta devuelve solo estado, tipo y fechas (y una respuesta oficial publicada, si existe); nunca expone plazos internos. Un correo incorrecto y un número de caso inexistente se ven igual, y cada intento tiene límite de frecuencia.
 - Campo anti-spam, límite de 16 KB por cuerpo de petición e identificador de petición en cada respuesta.
 - Las radicaciones tienen límite por dirección de cliente (10 cada 15 minutos por defecto, configurable en `.env`).
 - Las respuestas de texto (páginas, estilos, scripts, JSON) se comprimen con gzip o brotli, sin dependencias adicionales.
@@ -58,6 +60,7 @@ Muchas organizaciones todavía gestionan sugerencias, quejas y solicitudes con c
 - **Login del personal** con hashes de contraseña `scrypt`, sesiones opacas en el servidor (solo se guarda el hash del token), una cookie `HttpOnly` + `SameSite=Strict` (y `Secure` en producción), protección CSRF y límites de intentos de login por dirección y por cuenta.
 - **Panel protegido** bajo `/admin/`: los visitantes anónimos solo ven la página de login. La carpeta del panel está fuera de `frontend/`, así que el servidor de archivos estáticos público no puede servirla.
 - **Tablero**: contadores por estado, una lista paginada con búsqueda, filtros por estado, tipo y rango de fechas, ordenamiento y una página de detalle para cada solicitud. Adaptable a cualquier pantalla y usable con teclado.
+- **Gestión de plazos**: la lista y el detalle del personal muestran estados al día, próximos, vencidos, completados o no disponibles. Los administradores configuran reglas de días hábiles por tipo y festivos explícitos mediante la API protegida. Cada solicitud nueva conserva la versión de regla, fecha límite y festivos aplicables; los cambios nunca reescriben plazos históricos.
 - **Flujo de estados** con transiciones permitidas (`closed` es final) y protección cuando dos personas cambian la misma solicitud.
 - **Historial de auditoría**: cada cambio de estado registra quién, de qué estado a cuál, cuándo y con qué identificador de petición. Se guarda en la misma transacción que el cambio, solo se puede agregar (no modificar) y nunca se muestra al público.
 - **Acceso por roles**: los administradores gestionan cuentas; el personal puede consultar y tramitar PQRS, pero no administrar cuentas. Ambos roles pueden acceder a todas las PQRS; aún no hay permisos por asignación.
@@ -176,6 +179,8 @@ Después de crear la primera cuenta, usa `/admin/accounts.html` para añadir cue
 | `LOGIN_ACCOUNT_RATE_LIMIT_MAX`     | `5`                         | Intentos de login del personal por cuenta en cada ventana                                 |
 | `LOGIN_RATE_LIMIT_WINDOW_MINUTES`  | `15`                        | Duración de la ventana de login en minutos                                                |
 
+Los administradores gestionan las reglas de plazos y los festivos mediante los endpoints protegidos documentados en [docs/api.md](./docs/api.md). No hay valores precargados. El cálculo usa UTC, considera la fecha de radicación como día cero y omite fines de semana y festivos configurados. El indicador de cinco días hábiles es una alerta operativa, no una regla legal. Verifica los plazos con fuentes jurisdiccionales autorizadas y la política de la organización; PQRS Flow no afirma cumplir la ley.
+
 **Área del personal en producción:** sirve la aplicación por HTTPS (la cookie es `Secure` y usa el prefijo `__Host-`, así que no funciona por HTTP simple), define `TRUST_PROXY` con el número de proxies para que los límites de login vean la dirección real, y lee [docs/security.md](./docs/security.md). El panel del personal funciona solo desde la misma dirección que el sitio público: CORS nunca se abre para él.
 
 **Detrás de un proxy inverso** (Nginx, Render, Railway...) define `TRUST_PROXY` con el número de proxies, normalmente `1`. Sin eso, el servidor ve la dirección del proxy para todos los visitantes, así que todos compartirían un mismo límite de frecuencia. Déjalo vacío cuando nadie esté delante de la aplicación, porque confiar en `X-Forwarded-For` sin un proxy permite que cualquiera falsifique su dirección. Evita `TRUST_PROXY=true` por la misma razón.
@@ -229,13 +234,13 @@ Para ejecutar un solo archivo de pruebas usa `npm --prefix backend test -- tests
 
 ## 🗺️ Versiones futuras
 
-El objetivo es un sistema PQRS completo, construido un paso pequeño y probado a la vez. La versión 0.3.1 incorpora roles y seguridad de cuentas; las versiones posteriores a 0.3.1 que aparecen abajo están **planeadas, no implementadas**. El orden puede cambiar. Los nombres de las ramas y las razones de cada decisión están en [ROADMAP.md](./ROADMAP.md).
+El objetivo es un sistema PQRS completo, construido un paso pequeño y probado a la vez. La versión 0.3.2 sigue en curso para completar la interfaz de trabajo del personal; la gestión de plazos 0.3.3 está implementada localmente, pero aún no se publica. Las versiones posteriores siguen planeadas. El orden puede cambiar. Los nombres de las ramas y las razones de cada decisión están en [ROADMAP.md](./ROADMAP.md).
 
 | Versión | Trabajo                                                                                                                                                                                                      |
 | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | 0.3.1   | **Cuentas y roles del personal.** Entregado: acceso por roles, gestión de cuentas, cambios obligatorios de contraseña, cambio propio, gestión de sesiones y auditoría de cuentas.                            |
 | 0.3.2   | **Respuestas y notas internas.** El texto de respuesta que la ciudadanía puede leer al consultar, notas privadas entre el personal, asignación de una solicitud a una persona y visor de auditoría de PQRS.  |
-| 0.3.3   | **Plazos.** Tiempo legal de respuesta por tipo de solicitud, días hábiles y festivos, indicadores de vencida y por vencer en la lista.                                                                       |
+| 0.3.3   | **Plazos (implementado localmente).** Reglas configurables de días hábiles y festivos, instantáneas inmutables de fechas límite e indicadores solo para el personal.                                         |
 | 0.3.4   | **Adjuntos.** Cargas seguras (verificación de tamaño, tipo y contenido, archivos fuera de la raíz web) para ciudadanos y personal.                                                                           |
 | 0.3.5   | **Notificaciones por correo.** Correo al recibir una solicitud y al responderla, con una bandeja de salida y reintentos para que un fallo de correo nunca pierda una solicitud.                              |
 | 0.4.0   | **Reportes.** Solicitudes por tipo y estado a lo largo del tiempo, tiempo promedio de respuesta, tasa de vencimiento.                                                                                        |
@@ -247,7 +252,7 @@ El objetivo es un sistema PQRS completo, construido un paso pequeño y probado a
 | 0.9.0   | **Candidata a versión final.** Congelación de funcionalidades, datos de demostración, capturas de pantalla y documentación final.                                                                            |
 | 1.0.0   | **Primera versión estable** con una demostración pública.                                                                                                                                                    |
 
-### Límites conocidos de la 0.3.1
+### Límites conocidos de la implementación actual
 
 Son deliberados y son la razón de algunas de las versiones anteriores:
 

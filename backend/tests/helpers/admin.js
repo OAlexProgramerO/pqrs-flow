@@ -124,7 +124,9 @@ export function createClient(baseUrl) {
 
     get: (path, options) => client.request('GET', path, options),
     post: (path, body, options) => client.request('POST', path, { body, ...options }),
+    put: (path, body, options) => client.request('PUT', path, { body, ...options }),
     patch: (path, body, options) => client.request('PATCH', path, { body, ...options }),
+    delete: (path, options) => client.request('DELETE', path, options),
 
     async login(email = TEST_EMAIL, password = TEST_PASSWORD) {
       const result = await client.post('/api/admin/login', { email, password });

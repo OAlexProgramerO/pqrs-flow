@@ -2,6 +2,7 @@ export const PERMISSIONS = Object.freeze({
   PQRS_READ: 'pqrs:read',
   PQRS_UPDATE: 'pqrs:update',
   STAFF_MANAGE: 'staff:manage',
+  DEADLINE_MANAGE: 'deadline:manage',
 });
 
 const ROLE_PERMISSIONS = Object.freeze({

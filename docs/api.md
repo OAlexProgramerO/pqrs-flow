@@ -29,7 +29,7 @@ Checks that the server is running. Used by the frontend and by monitoring tools.
 {
   "status": "ok",
   "service": "pqrs-flow",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "timestamp": "2026-10-04T12:00:00.000Z"
 }
 ```
@@ -177,16 +177,16 @@ Any request under `/api` that does not match a route returns `404`:
 
 Unhandled errors return `500` with the request id. Details are logged on the server together with that id and never sent to the client.
 
-## Staff API (v0.3.1)
+## Staff API (v0.3.3)
 
 Everything under `/api/admin` is for authorized staff. The public endpoints above never need a login.
 
 ### Roles and account security
 
-| Role            | PQRS access                    | Account management |
-| --------------- | ------------------------------ | ------------------ |
-| `administrator` | Read and process every request | Full access        |
-| `staff`         | Read and process every request | None               |
+| Role            | PQRS access                    | Account management | Deadline configuration |
+| --------------- | ------------------------------ | ------------------ | ---------------------- |
+| `administrator` | Read and process every request | Full access        | Read and change        |
+| `staff`         | Read and process every request | None               | None                   |
 
 Both roles currently have access to every PQRS; per-request assignment permissions are not implemented. Permissions are checked by the server, not inferred from which controls the frontend displays. Existing accounts are migrated as `administrator` to preserve their previous access; newly-created panel accounts default to `staff`. There must always be at least one active administrator.
 
@@ -333,6 +333,9 @@ Each parameter must appear once as a plain string: `status=a&status=b` and `stat
 
 **Response `200 OK`**
 
+This example assumes an administrator configured a rule for `claim`. Without a rule, the
+deadline is unavailable and `dueDate` and `businessDays` are `null`.
+
 ```json
 {
   "data": [
@@ -342,7 +345,18 @@ Each parameter must appear once as a plain string: `status=a&status=b` and `stat
       "subject": "Wrong amount on my invoice",
       "requesterName": "Maria Lopez",
       "status": "filed",
-      "createdAt": "2026-10-04T12:00:00.000Z"
+      "createdAt": "2026-10-04T12:00:00.000Z",
+      "deadline": {
+        "dueDate": "2026-11-13",
+        "businessDays": 30,
+        "status": "on_track",
+        "overdue": false,
+        "approaching": false,
+        "remainingBusinessDays": 30,
+        "ruleId": "claim:v1",
+        "policyVersion": "utc-business-days-v1",
+        "timezone": "UTC"
+      }
     }
   ],
   "pagination": { "page": 1, "pageSize": 20, "totalItems": 12, "totalPages": 1 }
@@ -365,7 +379,18 @@ One request. The case number is normalized (uppercase, no spaces) and must have 
     "requesterName": "Maria Lopez",
     "requesterEmail": "maria@example.com",
     "status": "in_progress",
-    "createdAt": "2026-10-04T12:00:00.000Z"
+    "createdAt": "2026-10-04T12:00:00.000Z",
+    "deadline": {
+      "dueDate": "2026-11-13",
+      "businessDays": 30,
+      "status": "on_track",
+      "overdue": false,
+      "approaching": false,
+      "remainingBusinessDays": 30,
+      "ruleId": "claim:v1",
+      "policyVersion": "utc-business-days-v1",
+      "timezone": "UTC"
+    }
   },
   "allowedTransitions": ["answered"],
   "history": [
@@ -416,6 +441,62 @@ Needs the CSRF token.
 **Response `200 OK`**: the same body as the detail, already updated, with the new audit record at the end of `history`. The status and its audit record are saved in one transaction.
 
 Only `status` and `expectedStatus` are read. Any other field is ignored. There is no route to create, edit or delete requests, or to write the PQRS audit history.
+
+### Deadline configuration (administrator only)
+
+Deadline configuration routes require an administrator session, the appropriate permission,
+and a CSRF token for `PUT` and `DELETE`. There is no public deadline endpoint and no staff
+configuration screen; administrators maintain the rules and holiday calendar through these
+protected endpoints.
+
+`GET /api/admin/deadlines` returns this shape; disabled rules remain listed to preserve their
+version history:
+
+```json
+{
+  "timezone": "UTC",
+  "policyVersion": "utc-business-days-v1",
+  "approachingBusinessDays": 5,
+  "rules": [{ "type": "claim", "businessDays": 30, "version": 1, "active": 1 }],
+  "holidays": [{ "date": "2026-12-25", "name": "Organization holiday" }]
+}
+```
+
+| Method and path                              | Behavior                                                                                                                                                          |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/admin/deadlines`                   | Lists configured rules and holidays, plus the fixed policy metadata.                                                                                              |
+| `PUT /api/admin/deadlines/rules/:type`       | Sets or revises a rule. Body: `{ "businessDays": 30 }`; integer 1–366. `:type` is one of the four PQRS types. The response's `version` increments on each update. |
+| `DELETE /api/admin/deadlines/rules/:type`    | Disables a rule for future submissions. Its version history is retained. Returns `404` if none is active.                                                         |
+| `PUT /api/admin/deadlines/holidays/:date`    | Adds or renames an explicit holiday. `:date` must be a real `YYYY-MM-DD` date. Body: `{ "name": "Organization holiday" }`; same-date writes update the entry.     |
+| `DELETE /api/admin/deadlines/holidays/:date` | Removes a holiday for future submissions. Returns `404` if none exists.                                                                                           |
+
+No rules or holidays are seeded. Before operational use, an administrator must verify and
+configure response periods against authoritative sources for the applicable jurisdiction and
+organizational policy. Values are not legal advice and PQRS Flow does not claim legal
+compliance.
+
+The policy uses UTC dates. The submission date is day zero; weekends and explicit configured
+holidays are skipped, and a due date is therefore always a business date. A submission received
+on a weekend or holiday starts counting from the next business date. Requests snapshot their
+due date, rule version and applicable holiday dates at creation. Changing or deleting a rule
+or holiday affects future submissions only; existing requests are not recomputed. Existing
+requests and submissions received while a type has no rule have no deadline and report
+`status: "unavailable"`. Five or fewer remaining business days is the staff-only
+`approaching` indicator, an operational alert threshold rather than a legal rule.
+
+The `deadline` object on staff list and detail responses contains:
+
+| Field                        | Meaning                                                                                                                                |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `dueDate`                    | Saved UTC business date, or `null` when unavailable.                                                                                   |
+| `businessDays`               | Business-day duration from the saved rule, or `null`.                                                                                  |
+| `status`                     | `on_track`, `approaching`, `overdue`, `completed`, or `unavailable`. Answered and closed requests are `completed`.                     |
+| `overdue` / `approaching`    | Boolean indicators; a deadline becomes overdue the day after its due date.                                                             |
+| `remainingBusinessDays`      | Business days after the current UTC date through the due date; `0` on the due date and after it. `null` when completed or unavailable. |
+| `ruleId`                     | Request type plus the immutable rule version, for example `claim:v2`.                                                                  |
+| `policyVersion` / `timezone` | Calculation policy identifier and `UTC`.                                                                                               |
+
+Public submission and status-lookup responses do not expose deadline configuration or snapshots.
 
 ### Status transitions
 

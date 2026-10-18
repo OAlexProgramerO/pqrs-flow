@@ -35,7 +35,8 @@ The `controllers/`, `services/` and `repositories/` folders are created when the
 - **Tables:** `pqrs` (with `CHECK` constraints and `STRICT` typing) and `case_counters` (one row per year).
 - **Case numbers:** the counter is incremented in the same transaction that inserts the request, so a failed insert never burns a number.
 - **Connection lifecycle:** `getDb()` opens the shared connection on first use, so importing the app never touches the disk. Tests use `:memory:` databases.
-- **Public data:** repositories return every column. Services decide what the public may see; the lookup in 0.1.1 will never return the description or personal data.
+- **Public data:** staff repositories can load internal fields, but public submission and lookup use explicit response projections and never expose staff-only data or deadline snapshots. The lookup requires both the case number and email.
+- **Deadline snapshots (v0.3.3):** administrators configure rules and explicit holidays in SQLite. A request stores its calculated due date, rule version, policy version and relevant holiday dates when filed. Later configuration changes apply only to new requests; missing rules and pre-migration requests remain deadline-unavailable rather than being silently recalculated.
 
 ## Submitting a request (v0.1.0)
 
@@ -54,6 +55,7 @@ Browser form ──► frontend/js/form.js ──► frontend/js/api.js ──PO
 - **App factory:** `createApp({ getRepository })` builds the Express app. Tests inject an in-memory repository, and the default app opens the real database on the first request.
 - **Privacy:** a submission response contains only the case number, type, subject, status and creation date.
 - **Anti-spam:** a hidden `website` field catches bots, and since v0.1.2 every client address has a limit on new requests.
+- **Deadline calculation:** the request repository reads the active rule and holiday calendar in the submission transaction and uses `services/deadlines.js` to save the immutable UTC business-date snapshot. Staff list and detail responses derive overdue/approaching state from that snapshot and the injected clock. The public response and lookup select no deadline columns.
 
 ## Looking up a request (v0.1.1)
 

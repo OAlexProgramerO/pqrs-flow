@@ -77,6 +77,7 @@ test('the dashboard has metrics, filters, the table, pagination and logout', asy
   assert.ok(text.includes('aria-live="polite"'));
   assert.ok(text.includes('class="skip-link"'));
   assert.ok(text.includes('aria-current="page"'));
+  assert.match(text, /<th scope="col">Deadline<\/th>/);
 });
 
 test('every filter field of the dashboard has a label', async () => {
@@ -113,6 +114,10 @@ test('the detail page has the data, the status form and the history', async () =
     'statusBadge',
     'type',
     'createdAt',
+    'deadlineDueDate',
+    'deadlineStatus',
+    'deadlineRemaining',
+    'deadlineRule',
     'requesterName',
     'requesterEmail',
     'subject',
@@ -128,6 +133,7 @@ test('the detail page has the data, the status form and the history', async () =
     assert.ok(text.includes(`id="${id}"`), `missing #${id}`);
   }
   assert.match(text, /<label for="newStatus">/);
+  assert.match(text, /The submission date is day zero/);
 });
 
 test('the staff pages link to each other and to the login page paths that exist', async () => {

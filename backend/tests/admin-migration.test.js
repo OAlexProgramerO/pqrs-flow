@@ -78,11 +78,11 @@ const insertAdmin = (db, email = 'a@example.com') =>
     )
     .run(email).lastInsertRowid;
 
-test('a fresh database ends at version 4 with every new table, index and trigger', () => {
+test('a fresh database ends at version 5 with every new table, index and trigger', () => {
   const db = openDatabase({ filename: ':memory:' });
   open.push(db);
 
-  assert.equal(db.pragma('user_version', { simple: true }), 4);
+  assert.equal(db.pragma('user_version', { simple: true }), 5);
   for (const table of [
     'admins',
     'admin_sessions',
@@ -93,6 +93,8 @@ test('a fresh database ends at version 4 with every new table, index and trigger
     'pqrs_responses',
     'pqrs_notes',
     'pqrs_assignments',
+    'deadline_rules',
+    'deadline_holidays',
   ]) {
     assert.ok(names(db, 'table').includes(table), table);
   }
@@ -109,6 +111,7 @@ test('a fresh database ends at version 4 with every new table, index and trigger
     'idx_admins_role_active',
     'idx_account_audit_target',
     'idx_account_audit_created',
+    'idx_pqrs_deadline_due_status',
   ]) {
     assert.ok(names(db, 'index').includes(index), index);
   }
@@ -151,7 +154,7 @@ test('the v0.3.1 audit history survives migration without adding non-contract fi
 
   const db = openDatabase({ filename });
   open.push(db);
-  assert.equal(db.pragma('user_version', { simple: true }), 4);
+  assert.equal(db.pragma('user_version', { simple: true }), 5);
   assert.deepEqual(
     db
       .prepare(
@@ -219,11 +222,18 @@ test('a database made by v0.1.3 keeps its requests and case numbers when it is m
   const db = openDatabase({ filename });
   open.push(db);
 
-  assert.equal(db.pragma('user_version', { simple: true }), 4);
+  assert.equal(db.pragma('user_version', { simple: true }), 5);
   assert.deepEqual(db.prepare('SELECT id, case_number, status FROM pqrs ORDER BY id').all(), [
     { id: 1, case_number: 'PQRS-2026-000001', status: 'filed' },
     { id: 2, case_number: 'PQRS-2026-000002', status: 'answered' },
   ]);
+  assert.deepEqual(
+    db.prepare('SELECT deadline_due_date, deadline_rule_version FROM pqrs ORDER BY id').all(),
+    [
+      { deadline_due_date: null, deadline_rule_version: null },
+      { deadline_due_date: null, deadline_rule_version: null },
+    ],
+  );
   assert.equal(
     db.prepare('SELECT last_value FROM case_counters WHERE year = 2026').get().last_value,
     2,
@@ -248,7 +258,7 @@ test('a pre-v0.3.1 database keeps records and sessions and maps legacy full-acce
 
   const db = openDatabase({ filename });
   open.push(db);
-  assert.equal(db.pragma('user_version', { simple: true }), 4);
+  assert.equal(db.pragma('user_version', { simple: true }), 5);
   assert.deepEqual(db.prepare('SELECT email, role FROM admins').all(), [
     { email: 'legacy@example.com', role: 'administrator' },
   ]);
@@ -263,7 +273,7 @@ test('a database from the broken pre-migration schema is repaired and then migra
   db.exec('CREATE TABLE pqrs (case_number TEXT, subject TEXT, type TEXT)');
   db.exec("INSERT INTO pqrs VALUES ('PQRS-2025-000007', 'Old subject', 'claim')");
 
-  assert.equal(runMigrations(db), 4);
+  assert.equal(runMigrations(db), 5);
   assert.deepEqual(db.prepare('SELECT case_number, subject, status FROM pqrs').all(), [
     { case_number: 'PQRS-2025-000007', subject: 'Old subject', status: 'filed' },
   ]);
@@ -273,10 +283,10 @@ test('a database from the broken pre-migration schema is repaired and then migra
 test('running the migrations again does nothing, so a restart is safe', () => {
   const db = raw();
 
-  assert.equal(runMigrations(db), 4);
+  assert.equal(runMigrations(db), 5);
   const adminId = insertAdmin(db);
-  assert.equal(runMigrations(db), 4);
-  assert.equal(runMigrations(db), 4);
+  assert.equal(runMigrations(db), 5);
+  assert.equal(runMigrations(db), 5);
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM admins WHERE id = ?').get(adminId).n, 1);
 });
 
@@ -291,7 +301,7 @@ test('a database file survives being closed and opened again', () => {
   const second = openDatabase({ filename });
   open.push(second);
   assert.equal(second.prepare('SELECT COUNT(*) AS n FROM admins').get().n, 1);
-  assert.equal(second.pragma('user_version', { simple: true }), 4);
+  assert.equal(second.pragma('user_version', { simple: true }), 5);
   second.close();
   removeDatabaseFiles(filename);
 });

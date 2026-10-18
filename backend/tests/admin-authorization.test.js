@@ -144,6 +144,9 @@ test('the staff pages carry the security headers of the rest of the site', async
 const API_ROUTES = [
   ['GET', '/api/admin/session'],
   ['GET', '/api/admin/stats'],
+  ['GET', '/api/admin/deadlines'],
+  ['PUT', '/api/admin/deadlines/rules/petition'],
+  ['PUT', '/api/admin/deadlines/holidays/2026-10-12'],
   ['GET', '/api/admin/pqrs'],
   ['GET', `/api/admin/pqrs/${first.caseNumber}`],
   ['PATCH', `/api/admin/pqrs/${first.caseNumber}/status`],

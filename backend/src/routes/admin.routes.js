@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { createAdminAuthController } from '../controllers/admin-auth.controller.js';
 import { createAdminAccountController } from '../controllers/admin-account.controller.js';
 import { createAdminPqrsController } from '../controllers/admin-pqrs.controller.js';
+import { createDeadlinesController } from '../controllers/deadlines.controller.js';
 import { PERMISSIONS } from '../services/permissions.js';
 
 /**
@@ -29,6 +30,10 @@ export function createAdminRoutes({
   const accounts = createAdminAccountController({ getAdmin, adminAuth });
   const pqrs = createAdminPqrsController({
     getRepository: () => getAdmin().adminPqrsRepository,
+    getNow,
+  });
+  const deadlines = createDeadlinesController({
+    getRepository: () => getAdmin().deadlinesRepository,
     getNow,
   });
 
@@ -82,6 +87,31 @@ export function createAdminRoutes({
   );
 
   router.use(adminAuth.requirePermission(PERMISSIONS.PQRS_READ));
+  router.get(
+    '/deadlines',
+    adminAuth.requirePermission(PERMISSIONS.DEADLINE_MANAGE),
+    deadlines.getConfiguration,
+  );
+  router.put(
+    '/deadlines/rules/:type',
+    adminAuth.requirePermission(PERMISSIONS.DEADLINE_MANAGE),
+    deadlines.setRule,
+  );
+  router.delete(
+    '/deadlines/rules/:type',
+    adminAuth.requirePermission(PERMISSIONS.DEADLINE_MANAGE),
+    deadlines.deleteRule,
+  );
+  router.put(
+    '/deadlines/holidays/:date',
+    adminAuth.requirePermission(PERMISSIONS.DEADLINE_MANAGE),
+    deadlines.setHoliday,
+  );
+  router.delete(
+    '/deadlines/holidays/:date',
+    adminAuth.requirePermission(PERMISSIONS.DEADLINE_MANAGE),
+    deadlines.deleteHoliday,
+  );
   router.get('/stats', pqrs.summary);
   router.get('/pqrs', pqrs.list);
   router.get('/pqrs/:caseNumber', pqrs.detail);

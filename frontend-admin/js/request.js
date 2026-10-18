@@ -109,6 +109,27 @@ function showDetail({ pqrs, allowedTransitions, history }) {
   setText('caseNumber', pqrs.caseNumber);
   setText('type', typeLabel(pqrs.type));
   setText('createdAt', formatDateTime(pqrs.createdAt));
+  const deadlineLabels = {
+    on_track: 'On track',
+    approaching: 'Approaching deadline',
+    overdue: 'Overdue',
+    completed: 'No longer active (answered or closed)',
+    unavailable: 'Unavailable — no rule was configured when received',
+  };
+  setText('deadlineDueDate', pqrs.deadline.dueDate ?? 'Not set');
+  setText('deadlineStatus', deadlineLabels[pqrs.deadline.status] ?? 'Unavailable');
+  setText(
+    'deadlineRemaining',
+    pqrs.deadline.remainingBusinessDays === null
+      ? 'Not applicable'
+      : `${pqrs.deadline.remainingBusinessDays} business days`,
+  );
+  setText(
+    'deadlineRule',
+    pqrs.deadline.ruleId
+      ? `${pqrs.deadline.ruleId} (${pqrs.deadline.businessDays} business days)`
+      : 'None',
+  );
   setText('requesterName', pqrs.requesterName);
   setText('requesterEmail', pqrs.requesterEmail);
   setText('subject', pqrs.subject);

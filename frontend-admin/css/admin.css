@@ -291,6 +291,29 @@ table.requests .status-badge {
   white-space: nowrap;
 }
 
+.deadline-badge {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.deadline-overdue {
+  border-color: #b42318;
+}
+
+.deadline-approaching {
+  border-color: #b7791f;
+}
+
+.deadline-completed,
+.deadline-unavailable {
+  color: var(--muted);
+}
+
 .pagination {
   display: flex;
   flex-wrap: wrap;

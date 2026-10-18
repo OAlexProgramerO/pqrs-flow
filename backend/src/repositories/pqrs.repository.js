@@ -1,4 +1,6 @@
 import { formatCaseNumber } from '../services/case-number.js';
+import { calculateDeadline } from '../services/deadlines.js';
+import { createDeadlinesRepository } from './deadlines.repository.js';
 
 const SELECT_COLUMNS = `
   id,
@@ -17,6 +19,7 @@ const SELECT_COLUMNS = `
  * Statements are prepared once here and reused on every call.
  */
 export function createPqrsRepository(db) {
+  const deadlinesRepository = createDeadlinesRepository(db);
   const nextSequence = db.prepare(`
     INSERT INTO case_counters (year, last_value) VALUES (@year, 1)
     ON CONFLICT (year) DO UPDATE SET last_value = last_value + 1
@@ -24,8 +27,16 @@ export function createPqrsRepository(db) {
   `);
 
   const insert = db.prepare(`
-    INSERT INTO pqrs (case_number, type, subject, description, requester_name, requester_email)
-    VALUES (@caseNumber, @type, @subject, @description, @requesterName, @requesterEmail)
+    INSERT INTO pqrs (
+      case_number, type, subject, description, requester_name, requester_email,
+      deadline_due_date, deadline_business_days, deadline_rule_version,
+      deadline_policy_version, deadline_holidays_snapshot
+    )
+    VALUES (
+      @caseNumber, @type, @subject, @description, @requesterName, @requesterEmail,
+      @deadlineDueDate, @deadlineBusinessDays, @deadlineRuleVersion,
+      @deadlinePolicyVersion, @deadlineHolidaysSnapshot
+    )
   `);
 
   const selectByCaseNumber = db.prepare(`SELECT ${SELECT_COLUMNS} FROM pqrs WHERE case_number = ?`);
@@ -49,6 +60,16 @@ export function createPqrsRepository(db) {
     const year = now.getUTCFullYear();
     const { sequence } = nextSequence.get({ year });
     const caseNumber = formatCaseNumber(year, sequence);
+    const rule = deadlinesRepository.getRule(data.type);
+    const holidays = deadlinesRepository.listHolidays().map(({ date }) => date);
+    const deadline = rule
+      ? calculateDeadline({
+          type: data.type,
+          submittedAt: now,
+          rule,
+          holidays,
+        })
+      : null;
 
     insert.run({
       caseNumber,
@@ -57,6 +78,11 @@ export function createPqrsRepository(db) {
       description: data.description,
       requesterName: data.requesterName,
       requesterEmail: data.requesterEmail,
+      deadlineDueDate: deadline?.dueDate ?? null,
+      deadlineBusinessDays: deadline?.businessDays ?? null,
+      deadlineRuleVersion: deadline?.ruleVersion ?? null,
+      deadlinePolicyVersion: deadline?.policyVersion ?? null,
+      deadlineHolidaysSnapshot: JSON.stringify(deadline?.holidaysSnapshot ?? []),
     });
 
     return selectByCaseNumber.get(caseNumber);

@@ -73,6 +73,17 @@ function cell(label, content) {
   return td;
 }
 
+function deadlineLabel(deadline) {
+  const labels = {
+    on_track: 'On track',
+    approaching: 'Approaching',
+    overdue: 'Overdue',
+    completed: 'Completed',
+    unavailable: 'Unavailable',
+  };
+  return labels[deadline?.status] ?? 'Unavailable';
+}
+
 function buildRow(item) {
   const tr = document.createElement('tr');
 
@@ -85,12 +96,22 @@ function buildRow(item) {
   badge.className = `status-badge status-${item.status}`;
   badge.textContent = describeStatus(item.status).label;
 
+  const deadlineBadge = document.createElement('span');
+  deadlineBadge.className = `deadline-badge deadline-${item.deadline?.status ?? 'unavailable'}`;
+  const remaining =
+    item.deadline?.remainingBusinessDays === null ||
+    item.deadline?.remainingBusinessDays === undefined
+      ? ''
+      : ` · ${item.deadline.remainingBusinessDays} business days`;
+  deadlineBadge.textContent = `${deadlineLabel(item.deadline)}${remaining}`;
+
   tr.append(
     cell('Case number', link),
     cell('Type', typeLabel(item.type)),
     cell('Subject', item.subject),
     cell('Requester', item.requesterName),
     cell('Status', badge),
+    cell('Deadline', deadlineBadge),
     cell('Submitted', formatDateTime(item.createdAt)),
   );
   return tr;

@@ -8,7 +8,7 @@
 
 A web system to submit, track and manage **PQRS** — _Peticiones, Quejas, Reclamos y Sugerencias_ (Petitions, Complaints, Claims and Suggestions). Built end to end with JavaScript, prioritizing simplicity, no frontend build step and clear architectural boundaries.
 
-**Status: v0.3.1** — Citizens can submit and track requests; staff can process them in a protected panel. This release adds administrator and staff roles, account management, forced password changes for new/reset accounts, self-service password changes, session management and an append-only account audit. Existing staff accounts retain administrator access through migration `003`; existing requests and case numbers are unchanged. It has not been through a production deployment yet; see [docs/security.md](./docs/security.md) before exposing it.
+**Local implementation: v0.3.3 — Deadline management** — Staff deadline indicators, configurable per-type business-day rules and explicit holidays. No legal rules are seeded: an administrator must verify and configure them before operational use. Deadlines are snapshotted when requests are filed; configuration changes affect new requests only. This checkout has not been released or deployed; see [docs/security.md](./docs/security.md) before exposing it.
 
 ---
 
@@ -24,20 +24,22 @@ Many organizations still handle feedback, complaints and requests through scatte
 
 ### Project status
 
-| Feature                                                    | Version | Status  |
-| ---------------------------------------------------------- | ------- | ------- |
-| Express server, health endpoint, static site               | 0.0.1   | Done    |
-| Submission form with client-side validation                | 0.0.2   | Done    |
-| Database, migrations and repository                        | 0.0.3   | Done    |
-| `POST /api/pqrs`, form connected to the API, case number   | 0.1.0   | Done    |
-| Status lookup with case number and email                   | 0.1.1   | Done    |
-| Rate limit for submissions, compression, proxy settings    | 0.1.2   | Done    |
-| Cache headers for static files, CORS from the environment  | 0.1.3   | Done    |
-| Staff panel: login, dashboard, search, status changes      | 0.2.0   | Done    |
-| Audit history of every status change                       | 0.2.0   | Done    |
-| Clean shutdown, Spanish README, isolation regression tests | 0.3.0   | Done    |
-| Staff roles, account management and security settings      | 0.3.1   | Done    |
-| Replies, deadlines, attachments, emails, reports           | 0.3.2+  | Planned |
+| Feature                                                    | Version | Status              |
+| ---------------------------------------------------------- | ------- | ------------------- |
+| Express server, health endpoint, static site               | 0.0.1   | Done                |
+| Submission form with client-side validation                | 0.0.2   | Done                |
+| Database, migrations and repository                        | 0.0.3   | Done                |
+| `POST /api/pqrs`, form connected to the API, case number   | 0.1.0   | Done                |
+| Status lookup with case number and email                   | 0.1.1   | Done                |
+| Rate limit for submissions, compression, proxy settings    | 0.1.2   | Done                |
+| Cache headers for static files, CORS from the environment  | 0.1.3   | Done                |
+| Staff panel: login, dashboard, search, status changes      | 0.2.0   | Done                |
+| Audit history of every status change                       | 0.2.0   | Done                |
+| Clean shutdown, Spanish README, isolation regression tests | 0.3.0   | Done                |
+| Staff roles, account management and security settings      | 0.3.1   | Done                |
+| Replies, internal notes, assignment and request audit      | 0.3.2   | In progress         |
+| Configurable business-day deadlines and holiday calendar   | 0.3.3   | Implemented locally |
+| Attachments, emails and reports                            | 0.3.4+  | Planned             |
 
 ## ✨ What it does today
 
@@ -46,7 +48,7 @@ Many organizations still handle feedback, complaints and requests through scatte
 - SQLite storage with versioned migrations. Case numbers are generated atomically, one counter per year.
 - Success screen with the case number, a copy button and a link to track the request.
 - Tracking page: case number plus email shows the status with a progress timeline.
-- Privacy by design: the lookup returns only status, type and dates, a wrong email and an unknown case number look the same, and every attempt is rate limited.
+- Privacy by design: the lookup returns only status, type and dates (plus a published official response, when present); it never exposes staff deadline data, a wrong email and an unknown case number look the same, and every attempt is rate limited.
 - Anti-spam field, 16 KB body limit and a request id on every response.
 - Submissions are rate limited per client address (10 every 15 minutes by default, set in `.env`).
 - Text answers (pages, styles, scripts, JSON) are compressed with gzip or brotli, with no extra dependency.
@@ -56,6 +58,7 @@ Many organizations still handle feedback, complaints and requests through scatte
 - **Staff login** with `scrypt` password hashes, opaque server-side sessions (only the hash of the token is stored), an `HttpOnly` + `SameSite=Strict` cookie (and `Secure` in production), CSRF protection and login rate limits per address and per account.
 - **Protected panel** under `/admin/`: anonymous visitors only see the login page. The panel folder is outside `frontend/`, so the public static handler cannot serve it.
 - **Dashboard**: counters per status, a paginated list with search, filters by status, type and date range, sorting, and a detail page for each request. Responsive and keyboard friendly.
+- **Deadline management**: the staff list and detail show on-track, approaching, overdue, completed or unavailable states. Administrators configure each request type's business-day rule and explicit holidays through the protected staff API. Every new request snapshots the rule version, due date and applicable holiday dates; changing the configuration never silently rewrites old requests.
 - **Status workflow** with permitted transitions (`closed` is final) and protection against two people changing the same request.
 - **Audit history**: every status change records who, from which status to which, when and with which request id. It is saved in the same transaction as the change, is append-only and is never shown to the public.
 - **Role-based access**: administrators manage accounts; staff can read and process PQRS but cannot access account administration. Both roles can work on all PQRS; assignment-level access is not implemented.
@@ -172,6 +175,8 @@ After the first account is created, use `/admin/accounts.html` to add staff or a
 | `LOGIN_ACCOUNT_RATE_LIMIT_MAX`     | `5`                          | Staff login attempts per account in each window                                       |
 | `LOGIN_RATE_LIMIT_WINDOW_MINUTES`  | `15`                         | Length of the login window in minutes                                                 |
 
+Deadline rules and holidays are managed by an administrator through the protected endpoints documented in [docs/api.md](./docs/api.md). Nothing is preconfigured. The calculation uses UTC, treats the submission date as day zero, and skips weekends and configured holidays. The five-business-day approaching indicator is an operational alert, not a legal rule. Verify deadlines against authoritative jurisdictional sources and organizational policy before use; PQRS Flow does not claim legal compliance.
+
 **Staff area in production:** serve the app over HTTPS (the cookie is `Secure` and uses the `__Host-` prefix, so it does not work over plain HTTP), set `TRUST_PROXY` to the number of proxies so the login limits see the real address, and read [docs/security.md](./docs/security.md). The staff panel works from the same address as the public site only: CORS is never opened for it.
 
 **Behind a reverse proxy** (Nginx, Render, Railway...) set `TRUST_PROXY` to the number of proxies, usually `1`. Without it the server sees the address of the proxy for every visitor, so all of them would share one rate limit. Leave it empty when nobody sits in front of the app, because trusting `X-Forwarded-For` without a proxy lets anyone fake their address. Avoid `TRUST_PROXY=true` for the same reason.
@@ -225,13 +230,13 @@ To run one test file use `npm --prefix backend test -- tests/admin-audit.test.js
 
 ## 🗺️ Future versions
 
-The goal is a complete PQRS system, built one small, tested step at a time. Version 0.3.1 adds staff roles and account security. Version 0.3.2 is under development: its response, note, assignment and request-audit APIs are present, but the corresponding staff-panel UI is not complete. Later versions remain planned. The order may change. The branch names and the reasons behind each decision are in [ROADMAP.md](./ROADMAP.md).
+The goal is a complete PQRS system, built one small, tested step at a time. Version 0.3.2 remains in progress for its staff-panel workflow UI; 0.3.3 deadline management is implemented locally but not released. Later versions remain planned. The order may change. The branch names and the reasons behind each decision are in [ROADMAP.md](./ROADMAP.md).
 
 | Version | Work                                                                                                                                                                                                                     |
 | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | 0.3.1   | **Staff accounts and roles.** Shipped: role-based access, account management, forced password changes, self-service password changes, session management and account audit.                                              |
 | 0.3.2   | **Replies and internal notes (in progress).** Backend APIs support published citizen responses, private staff notes, assignment, and request-level audit events. The staff-panel UI and audit explorer are not complete. |
-| 0.3.3   | **Deadlines.** Legal response time per request type, business days and holidays, overdue and soon-to-expire flags in the list.                                                                                           |
+| 0.3.3   | **Deadlines (implemented locally).** Configurable business-day rules and holidays, immutable due-date snapshots, and staff-only deadline indicators.                                                                     |
 | 0.3.4   | **Attachments.** Safe uploads (size, type and content checks, files stored outside the web root) for citizens and staff.                                                                                                 |
 | 0.3.5   | **Email notifications.** Email when a request is received and when it is answered, with an outbox and retries so an email failure never loses a request.                                                                 |
 | 0.4.0   | **Reports.** Requests by type and status over time, average response time, overdue rate.                                                                                                                                 |
@@ -243,7 +248,7 @@ The goal is a complete PQRS system, built one small, tested step at a time. Vers
 | 0.9.0   | **Release candidate.** Feature freeze, demo data, screenshots and final documentation.                                                                                                                                   |
 | 1.0.0   | **First stable release** with a public demo.                                                                                                                                                                             |
 
-### Known limits of 0.3.1 and current 0.3.2 work
+### Known limits of the current implementation
 
 These are deliberate and are the reason for some of the versions above:
 

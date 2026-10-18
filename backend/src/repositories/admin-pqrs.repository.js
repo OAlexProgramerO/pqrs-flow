@@ -17,6 +17,11 @@ const DETAIL_COLUMNS = `
   p.requester_email AS requesterEmail,
   p.status,
   p.created_at AS createdAt,
+  p.deadline_due_date AS deadlineDueDate,
+  p.deadline_business_days AS deadlineBusinessDays,
+  p.deadline_rule_version AS deadlineRuleVersion,
+  p.deadline_policy_version AS deadlinePolicyVersion,
+  p.deadline_holidays_snapshot AS deadlineHolidaysSnapshot,
   pa.assignee_admin_id AS assigneeId,
   ad.display_name AS assigneeName
 `;
@@ -28,6 +33,11 @@ const LIST_COLUMNS = `
   p.requester_name AS requesterName,
   p.status,
   p.created_at AS createdAt,
+  p.deadline_due_date AS deadlineDueDate,
+  p.deadline_business_days AS deadlineBusinessDays,
+  p.deadline_rule_version AS deadlineRuleVersion,
+  p.deadline_policy_version AS deadlinePolicyVersion,
+  p.deadline_holidays_snapshot AS deadlineHolidaysSnapshot,
   pa.assignee_admin_id AS assigneeId,
   ad.display_name AS assigneeName
 `;
