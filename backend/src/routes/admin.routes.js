@@ -133,7 +133,11 @@ export function createAdminRoutes({
   router.get('/stats', pqrs.summary);
   router.get('/pqrs', pqrs.list);
   router.get('/pqrs/:caseNumber', pqrs.detail);
-  router.get('/pqrs/:caseNumber/attachments', adminAuth.requirePermission(PERMISSIONS.PQRS_READ), attachments.list);
+  router.get(
+    '/pqrs/:caseNumber/attachments',
+    adminAuth.requirePermission(PERMISSIONS.PQRS_READ),
+    attachments.list,
+  );
   router.post(
     '/pqrs/:caseNumber/attachments',
     adminAuth.requirePermission(PERMISSIONS.PQRS_UPDATE),

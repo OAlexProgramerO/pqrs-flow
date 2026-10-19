@@ -19,7 +19,7 @@ This document describes the security model of PQRS Flow 0.3.4, what to do before
 | Account privilege escalation     | Server-side permission checks on every account route; new accounts default to `staff`; self-demotion/deactivation and removal of the last active administrator are refused.                       |
 | Account and session changes      | Account, role, password and explicit session revocations are audited in the same transaction as the change. Audit triggers refuse `UPDATE` and `DELETE`.                                          |
 | Deadline configuration           | Rule and holiday changes are restricted to administrators; staff-only due dates are absent from the public submission and lookup projections.                                                     |
-| Attachment storage               | Uploaded files are kept in a dedicated storage directory outside the web root, named with server-generated ids and isolated by request; downloads are gated by explicit request authorization.                 |
+| Attachment storage               | Uploaded files are kept in a dedicated storage directory outside the web root, named with server-generated ids and isolated by request; downloads are gated by explicit request authorization.    |
 | Leaking data to the public       | Public lookup still requires case number and email and exposes no staff-only deadline data; the staff API is never opened by CORS.                                                                |
 | Sensitive data in logs           | Passwords and tokens are never logged. The access log drops the query string of `/api/admin`, where searches may hold names and emails.                                                           |
 

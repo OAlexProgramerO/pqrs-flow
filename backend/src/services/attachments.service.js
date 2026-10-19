@@ -7,7 +7,9 @@ import { env } from '../config/env.js';
 const MAX_EXTENSION_LENGTH = 20;
 
 function normalizeExtensionName(value = '') {
-  const text = String(value ?? '').trim().toLowerCase();
+  const text = String(value ?? '')
+    .trim()
+    .toLowerCase();
   return text.startsWith('.') ? text : `.${text}`;
 }
 
@@ -16,7 +18,9 @@ function allowedExtensions() {
 }
 
 function allowedMimeTypes() {
-  return new Set(env.attachments.allowedMimeTypes.map((entry) => String(entry).trim().toLowerCase()));
+  return new Set(
+    env.attachments.allowedMimeTypes.map((entry) => String(entry).trim().toLowerCase()),
+  );
 }
 
 function getFileExtension(filename = '') {
@@ -27,22 +31,56 @@ function getFileExtension(filename = '') {
 }
 
 function detectSignature(buffer = Buffer.alloc(0)) {
-  if (buffer.length >= 4 && buffer[0] === 0x25 && buffer[1] === 0x50 && buffer[2] === 0x44 && buffer[3] === 0x46) {
+  if (
+    buffer.length >= 4 &&
+    buffer[0] === 0x25 &&
+    buffer[1] === 0x50 &&
+    buffer[2] === 0x44 &&
+    buffer[3] === 0x46
+  ) {
     return 'pdf';
   }
-  if (buffer.length >= 8 && buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47) {
+  if (
+    buffer.length >= 8 &&
+    buffer[0] === 0x89 &&
+    buffer[1] === 0x50 &&
+    buffer[2] === 0x4e &&
+    buffer[3] === 0x47
+  ) {
     return 'png';
   }
   if (buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
     return 'jpg';
   }
-  if (buffer.length >= 6 && buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x38) {
+  if (
+    buffer.length >= 6 &&
+    buffer[0] === 0x47 &&
+    buffer[1] === 0x49 &&
+    buffer[2] === 0x46 &&
+    buffer[3] === 0x38
+  ) {
     return 'gif';
   }
-  if (buffer.length >= 12 && buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46 && buffer[8] === 0x57 && buffer[9] === 0x45 && buffer[10] === 0x42 && buffer[11] === 0x50) {
+  if (
+    buffer.length >= 12 &&
+    buffer[0] === 0x52 &&
+    buffer[1] === 0x49 &&
+    buffer[2] === 0x46 &&
+    buffer[3] === 0x46 &&
+    buffer[8] === 0x57 &&
+    buffer[9] === 0x45 &&
+    buffer[10] === 0x42 &&
+    buffer[11] === 0x50
+  ) {
     return 'webp';
   }
-  if (buffer.length >= 4 && buffer[0] === 0x50 && buffer[1] === 0x4b && buffer[2] === 0x03 && buffer[3] === 0x04) {
+  if (
+    buffer.length >= 4 &&
+    buffer[0] === 0x50 &&
+    buffer[1] === 0x4b &&
+    buffer[2] === 0x03 &&
+    buffer[3] === 0x04
+  ) {
     return 'docx';
   }
   if (buffer.length >= 2 && buffer[0] === 0xd0 && buffer[1] === 0xcf) {
@@ -64,7 +102,9 @@ function safeFilename(originalName, extension) {
 export function validateAttachmentFile(file, { maxFileSize = env.attachments.maxFileSize } = {}) {
   if (!file) throw new HttpError(400, 'No file was provided.');
 
-  const buffer = Buffer.isBuffer(file.buffer) ? file.buffer : Buffer.from(file.buffer ?? file.data ?? []);
+  const buffer = Buffer.isBuffer(file.buffer)
+    ? file.buffer
+    : Buffer.from(file.buffer ?? file.data ?? []);
   if (!buffer || buffer.length === 0) {
     throw new HttpError(400, 'The selected file is empty.');
   }
@@ -79,7 +119,9 @@ export function validateAttachmentFile(file, { maxFileSize = env.attachments.max
     throw new HttpError(415, 'This file type is not allowed.');
   }
 
-  const mimeType = String(file.mimetype ?? file.type ?? 'application/octet-stream').trim().toLowerCase();
+  const mimeType = String(file.mimetype ?? file.type ?? 'application/octet-stream')
+    .trim()
+    .toLowerCase();
   const allowedMime = allowedMimeTypes();
   if (!allowedMime.has(mimeType)) {
     throw new HttpError(415, 'The file content type is not supported.');
@@ -118,7 +160,14 @@ export function generateAttachmentPath(storageDir, pqrsId, storageId, extension)
   return path.join(storageDir, safeDir, `${storageId}${extension}`);
 }
 
-export function saveAttachmentRecord({ repository, storageDir, pqrsId, file, uploadedBy, visibility }) {
+export function saveAttachmentRecord({
+  repository,
+  storageDir,
+  pqrsId,
+  file,
+  uploadedBy,
+  visibility,
+}) {
   const validated = validateAttachmentFile(file);
   const storageId = crypto.randomUUID();
   const extension = validated.extension;
@@ -161,7 +210,12 @@ export function getAttachmentForDownload(repository, attachmentId) {
   const record = repository.getById(Number(attachmentId));
   if (!record) throw new HttpError(404, 'Attachment not found.');
 
-  const targetPath = generateAttachmentPath(env.attachments.storageDir, record.pqrsId, record.storageId, record.extension);
+  const targetPath = generateAttachmentPath(
+    env.attachments.storageDir,
+    record.pqrsId,
+    record.storageId,
+    record.extension,
+  );
   if (!fs.existsSync(targetPath)) {
     throw new HttpError(404, 'Attachment not found.');
   }
@@ -176,7 +230,12 @@ export function deleteAttachmentRecord({ repository, storageDir, attachmentId })
   const removed = repository.deleteById(Number(attachmentId));
   if (!removed) throw new HttpError(500, 'The attachment could not be deleted.');
 
-  const targetPath = generateAttachmentPath(storageDir, existing.pqrsId, existing.storageId, existing.extension);
+  const targetPath = generateAttachmentPath(
+    storageDir,
+    existing.pqrsId,
+    existing.storageId,
+    existing.extension,
+  );
   if (fs.existsSync(targetPath)) {
     fs.unlinkSync(targetPath);
   }

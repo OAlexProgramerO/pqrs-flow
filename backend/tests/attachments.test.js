@@ -6,7 +6,10 @@ import path from 'node:path';
 import { openDatabase } from '../src/db/database.js';
 import { createPqrsRepository } from '../src/repositories/pqrs.repository.js';
 import { createAttachmentRepository } from '../src/repositories/attachments.repository.js';
-import { saveAttachmentRecord, validateAttachmentFile } from '../src/services/attachments.service.js';
+import {
+  saveAttachmentRecord,
+  validateAttachmentFile,
+} from '../src/services/attachments.service.js';
 
 const openDatabases = [];
 after(() => {
@@ -54,13 +57,16 @@ test('validateAttachmentFile accepts safe image uploads and rejects unsupported 
 test('saveAttachmentRecord stores a file outside the public directory and records metadata', () => {
   const { repository, attachments } = setupDatabase();
   const storageDir = makeTempDir();
-  const created = repository.create({
-    type: 'claim',
-    subject: 'Test',
-    description: 'A claim with additional evidence attached for review.',
-    requesterName: 'Ada Example',
-    requesterEmail: 'ada@example.com',
-  }, { now: new Date('2026-12-01T12:00:00Z') });
+  const created = repository.create(
+    {
+      type: 'claim',
+      subject: 'Test',
+      description: 'A claim with additional evidence attached for review.',
+      requesterName: 'Ada Example',
+      requesterEmail: 'ada@example.com',
+    },
+    { now: new Date('2026-12-01T12:00:00Z') },
+  );
 
   const file = {
     buffer: Buffer.from('sample attachment content'),
@@ -80,5 +86,9 @@ test('saveAttachmentRecord stores a file outside the public directory and record
   assert.equal(record.originalName, 'document.txt');
   assert.equal(record.visibility, 'public');
   assert.equal(record.sizeBytes, file.buffer.length);
-  assert.ok(fs.existsSync(path.join(storageDir, String(created.id), `${record.storageId}${record.extension}`)));
+  assert.ok(
+    fs.existsSync(
+      path.join(storageDir, String(created.id), `${record.storageId}${record.extension}`),
+    ),
+  );
 });

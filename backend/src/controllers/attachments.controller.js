@@ -10,7 +10,11 @@ import {
   validateAttachmentFile,
 } from '../services/attachments.service.js';
 
-export function createAttachmentController({ getRepository, getPqrsRepository, storageDir = env.attachments.storageDir }) {
+export function createAttachmentController({
+  getRepository,
+  getPqrsRepository,
+  storageDir = env.attachments.storageDir,
+}) {
   ensureAttachmentStorage(storageDir);
 
   return {
@@ -55,19 +59,21 @@ export function createAttachmentController({ getRepository, getPqrsRepository, s
             pqrsId: pqrs.id,
             file,
             uploadedBy: req.admin ? 'staff' : 'citizen',
-            visibility: req.admin ? (req.body?.visibility || 'internal') : 'public',
+            visibility: req.admin ? req.body?.visibility || 'internal' : 'public',
           });
         });
 
-        res.status(201).json({ data: uploaded.map((item) => ({
-          id: item.id,
-          name: item.originalName,
-          sizeBytes: item.sizeBytes,
-          mimeType: item.mimeType,
-          visibility: item.visibility,
-          uploadedBy: item.uploadedBy,
-          uploadedAt: item.uploadedAt,
-        })) });
+        res.status(201).json({
+          data: uploaded.map((item) => ({
+            id: item.id,
+            name: item.originalName,
+            sizeBytes: item.sizeBytes,
+            mimeType: item.mimeType,
+            visibility: item.visibility,
+            uploadedBy: item.uploadedBy,
+            uploadedAt: item.uploadedAt,
+          })),
+        });
       } catch (error) {
         next(error);
       }
@@ -84,7 +90,10 @@ export function createAttachmentController({ getRepository, getPqrsRepository, s
             throw new HttpError(404, 'Attachment not found.');
           }
         } else {
-          const lookup = getPqrsRepository().findForLookup(req.params.caseNumber, req.query.requesterEmail ?? '');
+          const lookup = getPqrsRepository().findForLookup(
+            req.params.caseNumber,
+            req.query.requesterEmail ?? '',
+          );
           if (!lookup || lookup.caseNumber !== req.params.caseNumber) {
             throw new HttpError(403, 'You are not allowed to access this attachment.');
           }
@@ -96,7 +105,10 @@ export function createAttachmentController({ getRepository, getPqrsRepository, s
         const file = fs.readFileSync(targetPath);
         res.setHeader('Content-Type', record.mimeType || 'application/octet-stream');
         res.setHeader('Content-Length', String(file.length));
-        res.setHeader('Content-Disposition', `attachment; filename="${record.originalName.replace(/"/g, '\\"')}"`);
+        res.setHeader(
+          'Content-Disposition',
+          `attachment; filename="${record.originalName.replace(/"/g, '\\"')}"`,
+        );
         res.setHeader('X-Content-Type-Options', 'nosniff');
         res.setHeader('Cache-Control', 'no-store');
         res.send(file);
@@ -107,7 +119,11 @@ export function createAttachmentController({ getRepository, getPqrsRepository, s
 
     async delete(req, res, next) {
       try {
-        const item = deleteAttachmentRecord({ repository: getRepository(), storageDir, attachmentId: req.params.attachmentId });
+        const item = deleteAttachmentRecord({
+          repository: getRepository(),
+          storageDir,
+          attachmentId: req.params.attachmentId,
+        });
         res.status(200).json({ deleted: item });
       } catch (error) {
         next(error);
