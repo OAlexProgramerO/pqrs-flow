@@ -1,9 +1,22 @@
+import multer from 'multer';
 import { Router } from 'express';
 import { createAdminAuthController } from '../controllers/admin-auth.controller.js';
 import { createAdminAccountController } from '../controllers/admin-account.controller.js';
 import { createAdminPqrsController } from '../controllers/admin-pqrs.controller.js';
+import { createAttachmentController } from '../controllers/attachments.controller.js';
 import { createDeadlinesController } from '../controllers/deadlines.controller.js';
+import { createAttachmentRepository } from '../repositories/attachments.repository.js';
+import { env } from '../config/env.js';
 import { PERMISSIONS } from '../services/permissions.js';
+
+const attachmentUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    files: env.attachments.maxFilesPerRequest,
+    fileSize: env.attachments.maxFileSize,
+    parts: env.attachments.maxFilesPerRequest + 2,
+  },
+});
 
 /**
  * Staff API, mounted at /api/admin.
@@ -35,6 +48,11 @@ export function createAdminRoutes({
   const deadlines = createDeadlinesController({
     getRepository: () => getAdmin().deadlinesRepository,
     getNow,
+  });
+  const attachments = createAttachmentController({
+    getRepository: () => createAttachmentRepository(getAdmin().adminPqrsRepository.db),
+    getPqrsRepository: () => getAdmin().adminPqrsRepository,
+    storageDir: env.attachments.storageDir,
   });
 
   router.use(adminAuth.sameOriginOnly);
@@ -115,6 +133,23 @@ export function createAdminRoutes({
   router.get('/stats', pqrs.summary);
   router.get('/pqrs', pqrs.list);
   router.get('/pqrs/:caseNumber', pqrs.detail);
+  router.get('/pqrs/:caseNumber/attachments', adminAuth.requirePermission(PERMISSIONS.PQRS_READ), attachments.list);
+  router.post(
+    '/pqrs/:caseNumber/attachments',
+    adminAuth.requirePermission(PERMISSIONS.PQRS_UPDATE),
+    attachmentUpload.array('files', env.attachments.maxFilesPerRequest),
+    attachments.upload,
+  );
+  router.get(
+    '/pqrs/:caseNumber/attachments/:attachmentId/download',
+    adminAuth.requirePermission(PERMISSIONS.PQRS_READ),
+    attachments.download,
+  );
+  router.delete(
+    '/pqrs/:caseNumber/attachments/:attachmentId',
+    adminAuth.requirePermission(PERMISSIONS.PQRS_UPDATE),
+    attachments.delete,
+  );
   router.get('/pqrs/:caseNumber/reply', pqrs.getReply);
   router.post(
     '/pqrs/:caseNumber/reply',

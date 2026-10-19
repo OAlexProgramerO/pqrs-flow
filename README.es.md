@@ -8,7 +8,7 @@
 
 Un sistema web para radicar, consultar y gestionar **PQRS** — _Peticiones, Quejas, Reclamos y Sugerencias_. Está construido de principio a fin con JavaScript, priorizando la simplicidad, la ausencia de un paso de compilación en el frontend y límites de arquitectura claros.
 
-**Implementación local: v0.3.3 — Gestión de plazos** — El personal ve indicadores de plazo; los administradores configuran reglas de días hábiles por tipo y festivos explícitos. No hay reglas legales precargadas: el administrador debe verificarlas y configurarlas antes del uso operativo. Los plazos se guardan al radicar la solicitud; los cambios de configuración solo afectan nuevas solicitudes. Este checkout no se ha publicado ni desplegado; lee [docs/security.md](./docs/security.md) antes de exponerlo (ese documento está en inglés).
+**Implementación local: v0.3.4 — Adjuntos seguros y refinamiento de la aplicación** — Los archivos adjuntos se validan, se guardan fuera de la raíz web pública y solo se entregan a través de rutas de descarga autorizadas por caso. El personal puede revisar los archivos permitidos y los ciudadanos solo acceden a los adjuntos de la solicitud que verificaron. Este checkout no se ha publicado ni desplegado; lee [docs/security.md](./docs/security.md) antes de exponerlo (ese documento está en inglés).
 
 > Este archivo es la versión en español de [README.md](./README.md). Si algo difiere, el README en inglés y el código son la referencia. Los cambios de la implementación local 0.3.3 están en [CHANGELOG.md](./CHANGELOG.md).
 
@@ -41,7 +41,8 @@ Muchas organizaciones todavía gestionan sugerencias, quejas y solicitudes con c
 | Roles, cuentas y seguridad del personal                                | 0.3.1   | Hecho                   |
 | Respuestas, notas internas, asignación y auditoría de solicitudes      | 0.3.2   | En curso                |
 | Reglas configurables de plazos hábiles y calendario de festivos        | 0.3.3   | Implementado localmente |
-| Adjuntos, correos y reportes                                           | 0.3.4+  | Planeado                |
+| Adjuntos seguros y refinamiento de la aplicación                       | 0.3.4   | Implementado localmente |
+| Correos y reportes                                                     | 0.3.5+  | Planeado                |
 
 ## ✨ Qué hace hoy
 

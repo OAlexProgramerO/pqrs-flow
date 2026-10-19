@@ -1,6 +1,6 @@
 # Security
 
-This document describes the security model of PQRS Flow 0.3.3, what to do before putting it online, and what it does **not** cover. Passing the automated tests is not a security review. Test the system in your own environment before exposing it.
+This document describes the security model of PQRS Flow 0.3.4, what to do before putting it online, and what it does **not** cover. Passing the automated tests is not a security review. Test the system in your own environment before exposing it.
 
 ## What is protected and how
 
@@ -19,6 +19,7 @@ This document describes the security model of PQRS Flow 0.3.3, what to do before
 | Account privilege escalation     | Server-side permission checks on every account route; new accounts default to `staff`; self-demotion/deactivation and removal of the last active administrator are refused.                       |
 | Account and session changes      | Account, role, password and explicit session revocations are audited in the same transaction as the change. Audit triggers refuse `UPDATE` and `DELETE`.                                          |
 | Deadline configuration           | Rule and holiday changes are restricted to administrators; staff-only due dates are absent from the public submission and lookup projections.                                                     |
+| Attachment storage               | Uploaded files are kept in a dedicated storage directory outside the web root, named with server-generated ids and isolated by request; downloads are gated by explicit request authorization.                 |
 | Leaking data to the public       | Public lookup still requires case number and email and exposes no staff-only deadline data; the staff API is never opened by CORS.                                                                |
 | Sensitive data in logs           | Passwords and tokens are never logged. The access log drops the query string of `/api/admin`, where searches may hold names and emails.                                                           |
 
@@ -44,7 +45,7 @@ This document describes the security model of PQRS Flow 0.3.3, what to do before
 - **Stopping the server:** `Ctrl+C` (`SIGINT`) and `SIGTERM` close the server cleanly: new connections are refused, requests in progress get up to 10 seconds, and the SQLite connection is closed so the `-wal` and `-shm` files are checkpointed and removed. Process managers usually send `SIGTERM` when they stop a service, so leave them at least that long before they force a kill. `SIGKILL`, a crash or a power cut cannot be handled: SQLite recovers the database from its WAL the next time it opens.
 - **Audit history:** status changes are stored in `pqrs_audit`. Administrators can review each account's account/role/password/session audit from the account-management page; these records are stored in `account_audit`. A consolidated viewer for PQRS status history is planned for 0.3.2.
 
-## Known limits of 0.3.3
+## Known limits of 0.3.4
 
 - **One process.** Login counters are in memory. With several processes each one counts alone, so the effective limit is higher. Sessions are in SQLite and would be shared. Persistent, shared limits are planned for 0.5.1.
 - **No second factor.** A stolen password gives access. TOTP is planned for 0.5.1.

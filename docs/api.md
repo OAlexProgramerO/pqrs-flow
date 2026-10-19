@@ -29,7 +29,7 @@ Checks that the server is running. Used by the frontend and by monitoring tools.
 {
   "status": "ok",
   "service": "pqrs-flow",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "timestamp": "2026-10-04T12:00:00.000Z"
 }
 ```
@@ -40,6 +40,56 @@ Checks that the server is running. Used by the frontend and by monitoring tools.
 | `service`   | Service name                             |
 | `version`   | Version read from `backend/package.json` |
 | `timestamp` | Current server time in ISO 8601 format   |
+
+### `GET /api/pqrs/:caseNumber/attachments`
+
+Lists the attachments linked to a request. Public callers may only request attachments for the exact case number and email they have already verified; staff callers use the protected admin API and the normal session-based authorization rules.
+
+**Response `200 OK`**
+
+```json
+{
+  "data": [
+    {
+      "id": 1,
+      "name": "invoice.pdf",
+      "sizeBytes": 12842,
+      "mimeType": "application/pdf",
+      "visibility": "public",
+      "uploadedBy": "citizen",
+      "uploadedAt": "2026-10-19T12:00:00.000Z"
+    }
+  ]
+}
+```
+
+### `POST /api/pqrs/:caseNumber/attachments`
+
+Uploads one or more validated files for a verified request. The server keeps them in a dedicated `data/attachments` storage directory and never writes the original client file name into the path.
+
+**Request**: multipart/form-data with field name `files`.
+
+**Response `201 Created`**
+
+```json
+{
+  "data": [
+    {
+      "id": 1,
+      "name": "invoice.pdf",
+      "sizeBytes": 12842,
+      "mimeType": "application/pdf",
+      "visibility": "public",
+      "uploadedBy": "citizen",
+      "uploadedAt": "2026-10-19T12:00:00.000Z"
+    }
+  ]
+}
+```
+
+### `GET /api/pqrs/:caseNumber/attachments/:attachmentId/download`
+
+Returns the stored file as a safe attachment download. The response sets a `Content-Disposition` attachment header, `X-Content-Type-Options: nosniff`, and `Cache-Control: no-store`.
 
 ### `POST /api/pqrs`
 

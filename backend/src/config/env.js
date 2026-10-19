@@ -118,4 +118,21 @@ export const env = {
       windowMs: positiveInteger(process.env.LOGIN_RATE_LIMIT_WINDOW_MINUTES, 15) * 60 * 1000,
     },
   },
+
+  // Uploaded attachments are kept outside the public web root and are intentionally kept
+  // separate from the SQLite database. The content is validated before it is stored.
+  attachments: {
+    storageDir: path.resolve(rootDir, process.env.ATTACHMENTS_STORAGE_DIR || 'data/attachments'),
+    maxFileSize: positiveInteger(process.env.ATTACHMENTS_MAX_FILE_SIZE, 5 * 1024 * 1024),
+    maxFilesPerRequest: positiveInteger(process.env.ATTACHMENTS_MAX_FILES_PER_REQUEST, 3),
+    maxAggregateSize: positiveInteger(process.env.ATTACHMENTS_MAX_AGGREGATE_SIZE, 10 * 1024 * 1024),
+    allowedExtensions: (process.env.ATTACHMENTS_ALLOWED_EXTENSIONS || '.pdf,.png,.jpg,.jpeg,.txt,.doc,.docx')
+      .split(',')
+      .map((value) => value.trim().toLowerCase())
+      .filter(Boolean),
+    allowedMimeTypes: (process.env.ATTACHMENTS_ALLOWED_MIME_TYPES || 'application/pdf,image/png,image/jpeg,text/plain,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+      .split(',')
+      .map((value) => value.trim().toLowerCase())
+      .filter(Boolean),
+  },
 };

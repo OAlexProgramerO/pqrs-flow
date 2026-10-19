@@ -4,6 +4,24 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [SemVer](h
 
 ## [Unreleased]
 
+## [0.3.4] - 2026-10-19
+
+### Added
+
+- Attachment storage and download API for request-bound files, with filename normalization, size and count limits, strict allowlists and safe storage outside the static web root.
+- Migration `006_attachments.sql` to create the attachment table and indexes without altering the request or staff data model.
+- Validation helpers that reject empty files, unsupported extensions, mismatched MIME types, and unexpected content signatures before anything is written to disk.
+- New tests covering attachment validation and storage integrity.
+
+### Changed
+
+- Bumped package versions to `0.3.4` and updated READMEs, roadmap, API and security documentation to describe the local attachment workflow.
+- The test runner script was corrected to avoid passing duplicate `--test-reporter` arguments.
+
+### Validation
+
+- `npm test` passed: all backend tests completed successfully, including the new attachment checks.
+
 ## [0.3.3] - 2026-10-18
 
 ### Added

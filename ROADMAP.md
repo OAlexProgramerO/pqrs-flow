@@ -24,7 +24,7 @@ Path from **v0.0.1** to **v1.0.0**. Each version is one branch, one pull request
 | 0.3.1   | `feat/v0.3.1-staff-roles`     | Roles, account management in the panel, password changes, session management and audit           | Pending release     |
 | 0.3.2   | `feat/v0.3.2-case-resolution` | Published replies, internal notes, assignment, request-level audit events and staff UI           | In progress         |
 | 0.3.3   | `feat/deadlines`              | Configurable business-day rules, holidays, immutable due-date snapshots and staff indicators     | Implemented locally |
-| 0.3.4   | `feat/attachments`            | Safe file uploads with size and type limits                                                      | Planned             |
+| 0.3.4   | `feat/attachments`            | Safe file uploads with size and type limits                                                      | Implemented locally |
 | 0.3.5   | `feat/email-notifications`    | Emails on filing and on answer, with an outbox and retries                                       | Planned             |
 | 0.4.0   | `feat/reports`                | Dashboard of cases by type, status and response time                                             | Planned             |
 | 0.4.1   | `feat/csv-export`             | Streamed CSV export with protection against formula injection                                    | Planned             |

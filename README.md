@@ -8,7 +8,7 @@
 
 A web system to submit, track and manage **PQRS** — _Peticiones, Quejas, Reclamos y Sugerencias_ (Petitions, Complaints, Claims and Suggestions). Built end to end with JavaScript, prioritizing simplicity, no frontend build step and clear architectural boundaries.
 
-**Local implementation: v0.3.3 — Deadline management** — Staff deadline indicators, configurable per-type business-day rules and explicit holidays. No legal rules are seeded: an administrator must verify and configure them before operational use. Deadlines are snapshotted when requests are filed; configuration changes affect new requests only. This checkout has not been released or deployed; see [docs/security.md](./docs/security.md) before exposing it.
+**Local implementation: v0.3.4 — Secure attachments and application refinement** — Request attachments are validated, stored outside the public web root, and protected by case-based authorization. Staff can review and download permitted files, and citizens can only access files attached to the request they verified. The implementation is local only and has not been released or deployed; see [docs/security.md](./docs/security.md) before exposing it.
 
 ---
 
@@ -39,7 +39,8 @@ Many organizations still handle feedback, complaints and requests through scatte
 | Staff roles, account management and security settings      | 0.3.1   | Done                |
 | Replies, internal notes, assignment and request audit      | 0.3.2   | In progress         |
 | Configurable business-day deadlines and holiday calendar   | 0.3.3   | Implemented locally |
-| Attachments, emails and reports                            | 0.3.4+  | Planned             |
+| Secure attachments and application refinement              | 0.3.4   | Implemented locally |
+| Emails and reports                                         | 0.3.5+  | Planned             |
 
 ## ✨ What it does today
 
@@ -59,6 +60,7 @@ Many organizations still handle feedback, complaints and requests through scatte
 - **Protected panel** under `/admin/`: anonymous visitors only see the login page. The panel folder is outside `frontend/`, so the public static handler cannot serve it.
 - **Dashboard**: counters per status, a paginated list with search, filters by status, type and date range, sorting, and a detail page for each request. Responsive and keyboard friendly.
 - **Deadline management**: the staff list and detail show on-track, approaching, overdue, completed or unavailable states. Administrators configure each request type's business-day rule and explicit holidays through the protected staff API. Every new request snapshots the rule version, due date and applicable holiday dates; changing the configuration never silently rewrites old requests.
+- **Secure attachments**: uploads are validated by extension, MIME type and file signatures, stored under `data/attachments/` outside the public web root and exposed only through authenticated request-scoped download endpoints. Citizens can access only files attached to the request they verified; staff can access public or internal attachments according to admin permissions. The public metadata is limited to safe names and sizes.
 - **Status workflow** with permitted transitions (`closed` is final) and protection against two people changing the same request.
 - **Audit history**: every status change records who, from which status to which, when and with which request id. It is saved in the same transaction as the change, is append-only and is never shown to the public.
 - **Role-based access**: administrators manage accounts; staff can read and process PQRS but cannot access account administration. Both roles can work on all PQRS; assignment-level access is not implemented.

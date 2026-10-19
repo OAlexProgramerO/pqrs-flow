@@ -32,11 +32,12 @@ The `controllers/`, `services/` and `repositories/` folders are created when the
 - **Database:** SQLite through `better-sqlite3`. Its API is synchronous, so no connection pool is needed.
 - **Connection settings:** WAL mode (readers do not block the writer), `synchronous = NORMAL`, foreign keys on, 5 second busy timeout.
 - **Migrations:** `backend/src/db/migrations/NNN_name.sql`, applied in order. `PRAGMA user_version` stores the last applied number and each migration runs in a transaction. Never edit a migration that was already released; add a new one.
-- **Tables:** `pqrs` (with `CHECK` constraints and `STRICT` typing) and `case_counters` (one row per year).
+- **Tables:** `pqrs` (with `CHECK` constraints and `STRICT` typing), `case_counters` (one row per year), and `attachments` (request-bound file metadata stored outside the public web root).
 - **Case numbers:** the counter is incremented in the same transaction that inserts the request, so a failed insert never burns a number.
 - **Connection lifecycle:** `getDb()` opens the shared connection on first use, so importing the app never touches the disk. Tests use `:memory:` databases.
 - **Public data:** staff repositories can load internal fields, but public submission and lookup use explicit response projections and never expose staff-only data or deadline snapshots. The lookup requires both the case number and email.
 - **Deadline snapshots (v0.3.3):** administrators configure rules and explicit holidays in SQLite. A request stores its calculated due date, rule version, policy version and relevant holiday dates when filed. Later configuration changes apply only to new requests; missing rules and pre-migration requests remain deadline-unavailable rather than being silently recalculated.
+- **Attachment storage (v0.3.4):** uploads are stored under `data/attachments/` using opaque server-generated identifiers and a request-scoped directory. Metadata remains in SQLite, but the original filename and stored bytes are kept separate; public downloads are blocked unless the request and identity are authorized, and internal staff files remain private.
 
 ## Submitting a request (v0.1.0)
 
