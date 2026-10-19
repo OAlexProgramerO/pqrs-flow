@@ -88,7 +88,7 @@ export function createPqrsRepository(db) {
     return selectByCaseNumber.get(caseNumber);
   });
 
-  return {
+  const repository = {
     create(data, { now = new Date() } = {}) {
       return createInTransaction(data, now);
     },
@@ -109,4 +109,6 @@ export function createPqrsRepository(db) {
       return officialResponse ? { ...publicRecord, officialResponse, publishedAt } : publicRecord;
     },
   };
+
+  return Object.assign(repository, { db });
 }

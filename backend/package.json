@@ -1,13 +1,13 @@
 {
   "name": "pqrs-flow-backend",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "private": true,
   "type": "module",
   "main": "src/server.js",
   "scripts": {
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
-    "test": "node --test --test-reporter=spec --import ./tests/helpers/isolate-db.js",
+    "test": "node --test --import ./tests/helpers/isolate-db.js --test-reporter=spec",
     "seed": "node scripts/seed.js",
     "db:reset": "node scripts/reset-db.js",
     "admin": "node scripts/admin.js"
@@ -22,6 +22,7 @@
     "express": "^4.21.2",
     "helmet": "^8.0.0",
     "morgan": "^1.10.0",
+    "multer": "^2.4.0",
     "zod": "^4.6.5"
   }
 }

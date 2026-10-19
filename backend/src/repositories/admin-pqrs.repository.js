@@ -258,7 +258,7 @@ export function createAdminPqrsRepository(db) {
     return { ...current, status: newStatus };
   });
 
-  return {
+  const repository = {
     list(filters) {
       const { where, params } = buildWhere(filters);
       const column = SORT_COLUMNS[filters.sort] ?? SORT_COLUMNS.createdAt;
@@ -429,4 +429,6 @@ export function createAdminPqrsRepository(db) {
       return findAdminById.get(id) ?? null;
     },
   };
+
+  return Object.assign(repository, { db });
 }
