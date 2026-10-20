@@ -140,4 +140,18 @@ export const env = {
       .map((value) => value.trim().toLowerCase())
       .filter(Boolean),
   },
+
+  // Email notifications use a SQLite-backed outbox. When disabled, the app keeps the request
+  // and response lifecycle unchanged and no network delivery is attempted.
+  email: {
+    enabled: parseBoolean(process.env.EMAIL_ENABLED, false),
+    from: String(process.env.EMAIL_FROM ?? '').trim(),
+    smtp: {
+      host: String(process.env.SMTP_HOST ?? '').trim(),
+      port: positiveInteger(process.env.SMTP_PORT, 587),
+      secure: parseBoolean(process.env.SMTP_SECURE, false),
+      user: String(process.env.SMTP_USER ?? '').trim(),
+      pass: String(process.env.SMTP_PASS ?? '').trim(),
+    },
+  },
 };

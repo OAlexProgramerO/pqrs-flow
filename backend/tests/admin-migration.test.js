@@ -78,11 +78,11 @@ const insertAdmin = (db, email = 'a@example.com') =>
     )
     .run(email).lastInsertRowid;
 
-test('a fresh database ends at version 6 with every new table, index and trigger', () => {
+test('a fresh database ends at version 7 with every new table, index and trigger', () => {
   const db = openDatabase({ filename: ':memory:' });
   open.push(db);
 
-  assert.equal(db.pragma('user_version', { simple: true }), 6);
+  assert.equal(db.pragma('user_version', { simple: true }), 7);
   for (const table of [
     'admins',
     'admin_sessions',
@@ -157,7 +157,7 @@ test('the v0.3.1 audit history survives migration without adding non-contract fi
 
   const db = openDatabase({ filename });
   open.push(db);
-  assert.equal(db.pragma('user_version', { simple: true }), 6);
+  assert.equal(db.pragma('user_version', { simple: true }), 7);
   assert.deepEqual(
     db
       .prepare(
@@ -225,7 +225,7 @@ test('a database made by v0.1.3 keeps its requests and case numbers when it is m
   const db = openDatabase({ filename });
   open.push(db);
 
-  assert.equal(db.pragma('user_version', { simple: true }), 6);
+  assert.equal(db.pragma('user_version', { simple: true }), 7);
   assert.deepEqual(db.prepare('SELECT id, case_number, status FROM pqrs ORDER BY id').all(), [
     { id: 1, case_number: 'PQRS-2026-000001', status: 'filed' },
     { id: 2, case_number: 'PQRS-2026-000002', status: 'answered' },
@@ -261,7 +261,7 @@ test('a pre-v0.3.1 database keeps records and sessions and maps legacy full-acce
 
   const db = openDatabase({ filename });
   open.push(db);
-  assert.equal(db.pragma('user_version', { simple: true }), 6);
+  assert.equal(db.pragma('user_version', { simple: true }), 7);
   assert.deepEqual(db.prepare('SELECT email, role FROM admins').all(), [
     { email: 'legacy@example.com', role: 'administrator' },
   ]);
@@ -276,7 +276,7 @@ test('a database from the broken pre-migration schema is repaired and then migra
   db.exec('CREATE TABLE pqrs (case_number TEXT, subject TEXT, type TEXT)');
   db.exec("INSERT INTO pqrs VALUES ('PQRS-2025-000007', 'Old subject', 'claim')");
 
-  assert.equal(runMigrations(db), 6);
+  assert.equal(runMigrations(db), 7);
   assert.deepEqual(db.prepare('SELECT case_number, subject, status FROM pqrs').all(), [
     { case_number: 'PQRS-2025-000007', subject: 'Old subject', status: 'filed' },
   ]);
@@ -286,10 +286,10 @@ test('a database from the broken pre-migration schema is repaired and then migra
 test('running the migrations again does nothing, so a restart is safe', () => {
   const db = raw();
 
-  assert.equal(runMigrations(db), 6);
+  assert.equal(runMigrations(db), 7);
   const adminId = insertAdmin(db);
-  assert.equal(runMigrations(db), 6);
-  assert.equal(runMigrations(db), 6);
+  assert.equal(runMigrations(db), 7);
+  assert.equal(runMigrations(db), 7);
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM admins WHERE id = ?').get(adminId).n, 1);
 });
 
@@ -304,7 +304,7 @@ test('a database file survives being closed and opened again', () => {
   const second = openDatabase({ filename });
   open.push(second);
   assert.equal(second.prepare('SELECT COUNT(*) AS n FROM admins').get().n, 1);
-  assert.equal(second.pragma('user_version', { simple: true }), 6);
+  assert.equal(second.pragma('user_version', { simple: true }), 7);
   second.close();
   removeDatabaseFiles(filename);
 });
