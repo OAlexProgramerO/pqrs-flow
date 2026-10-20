@@ -174,3 +174,56 @@ test('response, note, and assignment writes roll back when their audit record ca
     0,
   );
 });
+
+test('publishing a response enqueues the response_published notification without affecting draft or private notes', async () => {
+  const isolated = await setupAdminApp();
+  after(() => isolated.close());
+  const owner = await isolated.loggedIn();
+  const { caseNumber } = isolated.repository.create(sampleRequest(0), {
+    now: isolated.clock.now(),
+  });
+  const responsePath = `/api/admin/pqrs/${caseNumber}/reply`;
+
+  const draft = await owner.patch(responsePath, {
+    text: 'Draft wording for review.',
+    state: 'draft',
+  });
+  assert.equal(draft.status, 200);
+
+  const published = await owner.patch(responsePath, {
+    text: 'The approved answer.',
+    state: 'published',
+  });
+  assert.equal(published.status, 200);
+
+  const rows = isolated.db
+    .prepare(
+      'SELECT notification_type AS notificationType, recipient_email AS recipientEmail, payload FROM email_notifications WHERE pqrs_id = ? ORDER BY id',
+    )
+    .all(isolated.db.prepare('SELECT id FROM pqrs WHERE case_number = ?').get(caseNumber).id);
+
+  const notificationRows = rows.map((row) => ({
+    notificationType: row.notificationType,
+    recipientEmail: row.recipientEmail,
+    payload: JSON.parse(row.payload),
+  }));
+
+  assert.equal(
+    notificationRows.some((row) => row.notificationType === 'request_received'),
+    true,
+  );
+  assert.equal(
+    notificationRows.some((row) => row.notificationType === 'response_published'),
+    true,
+  );
+  assert.deepEqual(notificationRows.at(-1), {
+    notificationType: 'response_published',
+    recipientEmail: sampleRequest(0).requesterEmail,
+    payload: {
+      caseNumber,
+      subject: sampleRequest(0).subject,
+      text: 'The approved answer.',
+      notificationType: 'response_published',
+    },
+  });
+});

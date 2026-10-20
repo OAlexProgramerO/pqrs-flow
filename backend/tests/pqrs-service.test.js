@@ -152,3 +152,25 @@ test('lookupPqrs throws a ValidationError for badly formed input', () => {
     },
   );
 });
+
+test('submitting a request enqueues the request_received email notification in the same transaction', () => {
+  const repository = setup();
+  const created = submitPqrs(repository, input, october2026);
+
+  const row = repository.db
+    .prepare(
+      'SELECT notification_type AS notificationType, recipient_email AS recipientEmail, payload, notification_key AS notificationKey FROM email_notifications WHERE pqrs_id = ?',
+    )
+    .get(created.id);
+
+  assert.ok(row);
+  assert.equal(row.notificationType, 'request_received');
+  assert.equal(row.recipientEmail, 'luis@example.com');
+  assert.equal(row.notificationKey, `request_received:${created.id}`);
+  assert.deepEqual(JSON.parse(row.payload), {
+    caseNumber: created.caseNumber,
+    subject: created.subject,
+    text: created.description,
+    notificationType: 'request_received',
+  });
+});

@@ -1,3 +1,4 @@
+import { createEmailNotificationRepository } from './email-notifications.repository.js';
 import { STATUSES } from '../services/status-workflow.js';
 
 export const SORT_COLUMNS = Object.freeze({
@@ -47,6 +48,8 @@ function likePattern(term) {
 }
 
 export function createAdminPqrsRepository(db) {
+  const emailNotifications = createEmailNotificationRepository(db);
+
   const selectByCaseNumber = db.prepare(`
     SELECT ${DETAIL_COLUMNS}
     FROM pqrs p
@@ -154,6 +157,10 @@ export function createAdminPqrsRepository(db) {
       updated_at = excluded.updated_at,
       published_at = excluded.published_at
   `);
+
+  const selectRequestById = db.prepare(
+    'SELECT id, case_number AS caseNumber, requester_email AS requesterEmail, subject FROM pqrs WHERE id = ?',
+  );
 
   const insertNote = db.prepare(`
     INSERT INTO pqrs_notes (pqrs_id, author_admin_id, text, created_at)
@@ -334,9 +341,10 @@ export function createAdminPqrsRepository(db) {
           });
           if (row.changes !== 1) throw new Error('The response could not be saved.');
 
+          const caseNumber = selectCaseNumberById.get(pqrsId).caseNumber;
           writeAudit({
             pqrsId,
-            caseNumber: selectCaseNumberById.get(pqrsId).caseNumber,
+            caseNumber,
             adminId,
             action:
               state === 'published'
@@ -347,6 +355,23 @@ export function createAdminPqrsRepository(db) {
             requestId,
             createdAt,
           });
+
+          if (state === 'published') {
+            const request = selectRequestById.get(pqrsId);
+            if (request) {
+              emailNotifications.enqueue({
+                notificationType: 'response_published',
+                pqrsId,
+                recipientEmail: request.requesterEmail,
+                data: {
+                  caseNumber,
+                  subject: request.subject,
+                  text,
+                },
+                createdAt: now,
+              });
+            }
+          }
 
           return this.getResponse(pqrsId);
         })

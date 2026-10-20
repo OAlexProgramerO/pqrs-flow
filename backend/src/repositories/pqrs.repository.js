@@ -1,6 +1,7 @@
 import { formatCaseNumber } from '../services/case-number.js';
 import { calculateDeadline } from '../services/deadlines.js';
 import { createDeadlinesRepository } from './deadlines.repository.js';
+import { createEmailNotificationRepository } from './email-notifications.repository.js';
 
 const SELECT_COLUMNS = `
   id,
@@ -20,6 +21,7 @@ const SELECT_COLUMNS = `
  */
 export function createPqrsRepository(db) {
   const deadlinesRepository = createDeadlinesRepository(db);
+  const emailNotifications = createEmailNotificationRepository(db);
   const nextSequence = db.prepare(`
     INSERT INTO case_counters (year, last_value) VALUES (@year, 1)
     ON CONFLICT (year) DO UPDATE SET last_value = last_value + 1
@@ -85,7 +87,22 @@ export function createPqrsRepository(db) {
       deadlineHolidaysSnapshot: JSON.stringify(deadline?.holidaysSnapshot ?? []),
     });
 
-    return selectByCaseNumber.get(caseNumber);
+    const created = selectByCaseNumber.get(caseNumber);
+    if (!created) throw new Error('The request could not be loaded after insert.');
+
+    emailNotifications.enqueue({
+      notificationType: 'request_received',
+      pqrsId: created.id,
+      recipientEmail: created.requesterEmail,
+      data: {
+        caseNumber: created.caseNumber,
+        subject: created.subject,
+        text: created.description,
+      },
+      createdAt: now,
+    });
+
+    return created;
   });
 
   const repository = {
