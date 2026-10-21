@@ -1,6 +1,6 @@
 # Security
 
-This document describes the security model of PQRS Flow 0.3.4, what to do before putting it online, and what it does **not** cover. Passing the automated tests is not a security review. Test the system in your own environment before exposing it.
+This document describes the security model of PQRS Flow 0.4.0, what to do before putting it online, and what it does **not** cover. Passing the automated tests is not a security review. Test the system in your own environment before exposing it.
 
 ## What is protected and how
 
@@ -19,6 +19,7 @@ This document describes the security model of PQRS Flow 0.3.4, what to do before
 | Account privilege escalation     | Server-side permission checks on every account route; new accounts default to `staff`; self-demotion/deactivation and removal of the last active administrator are refused.                       |
 | Account and session changes      | Account, role, password and explicit session revocations are audited in the same transaction as the change. Audit triggers refuse `UPDATE` and `DELETE`.                                          |
 | Deadline configuration           | Rule and holiday changes are restricted to administrators; staff-only due dates are absent from the public submission and lookup projections.                                                     |
+| Staff reports                    | Reports require an authenticated `pqrs:read` session, return aggregate fields only, use bound filter values and inherit `Cache-Control: no-store`; they do not return request or response text.   |
 | Attachment storage               | Uploaded files are kept in a dedicated storage directory outside the web root, named with server-generated ids and isolated by request; downloads are gated by explicit request authorization.    |
 | Leaking data to the public       | Public lookup still requires case number and email and exposes no staff-only deadline data; the staff API is never opened by CORS.                                                                |
 | Sensitive data in logs           | Passwords and tokens are never logged. The access log drops the query string of `/api/admin`, where searches may hold names and emails.                                                           |
@@ -43,13 +44,13 @@ This document describes the security model of PQRS Flow 0.3.4, what to do before
 - **Suspect a stolen session:** use `/admin/security.html` to revoke that session, or reset the account password to close all its sessions. To invalidate all accounts' sessions, reset each account from the server terminal.
 - **Locked by the login limits:** wait for the window or restart the server.
 - **Stopping the server:** `Ctrl+C` (`SIGINT`) and `SIGTERM` close the server cleanly: new connections are refused, requests in progress get up to 10 seconds, and the SQLite connection is closed so the `-wal` and `-shm` files are checkpointed and removed. Process managers usually send `SIGTERM` when they stop a service, so leave them at least that long before they force a kill. `SIGKILL`, a crash or a power cut cannot be handled: SQLite recovers the database from its WAL the next time it opens.
-- **Audit history:** status changes are stored in `pqrs_audit`. Administrators can review each account's account/role/password/session audit from the account-management page; these records are stored in `account_audit`. A consolidated viewer for PQRS status history is planned for 0.3.2.
+- **Audit history:** status changes are stored in `pqrs_audit`. Administrators can review each account's account/role/password/session audit from the account-management page; these records are stored in `account_audit`. Case details show request history, but there is no broad cross-case audit explorer.
 
-## Known limits of 0.3.4
+## Known limits of 0.4.0
 
 - **One process.** Login counters are in memory. With several processes each one counts alone, so the effective limit is higher. Sessions are in SQLite and would be shared. Persistent, shared limits are planned for 0.5.1.
 - **No second factor.** A stolen password gives access. TOTP is planned for 0.5.1.
-- **No "forgot my password" link** and no email. Recovery needs the server terminal. A reset from the panel requires the account holder to choose a new password at next login.
+- **No "forgot my password" link or password-reset email.** Recovery needs the server terminal. A reset from the panel requires the account holder to choose a new password at next login. Configured email notifications are limited to request receipts and published-response notices.
 - **No request-level permissions.** Both roles can see and change every request. Per-request assignment and access controls are not implemented.
 - **Lookup lockout by others.** The public lookup (`POST /api/pqrs/lookup`) has two limits in memory, counted every 15 minutes: 30 attempts per client address and 8 attempts per case number. They are fixed values in `backend/src/app.js` and are not set in `.env`. The limit per case number counts every attempt, wrong or right, whoever makes it, so a person who knows (or guesses) a case number can use up its 8 attempts and make the real owner see "Too many attempts" until the window ends or the server restarts. This does not reveal any data: the answer is the same for every case number, and a lookup still needs the email. It only delays a legitimate check of that one case. Version 0.3.0 does not change these limits. The shared, persistent limits planned for 0.5.1 are the roadmap work that applies to them.
 - **Account lockout by others.** The per-account limit counts every attempt, so a person who knows an email can make that account wait. The per-address limit and the terminal recovery are the mitigation.

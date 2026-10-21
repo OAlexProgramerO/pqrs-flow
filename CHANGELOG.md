@@ -4,6 +4,33 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [SemVer](h
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-21
+
+### Added
+
+- Staff-only reporting page at `/admin/reports.html` and read-only `GET /api/admin/reports`, protected by the existing session and `pqrs:read` permission.
+- Filtered request totals, UTC day/week/month volume series, canonical type and current-status counts, first-published-response time with sample size, and deadline status counts.
+- Migration `008_reporting_indexes.sql` adds a composite index for response-publication and status-transition audit lookups.
+- Focused tests for report metrics, historical deadline state, date and enum validation, privacy, authorization, caching, request IDs and schema upgrades.
+
+### Changed
+
+- The report range defaults to the latest 30 UTC dates, accepts inclusive date filters up to 366 days, and rejects future end dates. Empty buckets and canonical categories remain visible as zero.
+- Response time uses the first `response_published` audit event minus request creation, only when published by the selected period end. Draft responses, internal notes, and responses without a recorded publication event are excluded.
+- Overdue rate is measured as of the selected end date. Its numerator is matching requests still open and past deadline at that date; its denominator is all matching requests with stored deadlines. Historical status is reconstructed from the append-only status audit. Requests without deadline snapshots are reported as unavailable and excluded from the rate.
+- Package metadata, English and Spanish READMEs, roadmap, API reference and architecture documentation now identify v0.4.0 as the local implementation. This does not claim public release or deployment.
+
+## [0.3.5] - 2026-10-21
+
+### Added
+
+- Transactional SQLite notification outbox for request-received and official-response-published emails, with SMTP transport and retry processing.
+- Notification tests covering enqueue, delivery and retry behavior. Notification records and email payloads remain separate from report projections.
+
+### Changed
+
+- Documentation distinguishes the local email implementation from public release status.
+
 ## [0.3.4] - 2026-10-19
 
 ### Added
@@ -34,13 +61,25 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [SemVer](h
 
 ### Changed
 
-- Bumped package versions to `0.3.3`. The implementation is local only and has not been committed, tagged, published or deployed.
+- Bumped package versions to `0.3.3`. The implementation was local; no public release or deployment is claimed.
 - Updated English and Spanish READMEs, roadmap, API, architecture and security documentation. Documentation explicitly requires administrators to verify configured rules against authoritative jurisdictional sources and organizational policy.
 
 ### Validation
 
 - Baseline before changes: `npm run check` passed — 459 tests total, 457 passed, 0 failed and 2 skipped on Windows.
 - Final checks: `npm run check` passed — lint and formatting checks passed; 465 tests total, 463 passed, 0 failed and 2 skipped because Windows cannot deliver the tested shutdown signals to child processes. `git diff --check` passed.
+
+## [0.3.2] - 2026-10-17
+
+### Added
+
+- Official responses with draft/published state, internal staff notes, request assignment and append-only request audit actions.
+- Staff case-detail workflow support for responses, notes and assignment; a broad audit explorer is not included.
+- Migration `004_case_resolution.sql` for response, note, assignment and audit records.
+
+### Changed
+
+- Public tracking exposes only a published official response; internal notes, drafts and assignment details remain staff-only.
 
 ## [0.3.1] - 2026-10-16
 

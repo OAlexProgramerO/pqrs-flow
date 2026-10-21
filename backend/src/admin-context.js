@@ -1,5 +1,6 @@
 import { env } from './config/env.js';
 import { createAdminPqrsRepository } from './repositories/admin-pqrs.repository.js';
+import { createAdminReportsRepository } from './repositories/admin-reports.repository.js';
 import { createAdminRepository } from './repositories/admin.repository.js';
 import { createAccountAuditRepository } from './repositories/account-audit.repository.js';
 import { createDeadlinesRepository } from './repositories/deadlines.repository.js';
@@ -17,6 +18,7 @@ export function createAdminContext(db, { sessionPolicy = env.session, passwordPa
   const adminRepository = createAdminRepository(db, accountAuditRepository);
   const sessionRepository = createSessionRepository(db, accountAuditRepository);
   const adminPqrsRepository = createAdminPqrsRepository(db);
+  const adminReportsRepository = createAdminReportsRepository(db);
   const deadlinesRepository = createDeadlinesRepository(db);
 
   const clock = now ?? (() => new Date());
@@ -35,6 +37,7 @@ export function createAdminContext(db, { sessionPolicy = env.session, passwordPa
     sessionRepository,
     accountAuditRepository,
     adminPqrsRepository,
+    adminReportsRepository,
     deadlinesRepository,
     authService: createAuthService({ ...options, sessionPolicy }),
     accountService: createAccountService(options),

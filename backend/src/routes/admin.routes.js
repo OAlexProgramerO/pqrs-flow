@@ -3,6 +3,7 @@ import { Router } from 'express';
 import { createAdminAuthController } from '../controllers/admin-auth.controller.js';
 import { createAdminAccountController } from '../controllers/admin-account.controller.js';
 import { createAdminPqrsController } from '../controllers/admin-pqrs.controller.js';
+import { createAdminReportsController } from '../controllers/admin-reports.controller.js';
 import { createAttachmentController } from '../controllers/attachments.controller.js';
 import { createDeadlinesController } from '../controllers/deadlines.controller.js';
 import { createAttachmentRepository } from '../repositories/attachments.repository.js';
@@ -47,6 +48,10 @@ export function createAdminRoutes({
   });
   const deadlines = createDeadlinesController({
     getRepository: () => getAdmin().deadlinesRepository,
+    getNow,
+  });
+  const reports = createAdminReportsController({
+    getRepository: () => getAdmin().adminReportsRepository,
     getNow,
   });
   const attachments = createAttachmentController({
@@ -131,6 +136,7 @@ export function createAdminRoutes({
     deadlines.deleteHoliday,
   );
   router.get('/stats', pqrs.summary);
+  router.get('/reports', reports.get);
   router.get('/pqrs', pqrs.list);
   router.get('/pqrs/:caseNumber', pqrs.detail);
   router.get(

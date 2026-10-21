@@ -7,8 +7,19 @@ const app = await setupAdminApp();
 const [first] = app.addRequests(2);
 after(() => app.close());
 
-const PROTECTED_PAGES = ['/admin', '/admin/', '/admin/index.html', '/admin/request.html'];
-const PROTECTED_ASSETS = ['/admin/js/dashboard.js', '/admin/js/request.js', '/admin/js/session.js'];
+const PROTECTED_PAGES = [
+  '/admin',
+  '/admin/',
+  '/admin/index.html',
+  '/admin/request.html',
+  '/admin/reports.html',
+];
+const PROTECTED_ASSETS = [
+  '/admin/js/dashboard.js',
+  '/admin/js/request.js',
+  '/admin/js/reports.js',
+  '/admin/js/session.js',
+];
 
 const status = (caseNumber) =>
   app.db.prepare('SELECT status FROM pqrs WHERE case_number = ?').get(caseNumber).status;
@@ -104,8 +115,10 @@ test('a logged in administrator gets the pages, which are never cached', async (
     '/admin/',
     '/admin/index.html',
     '/admin/request.html',
+    '/admin/reports.html',
     '/admin/js/dashboard.js',
     '/admin/js/request.js',
+    '/admin/js/reports.js',
   ]) {
     const res = await client.get(path);
     assert.equal(res.status, 200, path);
@@ -113,6 +126,7 @@ test('a logged in administrator gets the pages, which are never cached', async (
   }
   assert.ok((await client.get('/admin/')).text.includes('id="metrics"'));
   assert.ok((await client.get('/admin/request.html')).text.includes('id="statusForm"'));
+  assert.ok((await client.get('/admin/reports.html')).text.includes('id="reportFilterForm"'));
 });
 
 test('a stale or invalid cookie does not open the pages', async () => {
@@ -144,6 +158,7 @@ test('the staff pages carry the security headers of the rest of the site', async
 const API_ROUTES = [
   ['GET', '/api/admin/session'],
   ['GET', '/api/admin/stats'],
+  ['GET', '/api/admin/reports'],
   ['GET', '/api/admin/deadlines'],
   ['PUT', '/api/admin/deadlines/rules/petition'],
   ['PUT', '/api/admin/deadlines/holidays/2026-10-12'],

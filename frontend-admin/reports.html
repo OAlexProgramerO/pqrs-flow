@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Reports · PQRS Flow staff</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/css/styles.css" />
+    <link rel="stylesheet" href="/admin/css/admin.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to the content</a>
+
+    <header class="admin-header">
+      <div class="admin-brand">
+        <strong>PQRS Flow</strong>
+        <span>Staff</span>
+      </div>
+      <nav class="admin-nav" aria-label="Staff">
+        <a href="/admin/">Dashboard</a>
+        <a href="/admin/reports.html" aria-current="page">Reports</a>
+        <a href="/admin/accounts.html" data-admin-only hidden>Staff accounts</a>
+        <a href="/admin/security.html">Account security</a>
+        <a href="/" target="_blank" rel="noopener">Public site</a>
+      </nav>
+      <div class="admin-user">
+        <span id="adminName" class="admin-name"></span>
+        <button type="button" class="btn btn-secondary" id="logoutBtn">Log out</button>
+      </div>
+    </header>
+
+    <main class="admin-main" id="main">
+      <h1>Request reports</h1>
+      <p>
+        Explore request volume and workload for a UTC date range. These are operational summaries,
+        not legal conclusions.
+      </p>
+
+      <section class="panel" aria-labelledby="report-filters-title">
+        <h2 id="report-filters-title">Filters</h2>
+        <form id="reportFilterForm" class="filters">
+          <div class="form-group">
+            <label for="from">From (UTC)</label>
+            <input type="date" id="from" name="from" required aria-describedby="from-error" />
+            <small class="field-error" id="from-error"></small>
+          </div>
+          <div class="form-group">
+            <label for="to">To (UTC)</label>
+            <input type="date" id="to" name="to" required aria-describedby="to-error" />
+            <small class="field-error" id="to-error"></small>
+          </div>
+          <div class="form-group">
+            <label for="type">Request type</label>
+            <select id="type" name="type">
+              <option value="">All types</option>
+              <option value="petition">Petition</option>
+              <option value="complaint">Complaint</option>
+              <option value="claim">Claim</option>
+              <option value="suggestion">Suggestion</option>
+            </select>
+            <small class="field-error" id="type-error"></small>
+          </div>
+          <div class="form-group">
+            <label for="status">Current request status</label>
+            <select id="status" name="status">
+              <option value="">All statuses</option>
+              <option value="filed">Received</option>
+              <option value="in_progress">In progress</option>
+              <option value="answered">Answered</option>
+              <option value="closed">Closed</option>
+            </select>
+            <small class="field-error" id="status-error"></small>
+          </div>
+          <div class="filter-actions">
+            <button type="submit" class="btn btn-primary" id="refreshReportBtn">
+              Refresh report
+            </button>
+          </div>
+        </form>
+        <p id="reportState" class="message" role="status" aria-live="polite" hidden></p>
+      </section>
+
+      <section aria-labelledby="summary-title">
+        <h2 id="summary-title">Summary</h2>
+        <div id="reportSummary" class="report-summary" aria-live="polite"></div>
+      </section>
+
+      <section class="panel" aria-labelledby="volume-title">
+        <h2 id="volume-title">Request volume over time</h2>
+        <p id="volumeEmpty" class="report-empty" hidden>No requests match these filters.</p>
+        <ol id="volumeChart" class="report-bars" aria-label="Requests grouped over time"></ol>
+      </section>
+
+      <div class="report-breakdowns">
+        <section class="panel" aria-labelledby="type-title">
+          <h2 id="type-title">By request type</h2>
+          <ol id="typeChart" class="report-bars"></ol>
+        </section>
+        <section class="panel" aria-labelledby="status-title">
+          <h2 id="status-title">By current status</h2>
+          <ol id="statusChart" class="report-bars"></ol>
+        </section>
+      </div>
+
+      <section class="panel" aria-labelledby="response-title">
+        <h2 id="response-title">Response time</h2>
+        <p id="responseMethod"></p>
+        <p id="responseSample"></p>
+      </section>
+
+      <section class="panel" aria-labelledby="deadline-title">
+        <h2 id="deadline-title">Deadline status</h2>
+        <p id="deadlineRate"></p>
+        <p id="deadlineMethod"></p>
+        <ul id="deadlineCounts" class="deadline-counts"></ul>
+      </section>
+    </main>
+
+    <script type="module" src="/admin/js/reports.js"></script>
+  </body>
+</html>

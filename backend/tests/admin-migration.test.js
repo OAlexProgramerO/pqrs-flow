@@ -50,6 +50,16 @@ function releaseThreeMigrations() {
   return dir;
 }
 
+function releaseSevenMigrations() {
+  const dir = tempDir();
+  for (const filename of fs
+    .readdirSync(MIGRATIONS)
+    .filter((name) => /^\d+_.*\.sql$/.test(name) && Number(name.slice(0, 3)) <= 7)) {
+    fs.copyFileSync(path.join(MIGRATIONS, filename), path.join(dir, filename));
+  }
+  return dir;
+}
+
 function raw(filename = ':memory:') {
   const db = new Database(filename);
   db.pragma('foreign_keys = ON');
@@ -78,11 +88,11 @@ const insertAdmin = (db, email = 'a@example.com') =>
     )
     .run(email).lastInsertRowid;
 
-test('a fresh database ends at version 7 with every new table, index and trigger', () => {
+test('a fresh database ends at version 8 with every new table, index and trigger', () => {
   const db = openDatabase({ filename: ':memory:' });
   open.push(db);
 
-  assert.equal(db.pragma('user_version', { simple: true }), 7);
+  assert.equal(db.pragma('user_version', { simple: true }), 8);
   for (const table of [
     'admins',
     'admin_sessions',
@@ -104,6 +114,7 @@ test('a fresh database ends at version 7 with every new table, index and trigger
     'idx_admin_sessions_expires_at',
     'idx_pqrs_audit_pqrs_id',
     'idx_pqrs_audit_action_created',
+    'idx_pqrs_audit_request_action_created',
     'idx_pqrs_created_at',
     'idx_pqrs_status',
     'idx_pqrs_type',
@@ -157,7 +168,7 @@ test('the v0.3.1 audit history survives migration without adding non-contract fi
 
   const db = openDatabase({ filename });
   open.push(db);
-  assert.equal(db.pragma('user_version', { simple: true }), 7);
+  assert.equal(db.pragma('user_version', { simple: true }), 8);
   assert.deepEqual(
     db
       .prepare(
@@ -225,7 +236,7 @@ test('a database made by v0.1.3 keeps its requests and case numbers when it is m
   const db = openDatabase({ filename });
   open.push(db);
 
-  assert.equal(db.pragma('user_version', { simple: true }), 7);
+  assert.equal(db.pragma('user_version', { simple: true }), 8);
   assert.deepEqual(db.prepare('SELECT id, case_number, status FROM pqrs ORDER BY id').all(), [
     { id: 1, case_number: 'PQRS-2026-000001', status: 'filed' },
     { id: 2, case_number: 'PQRS-2026-000002', status: 'answered' },
@@ -261,7 +272,7 @@ test('a pre-v0.3.1 database keeps records and sessions and maps legacy full-acce
 
   const db = openDatabase({ filename });
   open.push(db);
-  assert.equal(db.pragma('user_version', { simple: true }), 7);
+  assert.equal(db.pragma('user_version', { simple: true }), 8);
   assert.deepEqual(db.prepare('SELECT email, role FROM admins').all(), [
     { email: 'legacy@example.com', role: 'administrator' },
   ]);
@@ -276,7 +287,7 @@ test('a database from the broken pre-migration schema is repaired and then migra
   db.exec('CREATE TABLE pqrs (case_number TEXT, subject TEXT, type TEXT)');
   db.exec("INSERT INTO pqrs VALUES ('PQRS-2025-000007', 'Old subject', 'claim')");
 
-  assert.equal(runMigrations(db), 7);
+  assert.equal(runMigrations(db), 8);
   assert.deepEqual(db.prepare('SELECT case_number, subject, status FROM pqrs').all(), [
     { case_number: 'PQRS-2025-000007', subject: 'Old subject', status: 'filed' },
   ]);
@@ -286,10 +297,10 @@ test('a database from the broken pre-migration schema is repaired and then migra
 test('running the migrations again does nothing, so a restart is safe', () => {
   const db = raw();
 
-  assert.equal(runMigrations(db), 7);
+  assert.equal(runMigrations(db), 8);
   const adminId = insertAdmin(db);
-  assert.equal(runMigrations(db), 7);
-  assert.equal(runMigrations(db), 7);
+  assert.equal(runMigrations(db), 8);
+  assert.equal(runMigrations(db), 8);
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM admins WHERE id = ?').get(adminId).n, 1);
 });
 
@@ -304,9 +315,27 @@ test('a database file survives being closed and opened again', () => {
   const second = openDatabase({ filename });
   open.push(second);
   assert.equal(second.prepare('SELECT COUNT(*) AS n FROM admins').get().n, 1);
-  assert.equal(second.pragma('user_version', { simple: true }), 7);
+  assert.equal(second.pragma('user_version', { simple: true }), 8);
   second.close();
   removeDatabaseFiles(filename);
+});
+
+test('upgrading from the v0.3.5 schema adds the report index without changing request data', () => {
+  const filename = path.join(tempDir(), 'v035.db');
+  const old = raw(filename);
+  runMigrations(old, releaseSevenMigrations());
+  insertPqrs(old, 'PQRS-2026-000123');
+  old.exec('PRAGMA user_version = 7');
+  old.close();
+
+  const db = openDatabase({ filename });
+  open.push(db);
+  assert.equal(db.pragma('user_version', { simple: true }), 8);
+  assert.deepEqual(db.prepare('SELECT case_number, type FROM pqrs').get(), {
+    case_number: 'PQRS-2026-000123',
+    type: 'claim',
+  });
+  assert.ok(names(db, 'index').includes('idx_pqrs_audit_request_action_created'));
 });
 
 test('a migration that fails leaves the version and the data untouched', () => {

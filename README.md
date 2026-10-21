@@ -8,7 +8,7 @@
 
 A web system to submit, track and manage **PQRS** — _Peticiones, Quejas, Reclamos y Sugerencias_ (Petitions, Complaints, Claims and Suggestions). Built end to end with JavaScript, prioritizing simplicity, no frontend build step and clear architectural boundaries.
 
-**Local implementation: v0.3.4 — Secure attachments and application refinement** — Request attachments are validated, stored outside the public web root, and protected by case-based authorization. Staff can review and download permitted files, and citizens can only access files attached to the request they verified. The implementation is local only and has not been released or deployed; see [docs/security.md](./docs/security.md) before exposing it.
+**Local implementation: v0.4.0 — Reports and operational analytics** — Authorized staff can review request volumes, type and status breakdowns, first-published-response times, and deadline states using persisted data. This implementation is local only; no public release or deployment is claimed. See [docs/api.md](./docs/api.md) for metric definitions and [docs/security.md](./docs/security.md) before exposing the application.
 
 ---
 
@@ -37,10 +37,11 @@ Many organizations still handle feedback, complaints and requests through scatte
 | Audit history of every status change                       | 0.2.0   | Done                |
 | Clean shutdown, Spanish README, isolation regression tests | 0.3.0   | Done                |
 | Staff roles, account management and security settings      | 0.3.1   | Done                |
-| Replies, internal notes, assignment and request audit      | 0.3.2   | In progress         |
+| Replies, internal notes, assignment and request audit      | 0.3.2   | Implemented locally |
 | Configurable business-day deadlines and holiday calendar   | 0.3.3   | Implemented locally |
 | Secure attachments and application refinement              | 0.3.4   | Implemented locally |
-| Emails and reports                                         | 0.3.5+  | Planned             |
+| Transactional email notifications                          | 0.3.5   | Implemented locally |
+| Staff reports and operational analytics                    | 0.4.0   | Implemented locally |
 
 ## ✨ What it does today
 
@@ -59,6 +60,7 @@ Many organizations still handle feedback, complaints and requests through scatte
 - **Staff login** with `scrypt` password hashes, opaque server-side sessions (only the hash of the token is stored), an `HttpOnly` + `SameSite=Strict` cookie (and `Secure` in production), CSRF protection and login rate limits per address and per account.
 - **Protected panel** under `/admin/`: anonymous visitors only see the login page. The panel folder is outside `frontend/`, so the public static handler cannot serve it.
 - **Dashboard**: counters per status, a paginated list with search, filters by status, type and date range, sorting, and a detail page for each request. Responsive and keyboard friendly.
+- **Reports** (`/admin/reports.html`): staff-only UTC-period summaries of request volume, type and current-status distributions, response-time samples, and overdue-rate states. Categories with no matches remain zero; missing response or deadline data is not invented.
 - **Deadline management**: the staff list and detail show on-track, approaching, overdue, completed or unavailable states. Administrators configure each request type's business-day rule and explicit holidays through the protected staff API. Every new request snapshots the rule version, due date and applicable holiday dates; changing the configuration never silently rewrites old requests.
 - **Secure attachments**: uploads are validated by extension, MIME type and file signatures, stored under `data/attachments/` outside the public web root and exposed only through authenticated request-scoped download endpoints. Citizens can access only files attached to the request they verified; staff can access public or internal attachments according to admin permissions. The public metadata is limited to safe names and sizes.
 - **Status workflow** with permitted transitions (`closed` is final) and protection against two people changing the same request.
@@ -68,6 +70,8 @@ Many organizations still handle feedback, complaints and requests through scatte
 - **Security settings** (`/admin/security.html`): change your own password, review active sessions and revoke one or all other sessions. Password changes preserve the current session and revoke the rest.
 - **Append-only account audit**: account, role, password and session-management changes are recorded transactionally, including the request id. Passwords, session tokens and hashes are never included.
 - **Account tool** (`npm run admin`): bootstrap or recover accounts from the server's terminal. There are no default accounts.
+- **Email notifications**: request receipts and published-response notices are queued transactionally in SQLite and retried by the outbox processor when SMTP is enabled. Email delivery does not determine whether a request or response is saved.
+- **Reporting**: `GET /api/admin/reports` uses SQLite aggregates for counts and response time, and the saved deadline/holiday snapshots plus status audit history for deadline state at the selected period end. See the API reference for denominators and historical limitations.
 - Clean shutdown: `Ctrl+C` or `SIGTERM` stop accepting connections, let running requests finish (up to 10 seconds) and close the SQLite database.
 - Demo data and database reset commands for local development.
 - Tests for validation, database and migrations, service, controller, rate limiter, compression, API, authentication, authorization, audit, status helpers and both frontends.
@@ -230,34 +234,28 @@ To run one test file use `npm --prefix backend test -- tests/admin-audit.test.js
 | "Cross-origin request blocked" in the panel              | The page was opened from another address than the server (for example Live Server). Use the server address. |
 | I forgot my password                                     | On the server: `npm run admin -- reset-password --email you@example.com`.                                   |
 
-## 🗺️ Future versions
+## 🗺️ Planned next versions
 
-The goal is a complete PQRS system, built one small, tested step at a time. Version 0.3.2 remains in progress for its staff-panel workflow UI; 0.3.3 deadline management is implemented locally but not released. Later versions remain planned. The order may change. The branch names and the reasons behind each decision are in [ROADMAP.md](./ROADMAP.md).
+The completed v0.3.1–v0.4.0 implementations are local milestones, not statements that they have been publicly released. Future work remains planned, and its order may change. The branch names and reasons behind each decision are in [ROADMAP.md](./ROADMAP.md).
 
-| Version | Work                                                                                                                                                                                                                     |
-| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 0.3.1   | **Staff accounts and roles.** Shipped: role-based access, account management, forced password changes, self-service password changes, session management and account audit.                                              |
-| 0.3.2   | **Replies and internal notes (in progress).** Backend APIs support published citizen responses, private staff notes, assignment, and request-level audit events. The staff-panel UI and audit explorer are not complete. |
-| 0.3.3   | **Deadlines (implemented locally).** Configurable business-day rules and holidays, immutable due-date snapshots, and staff-only deadline indicators.                                                                     |
-| 0.3.4   | **Attachments.** Safe uploads (size, type and content checks, files stored outside the web root) for citizens and staff.                                                                                                 |
-| 0.3.5   | **Email notifications.** Email when a request is received and when it is answered, with an outbox and retries so an email failure never loses a request.                                                                 |
-| 0.4.0   | **Reports.** Requests by type and status over time, average response time, overdue rate.                                                                                                                                 |
-| 0.4.1   | **CSV export.** Streamed export of the filtered list, with protection against formula injection in spreadsheets.                                                                                                         |
-| 0.5.0   | **Quality.** Coverage report, an end-to-end test of the whole flow in a real browser, an automated accessibility check.                                                                                                  |
-| 0.5.1   | **Authentication hardening.** Second factor (TOTP), login limits and sessions that survive a restart and work with more than one server process, a security event log.                                                   |
-| 0.5.2   | **Docker.** Multi-stage image and `docker compose`.                                                                                                                                                                      |
-| 0.5.3   | **Deployment.** Cloud deployment, CI/CD and automatic database backups.                                                                                                                                                  |
-| 0.9.0   | **Release candidate.** Feature freeze, demo data, screenshots and final documentation.                                                                                                                                   |
-| 1.0.0   | **First stable release** with a public demo.                                                                                                                                                                             |
+| Version | Work                                                                                                                                                                   |
+| ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0.4.1   | **CSV export.** Streamed export of the filtered list, with protection against formula injection in spreadsheets.                                                       |
+| 0.5.0   | **Quality.** Coverage report, an end-to-end test of the whole flow in a real browser, an automated accessibility check.                                                |
+| 0.5.1   | **Authentication hardening.** Second factor (TOTP), login limits and sessions that survive a restart and work with more than one server process, a security event log. |
+| 0.5.2   | **Docker.** Multi-stage image and `docker compose`.                                                                                                                    |
+| 0.5.3   | **Deployment.** Cloud deployment, CI/CD and automatic database backups.                                                                                                |
+| 0.9.0   | **Release candidate.** Feature freeze, demo data, screenshots and final documentation.                                                                                 |
+| 1.0.0   | **First stable release** with a public demo.                                                                                                                           |
 
 ### Known limits of the current implementation
 
 These are deliberate and are the reason for some of the versions above:
 
 - Everyone with either staff role can see and change every request; per-request assignment and access restrictions are not implemented.
-- The 0.3.2 API supports responses, notes, and assignments, but the staff panel does not yet provide their workflow UI or a broad audit explorer.
+- The case-detail workflow supports official responses, internal notes and assignments; there is no broad audit explorer.
 - The login limits and the staff sessions are meant for **one server process**. The limit counters live in memory and restart with the server. With several instances behind a load balancer the limits would be per instance (0.5.1).
-- There is no second factor or email, so there is no "forgot my password" link: recovery needs access to the server (0.5.1, 0.3.5).
+- There is no second factor or password-reset email, so there is no "forgot my password" link: recovery needs access to the server (0.5.1). The v0.3.5 notifications are limited to request receipts and published responses.
 - A login counts every attempt toward the account limit, so someone who knows an email can make that account wait. Accounts can still be recovered from the terminal.
 - Logins and failed attempts are not recorded in a security event log. Account, password and session changes are recorded in the append-only account audit; status changes have their own audit. A broader event log is planned for 0.5.1.
 - The same happens with the public lookup: it allows 8 attempts per case number every 15 minutes, so someone who knows a case number can make its real owner wait. No data is exposed by this. See [docs/security.md](./docs/security.md).

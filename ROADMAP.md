@@ -1,12 +1,12 @@
 # Roadmap
 
-Path from **v0.0.1** to **v1.0.0**. Each version is one branch, one pull request and one `git tag`.
+Path from **v0.0.1** to **v1.0.0**. Completed versions have a local commit and tag; publication status is tracked separately.
 
 ## Definition of done (every version)
 
-- Code and tests merged, and `npm run check` is green
+- Code and tests complete, and `npm run check` is green
 - `docs/api.md` and the README status table are updated
-- The changelog has an entry and the release commit is tagged
+- The changelog has an entry and a local tag points to the verified completion commit
 
 ## The plan
 
@@ -21,12 +21,12 @@ Path from **v0.0.1** to **v1.0.0**. Each version is one branch, one pull request
 | 0.1.3   | `chore/http-caching`          | Cache headers for static files and CORS origins from the environment                             | Done                |
 | 0.2.0   | `feat/staff-panel`            | Staff login, protected dashboard, search and filters, status workflow, audit                     | **Done**            |
 | 0.3.0   | `chore/maintenance`           | Clean shutdown, ESM scope of the staff frontend, test-isolation regression tests, Spanish README | **Done**            |
-| 0.3.1   | `feat/v0.3.1-staff-roles`     | Roles, account management in the panel, password changes, session management and audit           | Pending release     |
-| 0.3.2   | `feat/v0.3.2-case-resolution` | Published replies, internal notes, assignment, request-level audit events and staff UI           | In progress         |
+| 0.3.1   | `feat/v0.3.1-staff-roles`     | Roles, account management in the panel, password changes, session management and audit           | Implemented locally |
+| 0.3.2   | `feat/v0.3.2-case-resolution` | Published replies, internal notes, assignment, request-level audit events and focused staff UI   | Implemented locally |
 | 0.3.3   | `feat/deadlines`              | Configurable business-day rules, holidays, immutable due-date snapshots and staff indicators     | Implemented locally |
 | 0.3.4   | `feat/attachments`            | Safe file uploads with size and type limits                                                      | Implemented locally |
-| 0.3.5   | `feat/email-notifications`    | Emails on filing and on answer, with an outbox and retries                                       | Planned             |
-| 0.4.0   | `feat/reports`                | Dashboard of cases by type, status and response time                                             | Planned             |
+| 0.3.5   | `feat/email-notifications`    | Emails on filing and on answer, with an outbox and retries                                       | Implemented locally |
+| 0.4.0   | `feat/reports`                | Staff-only volume, type and status reports, response time and deadline status                    | Implemented locally |
 | 0.4.1   | `feat/csv-export`             | Streamed CSV export with protection against formula injection                                    | Planned             |
 | 0.5.0   | `chore/quality`               | Coverage report, end-to-end smoke test, accessibility check                                      | Planned             |
 | 0.5.1   | `chore/auth-hardening`        | Second factor (TOTP), login limits that survive restarts, security log                           | Planned             |

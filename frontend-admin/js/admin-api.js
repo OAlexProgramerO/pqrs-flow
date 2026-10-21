@@ -98,6 +98,10 @@ export function getStats() {
   return request('/api/admin/stats');
 }
 
+export function getReports(params) {
+  return request(`/api/admin/reports${buildQuery(params)}`);
+}
+
 /** A page of requests. `params` may hold q, status, type, from, to, sort, order, page, pageSize. */
 export function listRequests(params) {
   return request(`/api/admin/pqrs${buildQuery(params)}`);

@@ -29,7 +29,7 @@ Checks that the server is running. Used by the frontend and by monitoring tools.
 {
   "status": "ok",
   "service": "pqrs-flow",
-  "version": "0.3.4",
+  "version": "0.4.0",
   "timestamp": "2026-10-04T12:00:00.000Z"
 }
 ```
@@ -238,7 +238,7 @@ Everything under `/api/admin` is for authorized staff. The public endpoints abov
 | `administrator` | Read and process every request | Full access        | Read and change        |
 | `staff`         | Read and process every request | None               | None                   |
 
-Both roles currently have access to every PQRS; per-request assignment permissions are not implemented. Permissions are checked by the server, not inferred from which controls the frontend displays. Existing accounts are migrated as `administrator` to preserve their previous access; newly-created panel accounts default to `staff`. There must always be at least one active administrator.
+Both roles have access to reports through `pqrs:read` and currently have access to every PQRS; per-request assignment permissions are not implemented. Permissions are checked by the server, not inferred from which controls the frontend displays. Existing accounts are migrated as `administrator` to preserve their previous access; newly-created panel accounts default to `staff`. There must always be at least one active administrator.
 
 ### Authentication model
 
@@ -362,6 +362,63 @@ Account responses include `id`, `email`, `displayName`, `isActive`, `role`, `cre
 ```
 
 Every status is present, with zero when it has no requests.
+
+### `GET /api/admin/reports`
+
+Returns aggregates for the staff reports page. Requires a live staff session and `pqrs:read` (both `administrator` and `staff` roles). The endpoint is read-only; it returns no requester identities, request text, response text, notes, attachment details or email data. As with the rest of `/api`, responses have `Cache-Control: no-store` and `X-Request-Id`.
+
+| Parameter | Rules                                                                               | Default             |
+| --------- | ----------------------------------------------------------------------------------- | ------------------- |
+| `from`    | Real UTC date `YYYY-MM-DD`, included                                                | 29 days before `to` |
+| `to`      | Real UTC date `YYYY-MM-DD`, included; cannot be in the future or before `from`      | Current UTC date    |
+| `type`    | `petition`, `complaint`, `claim` or `suggestion`                                    | All                 |
+| `status`  | `filed`, `in_progress`, `answered` or `closed`; filters the currently stored status | All                 |
+
+Each parameter must appear once as a plain string; unknown or repeated parameters and unsupported enum values return `400` with the normal validation error shape. A range may contain at most 366 UTC calendar dates. The endpoint selects day buckets for ranges up to 31 days, week buckets for 32–183 days and month buckets for longer ranges. Empty buckets and all canonical type and status categories are returned with a count of zero.
+
+**Response `200 OK`**
+
+```json
+{
+  "filters": {
+    "from": "2026-10-01",
+    "to": "2026-10-21",
+    "type": null,
+    "status": null,
+    "bucket": "day"
+  },
+  "totalRequests": 12,
+  "volume": [{ "period": "2026-10-01", "count": 2 }],
+  "byType": { "petition": 4, "complaint": 3, "claim": 3, "suggestion": 2 },
+  "byStatus": { "filed": 5, "in_progress": 3, "answered": 3, "closed": 1 },
+  "responseTime": {
+    "sampleSize": 6,
+    "averageHours": 28.5,
+    "definition": "First official response_published audit event minus request creation time.",
+    "asOf": "2026-10-21"
+  },
+  "deadlines": {
+    "asOf": "2026-10-21",
+    "numeratorOverdue": 2,
+    "denominatorWithDeadline": 10,
+    "ratePercent": 20,
+    "counts": {
+      "overdue": 2,
+      "approaching": 1,
+      "onTime": 3,
+      "completed": 4,
+      "unavailable": 2
+    },
+    "definition": "Overdue requests still open at the end of the selected date, divided by all matching requests with a stored deadline."
+  }
+}
+```
+
+`responseTime` starts at the request's persisted `created_at` and ends at the earliest valid `response_published` event in the append-only `pqrs_audit` table no later than the selected end date. Drafts and internal notes are not official responses. Responses published after the selected end date are not in the sample. `sampleSize` counts requests with a valid published-response event; `averageHours` is `null` when the sample is empty. Closure time is never used as a substitute.
+
+Deadline state is calculated at 23:59:59.999 UTC on `to`, using the existing deadline-state helper and each request's saved due date and holiday snapshot. For historical `to` dates, the latest recorded status transition up to that day reconstructs whether a request was open or completed; the request's current status is used only for the `status` filter and current-status distribution. The overdue numerator is the number of matching requests still open and past due at the selected end date. The denominator is every matching request with a stored deadline, including completed and not-yet-due cases; requests with no stored deadline are counted as `unavailable` and excluded from both numerator and denominator. A null rate means the denominator is zero.
+
+Dates and timestamps use UTC. Requests are selected by creation date within the inclusive range. Existing requests without deadline snapshots remain unavailable; no deadlines are recalculated. Historical deadline state depends on retained status audit records and saved deadline snapshots. The rate is an operational indicator, not a legal conclusion.
 
 ### `GET /api/admin/pqrs`
 

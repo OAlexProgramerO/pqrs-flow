@@ -38,6 +38,7 @@ The `controllers/`, `services/` and `repositories/` folders are created when the
 - **Public data:** staff repositories can load internal fields, but public submission and lookup use explicit response projections and never expose staff-only data or deadline snapshots. The lookup requires both the case number and email.
 - **Deadline snapshots (v0.3.3):** administrators configure rules and explicit holidays in SQLite. A request stores its calculated due date, rule version, policy version and relevant holiday dates when filed. Later configuration changes apply only to new requests; missing rules and pre-migration requests remain deadline-unavailable rather than being silently recalculated.
 - **Attachment storage (v0.3.4):** uploads are stored under `data/attachments/` using opaque server-generated identifiers and a request-scoped directory. Metadata remains in SQLite, but the original filename and stored bytes are kept separate; public downloads are blocked unless the request and identity are authorized, and internal staff files remain private.
+- **Reporting (v0.4.0):** `admin-reports.repository.js` aggregates volume, type, status and response-time data in SQLite. The deadline summary reuses the saved deadline and holiday snapshots with the existing deadline-state helper; historical status is reconstructed from append-only status transitions. Migration `008_reporting_indexes.sql` indexes these audit lookups. Reports expose aggregate values only and do not rewrite requests.
 
 ## Submitting a request (v0.1.0)
 

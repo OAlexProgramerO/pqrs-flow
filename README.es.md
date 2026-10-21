@@ -8,9 +8,9 @@
 
 Un sistema web para radicar, consultar y gestionar **PQRS** — _Peticiones, Quejas, Reclamos y Sugerencias_. Está construido de principio a fin con JavaScript, priorizando la simplicidad, la ausencia de un paso de compilación en el frontend y límites de arquitectura claros.
 
-**Implementación local: v0.3.4 — Adjuntos seguros y refinamiento de la aplicación** — Los archivos adjuntos se validan, se guardan fuera de la raíz web pública y solo se entregan a través de rutas de descarga autorizadas por caso. El personal puede revisar los archivos permitidos y los ciudadanos solo acceden a los adjuntos de la solicitud que verificaron. Este checkout no se ha publicado ni desplegado; lee [docs/security.md](./docs/security.md) antes de exponerlo (ese documento está en inglés).
+**Implementación local: v0.4.0 — Reportes y analítica operativa** — El personal autorizado puede consultar volúmenes, distribuciones por tipo y estado, tiempos hasta la primera respuesta oficial publicada y estados de plazos con datos persistidos. Esta implementación es local; no implica una publicación ni un despliegue. Consulta las definiciones en [docs/api.md](./docs/api.md) y [docs/security.md](./docs/security.md) antes de exponer la aplicación (documentación en inglés).
 
-> Este archivo es la versión en español de [README.md](./README.md). Si algo difiere, el README en inglés y el código son la referencia. Los cambios de la implementación local 0.3.3 están en [CHANGELOG.md](./CHANGELOG.md).
+> Este archivo es la versión en español de [README.md](./README.md). Si algo difiere, el README en inglés y el código son la referencia. Los cambios de la implementación local v0.4.0 están en [CHANGELOG.md](./CHANGELOG.md).
 
 ---
 
@@ -39,10 +39,11 @@ Muchas organizaciones todavía gestionan sugerencias, quejas y solicitudes con c
 | Historial de auditoría de cada cambio de estado                        | 0.2.0   | Hecho                   |
 | Apagado limpio, README en español, pruebas de regresión de aislamiento | 0.3.0   | Hecho                   |
 | Roles, cuentas y seguridad del personal                                | 0.3.1   | Hecho                   |
-| Respuestas, notas internas, asignación y auditoría de solicitudes      | 0.3.2   | En curso                |
+| Respuestas, notas internas, asignación y auditoría de solicitudes      | 0.3.2   | Implementado localmente |
 | Reglas configurables de plazos hábiles y calendario de festivos        | 0.3.3   | Implementado localmente |
 | Adjuntos seguros y refinamiento de la aplicación                       | 0.3.4   | Implementado localmente |
-| Correos y reportes                                                     | 0.3.5+  | Planeado                |
+| Notificaciones transaccionales por correo                              | 0.3.5   | Implementado localmente |
+| Reportes y analítica operativa                                         | 0.4.0   | Implementado localmente |
 
 ## ✨ Qué hace hoy
 
@@ -61,6 +62,7 @@ Muchas organizaciones todavía gestionan sugerencias, quejas y solicitudes con c
 - **Login del personal** con hashes de contraseña `scrypt`, sesiones opacas en el servidor (solo se guarda el hash del token), una cookie `HttpOnly` + `SameSite=Strict` (y `Secure` en producción), protección CSRF y límites de intentos de login por dirección y por cuenta.
 - **Panel protegido** bajo `/admin/`: los visitantes anónimos solo ven la página de login. La carpeta del panel está fuera de `frontend/`, así que el servidor de archivos estáticos público no puede servirla.
 - **Tablero**: contadores por estado, una lista paginada con búsqueda, filtros por estado, tipo y rango de fechas, ordenamiento y una página de detalle para cada solicitud. Adaptable a cualquier pantalla y usable con teclado.
+- **Reportes** (`/admin/reports.html`): resúmenes por periodo UTC de volúmenes, tipos, estados actuales, muestras de tiempos de respuesta y estados de plazos. Las categorías vacías se muestran en cero; no se inventan respuestas ni plazos ausentes.
 - **Gestión de plazos**: la lista y el detalle del personal muestran estados al día, próximos, vencidos, completados o no disponibles. Los administradores configuran reglas de días hábiles por tipo y festivos explícitos mediante la API protegida. Cada solicitud nueva conserva la versión de regla, fecha límite y festivos aplicables; los cambios nunca reescriben plazos históricos.
 - **Flujo de estados** con transiciones permitidas (`closed` es final) y protección cuando dos personas cambian la misma solicitud.
 - **Historial de auditoría**: cada cambio de estado registra quién, de qué estado a cuál, cuándo y con qué identificador de petición. Se guarda en la misma transacción que el cambio, solo se puede agregar (no modificar) y nunca se muestra al público.
@@ -69,6 +71,8 @@ Muchas organizaciones todavía gestionan sugerencias, quejas y solicitudes con c
 - **Seguridad** (`/admin/security.html`): cada persona puede cambiar su contraseña, consultar sus sesiones activas y revocar una o todas las demás sesiones. El cambio de contraseña conserva la sesión actual y revoca las demás.
 - **Auditoría de solo adición de cuentas**: los cambios de cuenta, rol, contraseña y sesiones se registran en transacciones, con el identificador de petición. Nunca se guardan contraseñas, tokens ni hashes en la auditoría.
 - **Herramienta de cuentas** (`npm run admin`): permite crear la primera cuenta o recuperarla desde la terminal del servidor. No hay cuentas por defecto.
+- **Notificaciones por correo**: las constancias de radicación y los avisos de respuestas publicadas se encolan en SQLite dentro de transacciones y se reintentan con la bandeja de salida cuando SMTP está habilitado. El correo no determina si se guarda la solicitud o la respuesta.
+- **Reportes**: `GET /api/admin/reports` usa agregaciones de SQLite y, para los plazos, las instantáneas guardadas y el historial de estados. La referencia de API explica denominadores y limitaciones históricas.
 - Apagado limpio: `Ctrl+C` o `SIGTERM` dejan de aceptar conexiones, permiten terminar las peticiones en curso (hasta 10 segundos) y cierran la base de datos SQLite.
 - Datos de demostración y comandos para reiniciar la base de datos en desarrollo local.
 - Pruebas de validación, base de datos y migraciones, servicio, controlador, limitador de frecuencia, compresión, API, autenticación, autorización, auditoría, utilidades de estado y ambos frontends.
@@ -233,18 +237,12 @@ Para ejecutar un solo archivo de pruebas usa `npm --prefix backend test -- tests
 | "Cross-origin request blocked" en el panel             | La página se abrió desde una dirección distinta a la del servidor (por ejemplo Live Server). Usa la dirección del servidor. |
 | Olvidé mi contraseña                                   | En el servidor: `npm run admin -- reset-password --email you@example.com`.                                                  |
 
-## 🗺️ Versiones futuras
+## 🗺️ Próximas versiones planeadas
 
-El objetivo es un sistema PQRS completo, construido un paso pequeño y probado a la vez. La versión 0.3.2 sigue en curso para completar la interfaz de trabajo del personal; la gestión de plazos 0.3.3 está implementada localmente, pero aún no se publica. Las versiones posteriores siguen planeadas. El orden puede cambiar. Los nombres de las ramas y las razones de cada decisión están en [ROADMAP.md](./ROADMAP.md).
+Las implementaciones v0.3.1–v0.4.0 son hitos locales; esto no afirma que se hayan publicado. El trabajo futuro sigue planeado y su orden puede cambiar. Los nombres de las ramas y las razones de cada decisión están en [ROADMAP.md](./ROADMAP.md).
 
 | Versión | Trabajo                                                                                                                                                                                                      |
 | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 0.3.1   | **Cuentas y roles del personal.** Entregado: acceso por roles, gestión de cuentas, cambios obligatorios de contraseña, cambio propio, gestión de sesiones y auditoría de cuentas.                            |
-| 0.3.2   | **Respuestas y notas internas.** El texto de respuesta que la ciudadanía puede leer al consultar, notas privadas entre el personal, asignación de una solicitud a una persona y visor de auditoría de PQRS.  |
-| 0.3.3   | **Plazos (implementado localmente).** Reglas configurables de días hábiles y festivos, instantáneas inmutables de fechas límite e indicadores solo para el personal.                                         |
-| 0.3.4   | **Adjuntos.** Cargas seguras (verificación de tamaño, tipo y contenido, archivos fuera de la raíz web) para ciudadanos y personal.                                                                           |
-| 0.3.5   | **Notificaciones por correo.** Correo al recibir una solicitud y al responderla, con una bandeja de salida y reintentos para que un fallo de correo nunca pierda una solicitud.                              |
-| 0.4.0   | **Reportes.** Solicitudes por tipo y estado a lo largo del tiempo, tiempo promedio de respuesta, tasa de vencimiento.                                                                                        |
 | 0.4.1   | **Exportación CSV.** Exportación en flujo de la lista filtrada, con protección contra la inyección de fórmulas en hojas de cálculo.                                                                          |
 | 0.5.0   | **Calidad.** Informe de cobertura, una prueba de extremo a extremo de todo el flujo en un navegador real, una verificación automática de accesibilidad.                                                      |
 | 0.5.1   | **Endurecimiento de la autenticación.** Segundo factor (TOTP), límites de login y sesiones que sobreviven a un reinicio y funcionan con más de un proceso del servidor, un registro de eventos de seguridad. |
@@ -258,9 +256,9 @@ El objetivo es un sistema PQRS completo, construido un paso pequeño y probado a
 Son deliberados y son la razón de algunas de las versiones anteriores:
 
 - Todos los usuarios activos de ambos roles pueden ver y modificar todas las solicitudes; todavía no hay restricciones por asignación.
-- El personal puede cambiar el estado, pero todavía no puede escribir una respuesta al ciudadano ni notas (0.3.2).
+- La vista de detalle permite respuestas oficiales, notas internas y asignaciones; aún no hay un explorador amplio de auditoría.
 - Los límites de login y las sesiones del personal están pensados para **un solo proceso del servidor**. Los contadores de límites viven en memoria y se reinician con el servidor. Con varias instancias detrás de un balanceador, los límites serían por instancia (0.5.1).
-- No hay segundo factor ni correo, por lo que no existe un enlace de "olvidé mi contraseña": la recuperación requiere acceso al servidor (0.5.1, 0.3.5).
+- No hay segundo factor ni correo de restablecimiento de contraseña, por lo que la recuperación requiere acceso al servidor (0.5.1). Los avisos v0.3.5 se limitan a radicaciones y respuestas publicadas.
 - Un login cuenta cada intento para el límite de la cuenta, así que quien conozca un correo puede hacer esperar a esa cuenta. El personal aún puede recuperarse desde la terminal.
 - Los inicios de sesión y sus fallos no se registran en una bitácora de eventos de seguridad. Los cambios de cuenta, contraseña y sesiones sí quedan en la auditoría append-only de cuentas; los cambios de estado tienen su propia auditoría. Una bitácora de eventos más amplia está planeada para 0.5.1.
 - Lo mismo ocurre con la consulta pública: permite 8 intentos por número de caso cada 15 minutos, así que quien conozca un número de caso puede hacer esperar a su verdadero dueño. Esto no expone ningún dato. Ver [docs/security.md](./docs/security.md).
