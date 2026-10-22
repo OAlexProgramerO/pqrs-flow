@@ -54,7 +54,7 @@ function createPeriods(startDate, endDate, bucket) {
   return periods;
 }
 
-function validateReportQuery(query, now) {
+export function validateReportQuery(query, now) {
   const errors = {};
   const allowed = new Set(['from', 'to', 'type', 'status']);
 

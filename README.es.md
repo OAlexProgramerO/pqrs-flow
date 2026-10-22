@@ -8,9 +8,9 @@
 
 Un sistema web para radicar, consultar y gestionar **PQRS** — _Peticiones, Quejas, Reclamos y Sugerencias_. Está construido de principio a fin con JavaScript, priorizando la simplicidad, la ausencia de un paso de compilación en el frontend y límites de arquitectura claros.
 
-**Implementación local: v0.4.0 — Reportes y analítica operativa** — El personal autorizado puede consultar volúmenes, distribuciones por tipo y estado, tiempos hasta la primera respuesta oficial publicada y estados de plazos con datos persistidos. Esta implementación es local; no implica una publicación ni un despliegue. Consulta las definiciones en [docs/api.md](./docs/api.md) y [docs/security.md](./docs/security.md) antes de exponer la aplicación (documentación en inglés).
+**Implementación local: v0.4.1 — Exportación CSV segura** — El personal autorizado puede consultar reportes operativos y descargar un CSV filtrado y limitado con una lista mínima de campos de solicitudes. Esta implementación es local; no implica una publicación ni un despliegue. Consulta los filtros y detalles en [docs/api.md](./docs/api.md) y [docs/security.md](./docs/security.md) antes de exponer la aplicación (documentación en inglés).
 
-> Este archivo es la versión en español de [README.md](./README.md). Si algo difiere, el README en inglés y el código son la referencia. Los cambios de la implementación local v0.4.0 están en [CHANGELOG.md](./CHANGELOG.md).
+> Este archivo es la versión en español de [README.md](./README.md). Si algo difiere, el README en inglés y el código son la referencia. Los cambios de la implementación local v0.4.1 están en [CHANGELOG.md](./CHANGELOG.md).
 
 ---
 
@@ -44,6 +44,7 @@ Muchas organizaciones todavía gestionan sugerencias, quejas y solicitudes con c
 | Adjuntos seguros y refinamiento de la aplicación                       | 0.3.4   | Implementado localmente |
 | Notificaciones transaccionales por correo                              | 0.3.5   | Implementado localmente |
 | Reportes y analítica operativa                                         | 0.4.0   | Implementado localmente |
+| Exportación CSV filtrada del personal con mitigación de fórmulas       | 0.4.1   | Implementado localmente |
 
 ## ✨ Qué hace hoy
 
@@ -63,6 +64,7 @@ Muchas organizaciones todavía gestionan sugerencias, quejas y solicitudes con c
 - **Panel protegido** bajo `/admin/`: los visitantes anónimos solo ven la página de login. La carpeta del panel está fuera de `frontend/`, así que el servidor de archivos estáticos público no puede servirla.
 - **Tablero**: contadores por estado, una lista paginada con búsqueda, filtros por estado, tipo y rango de fechas, ordenamiento y una página de detalle para cada solicitud. Adaptable a cualquier pantalla y usable con teclado.
 - **Reportes** (`/admin/reports.html`): resúmenes por periodo UTC de volúmenes, tipos, estados actuales, muestras de tiempos de respuesta y estados de plazos. Las categorías vacías se muestran en cero; no se inventan respuestas ni plazos ausentes.
+- **Exportación CSV**: la página de reportes descarga las solicitudes coincidentes mediante `GET /api/admin/pqrs/export.csv`. Reutiliza los filtros UTC de fecha, tipo y estado actual, e incluye solo número de caso, tipo, asunto, estado actual y fecha de radicación. Si coinciden más de 5.000 registros, rechaza la exportación en lugar de truncarla. Excluye datos de contacto, descripciones y datos de tablas relacionadas.
 - **Gestión de plazos**: la lista y el detalle del personal muestran estados al día, próximos, vencidos, completados o no disponibles. Los administradores configuran reglas de días hábiles por tipo y festivos explícitos mediante la API protegida. Cada solicitud nueva conserva la versión de regla, fecha límite y festivos aplicables; los cambios nunca reescriben plazos históricos.
 - **Flujo de estados** con transiciones permitidas (`closed` es final) y protección cuando dos personas cambian la misma solicitud.
 - **Historial de auditoría**: cada cambio de estado registra quién, de qué estado a cuál, cuándo y con qué identificador de petición. Se guarda en la misma transacción que el cambio, solo se puede agregar (no modificar) y nunca se muestra al público.
@@ -239,11 +241,10 @@ Para ejecutar un solo archivo de pruebas usa `npm --prefix backend test -- tests
 
 ## 🗺️ Próximas versiones planeadas
 
-Las implementaciones v0.3.1–v0.4.0 son hitos locales; esto no afirma que se hayan publicado. El trabajo futuro sigue planeado y su orden puede cambiar. Los nombres de las ramas y las razones de cada decisión están en [ROADMAP.md](./ROADMAP.md).
+Las implementaciones v0.3.1–v0.4.1 son hitos locales; esto no afirma que se hayan publicado. El trabajo futuro sigue planeado y su orden puede cambiar. Los nombres de las ramas y las razones de cada decisión están en [ROADMAP.md](./ROADMAP.md).
 
 | Versión | Trabajo                                                                                                                                                                                                      |
 | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 0.4.1   | **Exportación CSV.** Exportación en flujo de la lista filtrada, con protección contra la inyección de fórmulas en hojas de cálculo.                                                                          |
 | 0.5.0   | **Calidad.** Informe de cobertura, una prueba de extremo a extremo de todo el flujo en un navegador real, una verificación automática de accesibilidad.                                                      |
 | 0.5.1   | **Endurecimiento de la autenticación.** Segundo factor (TOTP), límites de login y sesiones que sobreviven a un reinicio y funcionan con más de un proceso del servidor, un registro de eventos de seguridad. |
 | 0.5.2   | **Docker.** Imagen multi-etapa y `docker compose`.                                                                                                                                                           |

@@ -1,5 +1,6 @@
 import { createEmailNotificationRepository } from './email-notifications.repository.js';
 import { STATUSES } from '../services/status-workflow.js';
+import { CSV_EXPORT_MAX_ROWS } from '../services/csv-export.js';
 
 export const SORT_COLUMNS = Object.freeze({
   createdAt: 'created_at',
@@ -289,6 +290,39 @@ export function createAdminPqrsRepository(db) {
         .all({ ...params, limit: filters.pageSize, offset: (filters.page - 1) * filters.pageSize });
 
       return { items, totalItems: total };
+    },
+
+    listForCsvExport({ startAt, endExclusive, type, status }) {
+      const conditions = ['p.created_at >= @startAt', 'p.created_at < @endExclusive'];
+      const params = {
+        startAt,
+        endExclusive,
+        limit: CSV_EXPORT_MAX_ROWS + 1,
+      };
+
+      if (type) {
+        conditions.push('p.type = @type');
+        params.type = type;
+      }
+      if (status) {
+        conditions.push('p.status = @status');
+        params.status = status;
+      }
+
+      return db
+        .prepare(
+          `SELECT
+             p.case_number AS caseNumber,
+             p.type,
+             p.subject,
+             p.status,
+             p.created_at AS createdAt
+           FROM pqrs p
+           WHERE ${conditions.join(' AND ')}
+           ORDER BY p.created_at ASC, p.case_number ASC, p.id ASC
+           LIMIT @limit`,
+        )
+        .all(params);
     },
 
     countsByStatus() {

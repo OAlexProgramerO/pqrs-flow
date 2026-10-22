@@ -4,6 +4,20 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [SemVer](h
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-10-22
+
+### Added
+
+- Authenticated `GET /api/admin/pqrs/export.csv`, integrated with the staff reports filters and protected by the existing `pqrs:read` permission.
+- A bounded CSV export of at most 5,000 requests with explicit, minimized columns: case number, request type, subject, current status and UTC submission timestamp.
+- CSV serializer and API tests for authorization, filters, deterministic ordering, formula injection, privacy, row limits and download headers.
+
+### Changed
+
+- CSV fields are quoted and escaped with UTF-8 encoding and CRLF record endings. Subject text that begins with formula characters, including after whitespace or control characters, is prefixed with an apostrophe; this is a defense-in-depth measure whose behavior can vary across spreadsheet applications.
+- The export uses the reports page's inclusive UTC date, type and current-status filters. Exports above 5,000 matching records are rejected instead of silently truncated.
+- Package metadata, English and Spanish READMEs, roadmap, API, security and architecture documentation describe the local v0.4.1 implementation. No public release or deployment is claimed.
+
 ## [0.4.0] - 2026-10-21
 
 ### Added

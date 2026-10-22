@@ -29,7 +29,7 @@ Checks that the server is running. Used by the frontend and by monitoring tools.
 {
   "status": "ok",
   "service": "pqrs-flow",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "timestamp": "2026-10-04T12:00:00.000Z"
 }
 ```
@@ -419,6 +419,37 @@ Each parameter must appear once as a plain string; unknown or repeated parameter
 Deadline state is calculated at 23:59:59.999 UTC on `to`, using the existing deadline-state helper and each request's saved due date and holiday snapshot. For historical `to` dates, the latest recorded status transition up to that day reconstructs whether a request was open or completed; the request's current status is used only for the `status` filter and current-status distribution. The overdue numerator is the number of matching requests still open and past due at the selected end date. The denominator is every matching request with a stored deadline, including completed and not-yet-due cases; requests with no stored deadline are counted as `unavailable` and excluded from both numerator and denominator. A null rate means the denominator is zero.
 
 Dates and timestamps use UTC. Requests are selected by creation date within the inclusive range. Existing requests without deadline snapshots remain unavailable; no deadlines are recalculated. Historical deadline state depends on retained status audit records and saved deadline snapshots. The rate is an operational indicator, not a legal conclusion.
+
+### `GET /api/admin/pqrs/export.csv`
+
+Downloads the matching requests as a CSV file. It requires a live staff session and `pqrs:read`; both the `administrator` and `staff` roles have this permission. The request is read-only and follows the staff API's same-origin, session, no-store and request-id middleware. The session cookie is sent by the browser; do not put session or CSRF tokens in the URL. This safe `GET` does not require a CSRF header.
+
+The endpoint uses the same filters and validation as `GET /api/admin/reports`:
+
+| Parameter | Rules                                                                             | Default             |
+| --------- | --------------------------------------------------------------------------------- | ------------------- |
+| `from`    | Real UTC date `YYYY-MM-DD`, included; must not be after `to`                      | 29 days before `to` |
+| `to`      | Real UTC date `YYYY-MM-DD`, included; cannot be in the future                     | Current UTC date    |
+| `type`    | `petition`, `complaint`, `claim` or `suggestion`                                  | All types           |
+| `status`  | `filed`, `in_progress`, `answered` or `closed`; matches the current stored status | All statuses        |
+
+Each parameter must appear once as a plain string. Unknown or repeated parameters, invalid date ranges and unsupported enum values return `400` using the normal validation error shape. Dates are inclusive UTC calendar dates and the range may contain at most 366 dates. Search terms and the dashboard's sort, assignment and pagination options are not supported.
+
+The deterministic row order is submission timestamp ascending, case number ascending, then internal row id ascending as a tie-breaker. The internal id is not exported. The fixed column order and allowlist are:
+
+1. `Case number`
+2. `Request type`
+3. `Subject`
+4. `Current status`
+5. `Submitted at (UTC)`
+
+Requester name, email, description, response text, internal notes, assignments, audit records, deadline configuration, attachments, notification data, account/session data and operational configuration are not exported. The subject is included because it identifies the request's administrative topic; it is treated as untrusted text for spreadsheet-safety purposes. Null or malformed structured values are empty cells. Empty result sets contain the header row only.
+
+The body is UTF-8 CSV with a UTF-8 BOM, CRLF record endings, quoted fields and escaped double quotes. Submission timestamps use ISO 8601 UTC (`YYYY-MM-DDTHH:mm:ss.sssZ`). The download filename is `pqrs-requests.csv`, with `Content-Disposition: attachment`; private responses use `Cache-Control: no-store`.
+
+CSV quoting protects the column layout, but does not itself stop spreadsheet formulas. A subject beginning with `=`, `+`, `-` or `@`, including after leading whitespace or control characters, receives a leading apostrophe before CSV quoting. This common mitigation helps prevent formula execution, but spreadsheet applications differ in how they import CSV and no text-only CSV strategy guarantees identical behavior everywhere. Verify imports in the spreadsheet application used by your organization.
+
+The server retrieves at most 5,001 projected rows. If more than 5,000 records match, the endpoint rejects the export with `413` and a safe message instead of returning a misleading partial file. Narrow the date range or select a type or status. Invalid filters return `400`; anonymous requests return `401`; users lacking the permission receive `403`; unexpected server errors return the generic API error response. No SQL, filesystem or stack details are returned.
 
 ### `GET /api/admin/pqrs`
 

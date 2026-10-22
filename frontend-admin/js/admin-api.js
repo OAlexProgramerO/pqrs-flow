@@ -102,6 +102,46 @@ export function getReports(params) {
   return request(`/api/admin/reports${buildQuery(params)}`);
 }
 
+export async function downloadCsv(params) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(`/api/admin/pqrs/export.csv${buildQuery(params)}`, {
+      credentials: 'same-origin',
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => null);
+      throw new AdminApiError('CSV export could not be completed.', {
+        status: response.status,
+        details: data?.details,
+      });
+    }
+    if (!response.headers.get('Content-Type')?.toLowerCase().includes('text/csv')) {
+      throw new AdminApiError('The server returned an unexpected export response.');
+    }
+
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'pqrs-requests.csv';
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (error) {
+    if (error instanceof AdminApiError) throw error;
+    throw new AdminApiError(
+      error.name === 'AbortError'
+        ? 'The server took too long to prepare the export. Please try again.'
+        : 'Cannot download the export. Check your connection and try again.',
+    );
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /** A page of requests. `params` may hold q, status, type, from, to, sort, order, page, pageSize. */
 export function listRequests(params) {
   return request(`/api/admin/pqrs${buildQuery(params)}`);

@@ -4,6 +4,7 @@ import { createAdminAuthController } from '../controllers/admin-auth.controller.
 import { createAdminAccountController } from '../controllers/admin-account.controller.js';
 import { createAdminPqrsController } from '../controllers/admin-pqrs.controller.js';
 import { createAdminReportsController } from '../controllers/admin-reports.controller.js';
+import { createAdminCsvExportController } from '../controllers/admin-csv-export.controller.js';
 import { createAttachmentController } from '../controllers/attachments.controller.js';
 import { createDeadlinesController } from '../controllers/deadlines.controller.js';
 import { createAttachmentRepository } from '../repositories/attachments.repository.js';
@@ -52,6 +53,10 @@ export function createAdminRoutes({
   });
   const reports = createAdminReportsController({
     getRepository: () => getAdmin().adminReportsRepository,
+    getNow,
+  });
+  const csvExport = createAdminCsvExportController({
+    getRepository: () => getAdmin().adminPqrsRepository,
     getNow,
   });
   const attachments = createAttachmentController({
@@ -137,6 +142,7 @@ export function createAdminRoutes({
   );
   router.get('/stats', pqrs.summary);
   router.get('/reports', reports.get);
+  router.get('/pqrs/export.csv', csvExport.get);
   router.get('/pqrs', pqrs.list);
   router.get('/pqrs/:caseNumber', pqrs.detail);
   router.get(

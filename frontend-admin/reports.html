@@ -76,9 +76,16 @@
             <button type="submit" class="btn btn-primary" id="refreshReportBtn">
               Refresh report
             </button>
+            <button type="button" class="btn btn-secondary" id="exportCsvBtn">Download CSV</button>
           </div>
         </form>
         <p id="reportState" class="message" role="status" aria-live="polite" hidden></p>
+        <p>
+          The CSV contains matching requests only: case number, request type, subject, current
+          status and submission time. It does not include requester contact details, descriptions,
+          internal notes, attachments or staff data. Exports are limited to 5,000 records.
+        </p>
+        <p id="exportState" class="message" role="status" aria-live="polite" hidden></p>
       </section>
 
       <section aria-labelledby="summary-title">

@@ -6,6 +6,7 @@ import {
   AdminApiError,
   buildQuery,
   changeStatus,
+  downloadCsv,
   getRequest,
   getSession,
   listRequests,
@@ -20,9 +21,19 @@ after(() => app.close());
 
 const adminDir = path.resolve(import.meta.dirname, '../../frontend-admin');
 const originalFetch = globalThis.fetch;
+const originalDocument = globalThis.document;
+const originalCreateObjectURL = URL.createObjectURL;
+const originalRevokeObjectURL = URL.revokeObjectURL;
+const originalSetTimeout = globalThis.setTimeout;
 // Each test that mocks fetch gets the real one back afterwards
 afterEach(() => {
   globalThis.fetch = originalFetch;
+  globalThis.document = originalDocument;
+  if (originalCreateObjectURL) URL.createObjectURL = originalCreateObjectURL;
+  else delete URL.createObjectURL;
+  if (originalRevokeObjectURL) URL.revokeObjectURL = originalRevokeObjectURL;
+  else delete URL.revokeObjectURL;
+  globalThis.setTimeout = originalSetTimeout;
 });
 
 // ---------- Pages ----------
@@ -134,6 +145,15 @@ test('the detail page has the data, the status form and the history', async () =
   }
   assert.match(text, /<label for="newStatus">/);
   assert.match(text, /The submission date is day zero/);
+});
+
+test('the reports page explains the CSV allowlist and exposes an accessible export action', async () => {
+  const { text } = await staff.get('/admin/reports.html');
+
+  assert.match(text, /id="exportCsvBtn"/);
+  assert.match(text, />\s*Download CSV\s*</);
+  assert.match(text, /5,000 records/);
+  assert.match(text, /id="exportState" class="message" role="status" aria-live="polite"/);
 });
 
 test('the staff pages link to each other and to the login page paths that exist', async () => {
@@ -297,6 +317,75 @@ test('listRequests builds the query string from the filters', async () => {
   await listRequests({ q: 'tax', status: '', page: 3, pageSize: 50 });
 
   assert.equal(calls[0].url, '/api/admin/pqrs?q=tax&page=3&pageSize=50');
+});
+
+test('CSV downloads reuse report filters and require an actual CSV response', async () => {
+  const calls = [];
+  const clicked = [];
+  const revoked = [];
+  globalThis.document = {
+    createElement: () => ({
+      click() {
+        clicked.push(this.download);
+      },
+    }),
+  };
+  URL.createObjectURL = (blob) => {
+    assert.ok(blob instanceof Blob);
+    return 'blob:test-export';
+  };
+  URL.revokeObjectURL = (url) => revoked.push(url);
+  globalThis.setTimeout = (callback, delay) => {
+    if (delay === 1000) {
+      callback();
+      return 0;
+    }
+    return originalSetTimeout(callback, delay);
+  };
+  globalThis.fetch = async (url, options) => {
+    calls.push({ url, options });
+    return {
+      ok: true,
+      status: 200,
+      headers: { get: () => 'text/csv; charset=utf-8' },
+      blob: async () => new Blob(['"case"']),
+    };
+  };
+
+  await downloadCsv({ from: '2026-01-01', to: '2026-01-31', type: '', status: 'filed' });
+
+  assert.equal(
+    calls[0].url,
+    '/api/admin/pqrs/export.csv?from=2026-01-01&to=2026-01-31&status=filed',
+  );
+  assert.equal(calls[0].options.credentials, 'same-origin');
+  assert.equal(calls[0].options.headers, undefined);
+  assert.deepEqual(clicked, ['pqrs-requests.csv']);
+  assert.deepEqual(revoked, ['blob:test-export']);
+});
+
+test('CSV download errors never turn JSON or unexpected content into a file', async () => {
+  mockFetch(async () => ({
+    ok: false,
+    status: 413,
+    headers: { get: () => 'application/json' },
+    json: async () => ({ error: 'internal detail that should not be shown' }),
+  }));
+
+  await assert.rejects(downloadCsv({}), (error) => {
+    assert.ok(error instanceof AdminApiError);
+    assert.equal(error.status, 413);
+    assert.equal(error.message, 'CSV export could not be completed.');
+    return true;
+  });
+
+  mockFetch(async () => ({
+    ok: true,
+    status: 200,
+    headers: { get: () => 'application/json' },
+    blob: async () => new Blob(['not csv']),
+  }));
+  await assert.rejects(downloadCsv({}), /unexpected export response/);
 });
 
 test('logout answers 204 with no body and forgets the CSRF token', async () => {

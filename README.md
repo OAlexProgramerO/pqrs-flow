@@ -8,7 +8,7 @@
 
 A web system to submit, track and manage **PQRS** — _Peticiones, Quejas, Reclamos y Sugerencias_ (Petitions, Complaints, Claims and Suggestions). Built end to end with JavaScript, prioritizing simplicity, no frontend build step and clear architectural boundaries.
 
-**Local implementation: v0.4.0 — Reports and operational analytics** — Authorized staff can review request volumes, type and status breakdowns, first-published-response times, and deadline states using persisted data. This implementation is local only; no public release or deployment is claimed. See [docs/api.md](./docs/api.md) for metric definitions and [docs/security.md](./docs/security.md) before exposing the application.
+**Local implementation: v0.4.1 — Secure CSV export** — Authorized staff can review operational reports and download a bounded, filtered CSV containing a minimized request-field allowlist. This implementation is local only; no public release or deployment is claimed. See [docs/api.md](./docs/api.md) for filters and export details and [docs/security.md](./docs/security.md) before exposing the application.
 
 ---
 
@@ -24,24 +24,25 @@ Many organizations still handle feedback, complaints and requests through scatte
 
 ### Project status
 
-| Feature                                                    | Version | Status              |
-| ---------------------------------------------------------- | ------- | ------------------- |
-| Express server, health endpoint, static site               | 0.0.1   | Done                |
-| Submission form with client-side validation                | 0.0.2   | Done                |
-| Database, migrations and repository                        | 0.0.3   | Done                |
-| `POST /api/pqrs`, form connected to the API, case number   | 0.1.0   | Done                |
-| Status lookup with case number and email                   | 0.1.1   | Done                |
-| Rate limit for submissions, compression, proxy settings    | 0.1.2   | Done                |
-| Cache headers for static files, CORS from the environment  | 0.1.3   | Done                |
-| Staff panel: login, dashboard, search, status changes      | 0.2.0   | Done                |
-| Audit history of every status change                       | 0.2.0   | Done                |
-| Clean shutdown, Spanish README, isolation regression tests | 0.3.0   | Done                |
-| Staff roles, account management and security settings      | 0.3.1   | Done                |
-| Replies, internal notes, assignment and request audit      | 0.3.2   | Implemented locally |
-| Configurable business-day deadlines and holiday calendar   | 0.3.3   | Implemented locally |
-| Secure attachments and application refinement              | 0.3.4   | Implemented locally |
-| Transactional email notifications                          | 0.3.5   | Implemented locally |
-| Staff reports and operational analytics                    | 0.4.0   | Implemented locally |
+| Feature                                                       | Version | Status              |
+| ------------------------------------------------------------- | ------- | ------------------- |
+| Express server, health endpoint, static site                  | 0.0.1   | Done                |
+| Submission form with client-side validation                   | 0.0.2   | Done                |
+| Database, migrations and repository                           | 0.0.3   | Done                |
+| `POST /api/pqrs`, form connected to the API, case number      | 0.1.0   | Done                |
+| Status lookup with case number and email                      | 0.1.1   | Done                |
+| Rate limit for submissions, compression, proxy settings       | 0.1.2   | Done                |
+| Cache headers for static files, CORS from the environment     | 0.1.3   | Done                |
+| Staff panel: login, dashboard, search, status changes         | 0.2.0   | Done                |
+| Audit history of every status change                          | 0.2.0   | Done                |
+| Clean shutdown, Spanish README, isolation regression tests    | 0.3.0   | Done                |
+| Staff roles, account management and security settings         | 0.3.1   | Done                |
+| Replies, internal notes, assignment and request audit         | 0.3.2   | Implemented locally |
+| Configurable business-day deadlines and holiday calendar      | 0.3.3   | Implemented locally |
+| Secure attachments and application refinement                 | 0.3.4   | Implemented locally |
+| Transactional email notifications                             | 0.3.5   | Implemented locally |
+| Staff reports and operational analytics                       | 0.4.0   | Implemented locally |
+| Filtered staff CSV export with spreadsheet formula mitigation | 0.4.1   | Implemented locally |
 
 ## ✨ What it does today
 
@@ -61,6 +62,7 @@ Many organizations still handle feedback, complaints and requests through scatte
 - **Protected panel** under `/admin/`: anonymous visitors only see the login page. The panel folder is outside `frontend/`, so the public static handler cannot serve it.
 - **Dashboard**: counters per status, a paginated list with search, filters by status, type and date range, sorting, and a detail page for each request. Responsive and keyboard friendly.
 - **Reports** (`/admin/reports.html`): staff-only UTC-period summaries of request volume, type and current-status distributions, response-time samples, and overdue-rate states. Categories with no matches remain zero; missing response or deadline data is not invented.
+- **CSV export**: the reports page downloads matching requests through `GET /api/admin/pqrs/export.csv`. The export reuses the report's UTC date, type and current-status filters, contains only case number, request type, subject, current status and submission time, and rejects more than 5,000 matching rows rather than truncating. Requester contact details, descriptions and data from related tables are excluded.
 - **Deadline management**: the staff list and detail show on-track, approaching, overdue, completed or unavailable states. Administrators configure each request type's business-day rule and explicit holidays through the protected staff API. Every new request snapshots the rule version, due date and applicable holiday dates; changing the configuration never silently rewrites old requests.
 - **Secure attachments**: uploads are validated by extension, MIME type and file signatures, stored under `data/attachments/` outside the public web root and exposed only through authenticated request-scoped download endpoints. Citizens can access only files attached to the request they verified; staff can access public or internal attachments according to admin permissions. The public metadata is limited to safe names and sizes.
 - **Status workflow** with permitted transitions (`closed` is final) and protection against two people changing the same request.
@@ -236,11 +238,10 @@ To run one test file use `npm --prefix backend test -- tests/admin-audit.test.js
 
 ## 🗺️ Planned next versions
 
-The completed v0.3.1–v0.4.0 implementations are local milestones, not statements that they have been publicly released. Future work remains planned, and its order may change. The branch names and reasons behind each decision are in [ROADMAP.md](./ROADMAP.md).
+The completed v0.3.1–v0.4.1 implementations are local milestones, not statements that they have been publicly released. Future work remains planned, and its order may change. The branch names and reasons behind each decision are in [ROADMAP.md](./ROADMAP.md).
 
 | Version | Work                                                                                                                                                                   |
 | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0.4.1   | **CSV export.** Streamed export of the filtered list, with protection against formula injection in spreadsheets.                                                       |
 | 0.5.0   | **Quality.** Coverage report, an end-to-end test of the whole flow in a real browser, an automated accessibility check.                                                |
 | 0.5.1   | **Authentication hardening.** Second factor (TOTP), login limits and sessions that survive a restart and work with more than one server process, a security event log. |
 | 0.5.2   | **Docker.** Multi-stage image and `docker compose`.                                                                                                                    |

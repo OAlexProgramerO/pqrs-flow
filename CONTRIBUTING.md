@@ -26,6 +26,8 @@ npm run dev
 
 To run a single test file, go through npm: `npm --prefix backend test -- tests/admin-audit.test.js`. That gives the tests a temporary database. Running `node --test` by hand can open `data/pqrs.db` of your machine.
 
+The focused CSV export checks are `npm --prefix backend test -- tests/csv-export-serializer.test.js tests/admin-csv-export.test.js`. Run `npm run check` after focused tests to validate the full project.
+
 ## Working directly on main
 
 Branches and pull requests are the safest way to work. If you commit straight to `main`, these rules keep it green:

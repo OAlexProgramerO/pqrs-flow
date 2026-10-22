@@ -1,4 +1,4 @@
-import { AdminApiError, getReports } from './admin-api.js';
+import { AdminApiError, downloadCsv, getReports } from './admin-api.js';
 import { describeFailure } from './messages.js';
 import { goToLogin, isUnauthorized, startSession } from './session.js';
 
@@ -191,10 +191,41 @@ async function refresh() {
   }
 }
 
+async function exportCsv() {
+  const button = document.getElementById('exportCsvBtn');
+  const state = document.getElementById('exportState');
+  button.disabled = true;
+  state.textContent = 'Preparing CSV download…';
+  state.className = 'message';
+  state.hidden = false;
+
+  try {
+    await downloadCsv(readFilters());
+    state.textContent = 'CSV download started.';
+  } catch (error) {
+    if (isUnauthorized(error)) return goToLogin();
+    if (error instanceof AdminApiError && error.status === 400 && error.details) {
+      showFieldErrors(error.details);
+      state.textContent = 'Please correct the highlighted filters before exporting.';
+    } else if (error instanceof AdminApiError && error.status === 403) {
+      state.textContent = 'Your account is not allowed to export these requests.';
+    } else if (error instanceof AdminApiError && error.status === 413) {
+      state.textContent =
+        'More than 5,000 requests match. Narrow the date range or add a type or status filter, then try again.';
+    } else {
+      state.textContent = 'The CSV could not be downloaded. Check your connection and try again.';
+    }
+    state.className = 'message error';
+  } finally {
+    button.disabled = false;
+  }
+}
+
 form.addEventListener('submit', (event) => {
   event.preventDefault();
   refresh();
 });
+document.getElementById('exportCsvBtn').addEventListener('click', exportCsv);
 
 try {
   await startSession();
