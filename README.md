@@ -8,7 +8,7 @@
 
 A web system to submit, track and manage **PQRS** — _Peticiones, Quejas, Reclamos y Sugerencias_ (Petitions, Complaints, Claims and Suggestions). Built end to end with JavaScript, prioritizing simplicity, no frontend build step and clear architectural boundaries.
 
-**Local implementation: v0.4.1 — Secure CSV export** — Authorized staff can review operational reports and download a bounded, filtered CSV containing a minimized request-field allowlist. This implementation is local only; no public release or deployment is claimed. See [docs/api.md](./docs/api.md) for filters and export details and [docs/security.md](./docs/security.md) before exposing the application.
+**Local implementation: v0.5.0 — Quality engineering** — Coverage reporting, a real-browser smoke suite and automated accessibility checks now exercise the public and staff journeys without redesigning the app. This implementation is local only; no public release or deployment is claimed. See [docs/api.md](./docs/api.md) for filters and export details and [docs/security.md](./docs/security.md) before exposing the application.
 
 ---
 
@@ -24,28 +24,32 @@ Many organizations still handle feedback, complaints and requests through scatte
 
 ### Project status
 
-| Feature                                                       | Version | Status              |
-| ------------------------------------------------------------- | ------- | ------------------- |
-| Express server, health endpoint, static site                  | 0.0.1   | Done                |
-| Submission form with client-side validation                   | 0.0.2   | Done                |
-| Database, migrations and repository                           | 0.0.3   | Done                |
-| `POST /api/pqrs`, form connected to the API, case number      | 0.1.0   | Done                |
-| Status lookup with case number and email                      | 0.1.1   | Done                |
-| Rate limit for submissions, compression, proxy settings       | 0.1.2   | Done                |
-| Cache headers for static files, CORS from the environment     | 0.1.3   | Done                |
-| Staff panel: login, dashboard, search, status changes         | 0.2.0   | Done                |
-| Audit history of every status change                          | 0.2.0   | Done                |
-| Clean shutdown, Spanish README, isolation regression tests    | 0.3.0   | Done                |
-| Staff roles, account management and security settings         | 0.3.1   | Done                |
-| Replies, internal notes, assignment and request audit         | 0.3.2   | Implemented locally |
-| Configurable business-day deadlines and holiday calendar      | 0.3.3   | Implemented locally |
-| Secure attachments and application refinement                 | 0.3.4   | Implemented locally |
-| Transactional email notifications                             | 0.3.5   | Implemented locally |
-| Staff reports and operational analytics                       | 0.4.0   | Implemented locally |
-| Filtered staff CSV export with spreadsheet formula mitigation | 0.4.1   | Implemented locally |
+| Feature                                                                   | Version | Status              |
+| ------------------------------------------------------------------------- | ------- | ------------------- |
+| Express server, health endpoint, static site                              | 0.0.1   | Done                |
+| Submission form with client-side validation                               | 0.0.2   | Done                |
+| Database, migrations and repository                                       | 0.0.3   | Done                |
+| `POST /api/pqrs`, form connected to the API, case number                  | 0.1.0   | Done                |
+| Status lookup with case number and email                                  | 0.1.1   | Done                |
+| Rate limit for submissions, compression, proxy settings                   | 0.1.2   | Done                |
+| Cache headers for static files, CORS from the environment                 | 0.1.3   | Done                |
+| Staff panel: login, dashboard, search, status changes                     | 0.2.0   | Done                |
+| Audit history of every status change                                      | 0.2.0   | Done                |
+| Clean shutdown, Spanish README, isolation regression tests                | 0.3.0   | Done                |
+| Staff roles, account management and security settings                     | 0.3.1   | Done                |
+| Replies, internal notes, assignment and request audit                     | 0.3.2   | Implemented locally |
+| Configurable business-day deadlines and holiday calendar                  | 0.3.3   | Implemented locally |
+| Secure attachments and application refinement                             | 0.3.4   | Implemented locally |
+| Transactional email notifications                                         | 0.3.5   | Implemented locally |
+| Staff reports and operational analytics                                   | 0.4.0   | Implemented locally |
+| Filtered staff CSV export with spreadsheet formula mitigation             | 0.4.1   | Implemented locally |
+| Coverage reports, Playwright browser smoke tests and accessibility checks | 0.5.0   | Implemented locally |
 
 ## ✨ What it does today
 
+- Coverage report generated with Node's built-in test coverage tooling and a single command in the backend package.
+- Real-browser smoke tests with Playwright cover the public submission flow, status lookup and staff login workflow.
+- Automated accessibility checks on the critical public and staff screens with `@axe-core/playwright`.
 - Submission form with live validation, a character counter and accessible error messages.
 - The same validation rules run in the browser and on the server (`shared/validation.js`).
 - SQLite storage with versioned migrations. Case numbers are generated atomically, one counter per year.

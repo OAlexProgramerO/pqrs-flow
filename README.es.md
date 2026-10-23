@@ -8,9 +8,9 @@
 
 Un sistema web para radicar, consultar y gestionar **PQRS** — _Peticiones, Quejas, Reclamos y Sugerencias_. Está construido de principio a fin con JavaScript, priorizando la simplicidad, la ausencia de un paso de compilación en el frontend y límites de arquitectura claros.
 
-**Implementación local: v0.4.1 — Exportación CSV segura** — El personal autorizado puede consultar reportes operativos y descargar un CSV filtrado y limitado con una lista mínima de campos de solicitudes. Esta implementación es local; no implica una publicación ni un despliegue. Consulta los filtros y detalles en [docs/api.md](./docs/api.md) y [docs/security.md](./docs/security.md) antes de exponer la aplicación (documentación en inglés).
+**Implementación local: v0.5.0 — Calidad y automatización** — El proyecto ahora incluye reportes de cobertura, una suite de humo con navegador real y comprobaciones automatizadas de accesibilidad para los recorridos públicos y del personal. Esta implementación es local; no implica una publicación ni un despliegue. Consulta los filtros y detalles en [docs/api.md](./docs/api.md) y [docs/security.md](./docs/security.md) antes de exponer la aplicación (documentación en inglés).
 
-> Este archivo es la versión en español de [README.md](./README.md). Si algo difiere, el README en inglés y el código son la referencia. Los cambios de la implementación local v0.4.1 están en [CHANGELOG.md](./CHANGELOG.md).
+> Este archivo es la versión en español de [README.md](./README.md). Si algo difiere, el README en inglés y el código son la referencia. Los cambios de la implementación local v0.5.0 están en [CHANGELOG.md](./CHANGELOG.md).
 
 ---
 
@@ -45,9 +45,13 @@ Muchas organizaciones todavía gestionan sugerencias, quejas y solicitudes con c
 | Notificaciones transaccionales por correo                              | 0.3.5   | Implementado localmente |
 | Reportes y analítica operativa                                         | 0.4.0   | Implementado localmente |
 | Exportación CSV filtrada del personal con mitigación de fórmulas       | 0.4.1   | Implementado localmente |
+| Reportes de cobertura, pruebas de navegador real y accesibilidad       | 0.5.0   | Implementado localmente |
 
 ## ✨ Qué hace hoy
 
+- Informe de cobertura generado con la herramienta nativa de cobertura de Node y un solo comando del paquete backend.
+- Pruebas de humo con navegador real usando Playwright para la radicación pública, la consulta de estado y el inicio de sesión del personal.
+- Comprobaciones automáticas de accesibilidad en las pantallas clave del sitio público y del panel con `@axe-core/playwright`.
 - Formulario de radicación con validación en vivo, contador de caracteres y mensajes de error accesibles.
 - Las mismas reglas de validación se ejecutan en el navegador y en el servidor (`shared/validation.js`).
 - Almacenamiento en SQLite con migraciones versionadas. Los números de caso se generan de forma atómica, con un contador por año.

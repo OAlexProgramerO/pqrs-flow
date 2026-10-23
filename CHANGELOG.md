@@ -4,6 +4,24 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [SemVer](h
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-23
+
+### Added
+
+- Built-in Node.js coverage reporting through `npm run test:coverage` and `npm run test:coverage` from the repository root.
+- Playwright browser smoke tests for the public PQRS submission flow, status lookup and staff login/dashboard journey.
+- Automated accessibility checks with `@axe-core/playwright` on the critical public and staff screens.
+- CI workflow steps to install Chromium, run the browser suite and upload browser/coverage artifacts without publishing or deploying the app.
+
+### Changed
+
+- Backend and root package metadata now declare the local `0.5.0` quality-engineering milestone.
+- Documentation now describes how to run the unit suite, coverage report, browser E2E suite and accessibility checks locally and in CI.
+
+### Validation
+
+- Local quality checks were run with `npm run check`, `npm run test:coverage`, `npm run test:e2e` and `npm run test:a11y` before preparing the local annotated tag.
+
 ## [0.4.1] - 2026-10-22
 
 ### Added

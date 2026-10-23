@@ -28,7 +28,7 @@ Path from **v0.0.1** to **v1.0.0**. Completed versions have a local commit and t
 | 0.3.5   | `feat/email-notifications`    | Emails on filing and on answer, with an outbox and retries                                       | Implemented locally |
 | 0.4.0   | `feat/reports`                | Staff-only volume, type and status reports, response time and deadline status                    | Implemented locally |
 | 0.4.1   | `feat/csv-export`             | Bounded, filtered staff CSV export with protection against formula injection                     | Implemented locally |
-| 0.5.0   | `chore/quality`               | Coverage report, end-to-end smoke test, accessibility check                                      | Planned             |
+| 0.5.0   | `chore/quality`               | Coverage report, end-to-end smoke test, accessibility check                                      | Implemented locally |
 | 0.5.1   | `chore/auth-hardening`        | Second factor (TOTP), login limits that survive restarts, security log                           | Planned             |
 | 0.5.2   | `chore/docker`                | Multi-stage Dockerfile and `docker compose`                                                      | Planned             |
 | 0.5.3   | `chore/deploy`                | Cloud deployment, CI/CD and database backups                                                     | Planned             |

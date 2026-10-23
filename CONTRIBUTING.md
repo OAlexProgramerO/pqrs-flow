@@ -14,17 +14,22 @@ npm run dev
 
 ## Daily commands
 
-| Command            | What it does                                                        |
-| ------------------ | ------------------------------------------------------------------- |
-| `npm run dev`      | Start the server with auto-reload                                   |
-| `npm test`         | Run the tests                                                       |
-| `npm run admin --` | Manage staff accounts (`create`, `reset-password`, ...)             |
-| `npm run lint`     | Find code problems with ESLint                                      |
-| `npm run format`   | Format all files with Prettier                                      |
-| `npm run check`    | Lint + format check + tests (run before every push)                 |
-| `npm run ready`    | Format everything, then run `check` (run it after extracting a zip) |
+| Command                 | What it does                                                        |
+| ----------------------- | ------------------------------------------------------------------- |
+| `npm run dev`           | Start the server with auto-reload                                   |
+| `npm test`              | Run the backend unit and integration tests                          |
+| `npm run test:coverage` | Generate the Node coverage summary for the backend and shared code  |
+| `npm run test:e2e`      | Run the Playwright browser smoke suite                              |
+| `npm run test:a11y`     | Run the automated accessibility checks                              |
+| `npm run admin --`      | Manage staff accounts (`create`, `reset-password`, ...)             |
+| `npm run lint`          | Find code problems with ESLint                                      |
+| `npm run format`        | Format all files with Prettier                                      |
+| `npm run check`         | Lint + format check + tests (run before every push)                 |
+| `npm run ready`         | Format everything, then run `check` (run it after extracting a zip) |
 
 To run a single test file, go through npm: `npm --prefix backend test -- tests/admin-audit.test.js`. That gives the tests a temporary database. Running `node --test` by hand can open `data/pqrs.db` of your machine.
+
+Browser checks need a local Chromium install: `cd backend && npx playwright install --with-deps chromium`. Then run `npm run test:e2e` and `npm run test:a11y` to exercise the real browser flows. ACI and local runs keep the temporary SQLite database isolated and clean up after the tests.
 
 The focused CSV export checks are `npm --prefix backend test -- tests/csv-export-serializer.test.js tests/admin-csv-export.test.js`. Run `npm run check` after focused tests to validate the full project.
 

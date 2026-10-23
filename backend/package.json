@@ -1,6 +1,6 @@
 {
   "name": "pqrs-flow-backend",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "private": true,
   "type": "module",
   "main": "src/server.js",
@@ -8,6 +8,9 @@
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
     "test": "node --test --import ./tests/helpers/isolate-db.js --test-reporter=spec",
+    "test:coverage": "node --test --experimental-test-coverage --import ./tests/helpers/isolate-db.js --test-reporter=spec",
+    "test:e2e": "playwright test --config ./tests/e2e/playwright.config.js",
+    "test:a11y": "playwright test --config ./tests/e2e/playwright.config.js --grep @a11y",
     "seed": "node scripts/seed.js",
     "db:reset": "node scripts/reset-db.js",
     "admin": "node scripts/admin.js"
@@ -25,5 +28,9 @@
     "multer": "^2.4.0",
     "nodemailer": "^10.1.7",
     "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.2",
+    "@playwright/test": "^1.55.0"
   }
 }
