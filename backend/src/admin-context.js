@@ -4,6 +4,7 @@ import { createAdminReportsRepository } from './repositories/admin-reports.repos
 import { createAdminRepository } from './repositories/admin.repository.js';
 import { createAccountAuditRepository } from './repositories/account-audit.repository.js';
 import { createDeadlinesRepository } from './repositories/deadlines.repository.js';
+import { createSecurityEventRepository } from './repositories/security-events.repository.js';
 import { createSessionRepository } from './repositories/session.repository.js';
 import { createAccountService } from './services/admin-accounts.js';
 import { createAuthService } from './services/auth.service.js';
@@ -17,6 +18,7 @@ export function createAdminContext(db, { sessionPolicy = env.session, passwordPa
   const accountAuditRepository = createAccountAuditRepository(db);
   const adminRepository = createAdminRepository(db, accountAuditRepository);
   const sessionRepository = createSessionRepository(db, accountAuditRepository);
+  const securityEventRepository = createSecurityEventRepository(db);
   const adminPqrsRepository = createAdminPqrsRepository(db);
   const adminReportsRepository = createAdminReportsRepository(db);
   const deadlinesRepository = createDeadlinesRepository(db);
@@ -32,14 +34,16 @@ export function createAdminContext(db, { sessionPolicy = env.session, passwordPa
   };
 
   return {
+    db,
     now: clock,
     adminRepository,
     sessionRepository,
     accountAuditRepository,
+    securityEventRepository,
     adminPqrsRepository,
     adminReportsRepository,
     deadlinesRepository,
-    authService: createAuthService({ ...options, sessionPolicy }),
+    authService: createAuthService({ ...options, securityEventRepository, sessionPolicy }),
     accountService: createAccountService(options),
   };
 }

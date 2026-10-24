@@ -10,7 +10,7 @@ import { getDb } from './db/database.js';
 import { createAdminAuth } from './middlewares/admin-auth.js';
 import { compression } from './middlewares/compression.js';
 import { errorHandler, notFoundHandler } from './middlewares/error-handler.js';
-import { createRateLimiter } from './middlewares/rate-limit.js';
+import { createDbRateLimiter, createRateLimiter } from './middlewares/rate-limit.js';
 import { requestId } from './middlewares/request-id.js';
 import { createPqrsRepository } from './repositories/pqrs.repository.js';
 import { createRoutes } from './routes/index.js';
@@ -115,8 +115,15 @@ export function createApp({
   ];
 
   const loginLimiters = [
-    createRateLimiter({ ...loginLimits.ip, key: (req) => `ip:${req.ip}` }),
-    createRateLimiter({
+    createDbRateLimiter({
+      db: () => getAdmin().db,
+      scope: 'login:ip',
+      ...loginLimits.ip,
+      key: (req) => `ip:${req.ip}`,
+    }),
+    createDbRateLimiter({
+      db: () => getAdmin().db,
+      scope: 'login:account',
       ...loginLimits.account,
       key: (req) => `account:${normalizeEmail(req.body?.email).slice(0, 254)}`,
     }),

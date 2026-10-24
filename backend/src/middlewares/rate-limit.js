@@ -49,3 +49,75 @@ export function createRateLimiter({
     return next();
   };
 }
+
+/**
+ * A SQLite-backed fixed-window rate limiter for scenarios where limits must survive server
+ * restarts and share across multiple app processes. Each key is a single row in a table.
+ */
+export function createDbRateLimiter({
+  db,
+  scope,
+  windowMs,
+  max,
+  key = (req) => req.ip,
+  now = Date.now,
+}) {
+  const getDb = typeof db === 'function' ? db : () => db;
+
+  return function rateLimit(req, res, next) {
+    const current = now();
+    const id = String(key(req));
+    const connection = getDb();
+    const select = connection.prepare(`
+      SELECT attempts, window_start AS windowStart, updated_at AS updatedAt
+      FROM login_attempts
+      WHERE scope = @scope AND key = @key
+    `);
+    const upsert = connection.prepare(`
+      INSERT INTO login_attempts (scope, key, window_start, attempts, updated_at)
+      VALUES (@scope, @key, @windowStart, @attempts, @updatedAt)
+      ON CONFLICT (scope, key) DO UPDATE SET
+        window_start = excluded.window_start,
+        attempts = excluded.attempts,
+        updated_at = excluded.updated_at
+    `);
+    const deleteExpired = connection.prepare(`
+      DELETE FROM login_attempts WHERE scope = @scope AND key = @key AND window_start <= @cutoff
+    `);
+
+    const record = select.get({ scope, key: id });
+    const cutoff = new Date(current - windowMs).toISOString();
+
+    if (record && record.windowStart <= cutoff) {
+      deleteExpired.run({ scope, key: id, cutoff });
+    }
+
+    const state = select.get({ scope, key: id });
+    const windowStart =
+      state && state.windowStart && new Date(state.windowStart).getTime() > current - windowMs
+        ? new Date(state.windowStart)
+        : new Date(current);
+    const count = state ? Number(state.attempts) : 0;
+    const nextCount = count + 1;
+
+    if (
+      count > 0 &&
+      new Date(state.windowStart).getTime() > current - windowMs &&
+      nextCount > max
+    ) {
+      const resetAt = new Date(new Date(state.windowStart).getTime() + windowMs);
+      res.set('Retry-After', String(Math.max(1, Math.ceil((resetAt.getTime() - current) / 1000))));
+      return next(new HttpError(429, 'Too many attempts. Please try again later.'));
+    }
+
+    upsert.run({
+      scope,
+      key: id,
+      windowStart: windowStart.toISOString(),
+      attempts: state && new Date(state.windowStart).getTime() > current - windowMs ? nextCount : 1,
+      updatedAt: new Date(current).toISOString(),
+    });
+
+    return next();
+  };
+}

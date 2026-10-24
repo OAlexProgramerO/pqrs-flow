@@ -1,5 +1,6 @@
 import { normalizeEmail, validateNewAdmin, validatePassword } from './admin-validation.js';
 import { DEFAULT_SCRYPT_PARAMS, hashPassword, verifyPassword } from './password.js';
+import { decryptMfaSecret, encryptMfaSecret, generateTotpSecret, verifyTotp } from './totp.js';
 import { AccountConflictError } from '../errors/account-conflict.js';
 
 /**
@@ -235,6 +236,59 @@ export function createAccountService({
       const idleCutoff = new Date(current.getTime() - sessionPolicy.idleMs).toISOString();
       sessionRepository.deleteStale(nowText, idleCutoff);
       return sessionRepository.listByAdminId(adminId, { now: nowText, idleCutoff });
+    },
+
+    prepareMfa(adminId, { issuer = 'PQRS Flow' } = {}) {
+      const account = adminRepository.findById(adminId);
+      if (!account) return null;
+      const secret = generateTotpSecret();
+      return {
+        secret,
+        otpauth: `otpauth://totp/${encodeURIComponent(issuer)}:${encodeURIComponent(account.email)}?secret=${encodeURIComponent(secret)}&issuer=${encodeURIComponent(issuer)}`,
+      };
+    },
+
+    enableMfa(adminId, { code, secret, issuer = 'PQRS Flow' } = {}) {
+      const account = adminRepository.findById(adminId);
+      if (!account) return null;
+      const actualSecret = typeof secret === 'string' && secret.trim() ? secret.trim() : null;
+      if (!actualSecret) return { error: 'No secret configured.' };
+      const valid = verifyTotp(String(code ?? ''), actualSecret, { window: 1 });
+      if (!valid) return { error: 'Invalid verification code.' };
+      adminRepository.saveMfa(adminId, {
+        secretCiphertext: encryptMfaSecret(actualSecret),
+        enabled: true,
+        createdAt: now().toISOString(),
+        lastVerifiedAt: now().toISOString(),
+      });
+      return {
+        enabled: true,
+        secret: actualSecret,
+        otpauth: `otpauth://totp/${encodeURIComponent(issuer)}:${encodeURIComponent(account.email)}?secret=${encodeURIComponent(actualSecret)}&issuer=${encodeURIComponent(issuer)}`,
+      };
+    },
+
+    disableMfa(adminId, { code } = {}) {
+      const account = adminRepository.findById(adminId);
+      if (!account) return null;
+      const mfa = adminRepository.findMfaByAdminId(adminId);
+      if (!mfa?.enabled) return { enabled: false };
+      const secret = decryptMfaSecret(mfa.secretCiphertext);
+      if (!secret || !verifyTotp(String(code ?? ''), secret, { window: 1 })) {
+        return { error: 'Invalid verification code.' };
+      }
+      adminRepository.clearMfa(adminId);
+      return { enabled: false };
+    },
+
+    getMfaStatus(adminId) {
+      const account = adminRepository.findById(adminId);
+      if (!account) return null;
+      const mfa = adminRepository.findMfaByAdminId(adminId);
+      return {
+        enabled: Boolean(mfa?.enabled),
+        lastVerifiedAt: mfa?.lastVerifiedAt ?? null,
+      };
     },
 
     revokeSession(sessionId, adminId, { actorAdminId = adminId, requestId } = {}) {

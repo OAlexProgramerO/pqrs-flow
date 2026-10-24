@@ -28,14 +28,38 @@ export function createAdminRepository(db, accountAuditRepository) {
   const selectById = db.prepare(`SELECT ${PUBLIC_COLUMNS} FROM admins WHERE id = ?`);
   const selectByEmail = db.prepare(`SELECT ${PUBLIC_COLUMNS} FROM admins WHERE email = ?`);
   const selectCredentials = db.prepare(`
-    SELECT id, email, display_name AS displayName, is_active AS isActive, role,
-      must_change_password AS needsPasswordUpdate, password_hash AS passwordHash
-    FROM admins
-    WHERE email = ?
+    SELECT a.id, a.email, a.display_name AS displayName, a.is_active AS isActive, a.role,
+      a.must_change_password AS needsPasswordUpdate, a.password_hash AS passwordHash,
+      COALESCE(m.enabled, 0) AS mfaEnabled
+    FROM admins a
+    LEFT JOIN admin_mfa m ON m.admin_id = a.id
+    WHERE a.email = ?
   `);
   const selectCredentialsById = db.prepare(`
-    SELECT id, email, password_hash AS passwordHash FROM admins WHERE id = ?
+    SELECT a.id, a.email, a.password_hash AS passwordHash,
+      COALESCE(m.enabled, 0) AS mfaEnabled
+    FROM admins a
+    LEFT JOIN admin_mfa m ON m.admin_id = a.id
+    WHERE a.id = ?
   `);
+  const selectMfa = db.prepare(`
+    SELECT admin_id AS adminId, secret_ciphertext AS secretCiphertext, enabled,
+      created_at AS createdAt, last_verified_at AS lastVerifiedAt
+    FROM admin_mfa
+    WHERE admin_id = ?
+  `);
+  const upsertMfa = db.prepare(`
+    INSERT INTO admin_mfa (admin_id, secret_ciphertext, enabled, created_at, last_verified_at)
+    VALUES (@adminId, @secretCiphertext, @enabled, @createdAt, @lastVerifiedAt)
+    ON CONFLICT (admin_id) DO UPDATE SET
+      secret_ciphertext = excluded.secret_ciphertext,
+      enabled = excluded.enabled,
+      last_verified_at = excluded.last_verified_at
+  `);
+  const deleteMfa = db.prepare('DELETE FROM admin_mfa WHERE admin_id = ?');
+  const touchMfa = db.prepare(
+    'UPDATE admin_mfa SET last_verified_at = ? WHERE admin_id = ? AND enabled = 1',
+  );
   const selectCount = db.prepare(`
     SELECT COUNT(*) AS total FROM admins
     WHERE role = 'administrator' AND is_active = 1
@@ -169,7 +193,13 @@ export function createAdminRepository(db, accountAuditRepository) {
     },
 
     findCredentialsById(id) {
-      return selectCredentialsById.get(id) ?? null;
+      const row = selectCredentialsById.get(id) ?? null;
+      return row
+        ? {
+            ...row,
+            mfaEnabled: row.mfaEnabled === 1,
+          }
+        : null;
     },
 
     /** The only query that returns the password hash. */
@@ -180,8 +210,37 @@ export function createAdminRepository(db, accountAuditRepository) {
             ...row,
             isActive: row.isActive === 1,
             needsPasswordUpdate: row.needsPasswordUpdate === 1,
+            mfaEnabled: row.mfaEnabled === 1,
           }
         : null;
+    },
+
+    findMfaByAdminId(adminId) {
+      const row = selectMfa.get(adminId);
+      return row
+        ? {
+            ...row,
+            enabled: row.enabled === 1,
+          }
+        : null;
+    },
+
+    saveMfa(adminId, { secretCiphertext, enabled = false, createdAt, lastVerifiedAt }) {
+      return upsertMfa.run({
+        adminId,
+        secretCiphertext,
+        enabled: enabled ? 1 : 0,
+        createdAt: createdAt ?? new Date().toISOString(),
+        lastVerifiedAt: lastVerifiedAt ?? null,
+      }).changes;
+    },
+
+    clearMfa(adminId) {
+      return deleteMfa.run(adminId).changes;
+    },
+
+    recordMfaVerification(adminId, when = new Date()) {
+      return touchMfa.run(when.toISOString(), adminId).changes;
     },
 
     listPage({ q = '', role, isActive, page = 1, pageSize = 20 } = {}) {

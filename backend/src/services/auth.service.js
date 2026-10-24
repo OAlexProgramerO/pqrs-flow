@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { HttpError, ValidationError } from '../errors/http-error.js';
 import { validateLogin } from './admin-validation.js';
 import { DEFAULT_SCRYPT_PARAMS, hashPassword, verifyPassword } from './password.js';
+import { decryptMfaSecret, verifyTotp } from './totp.js';
 import { deriveCsrfToken, generateToken, hashToken, isWellFormedToken } from './session-token.js';
 
 // One message for every way a login can fail, so nobody learns which accounts exist
@@ -21,6 +22,7 @@ const TOUCH_INTERVAL_MS = 60_000;
 export function createAuthService({
   adminRepository,
   sessionRepository,
+  securityEventRepository,
   sessionPolicy,
   passwordParams = DEFAULT_SCRYPT_PARAMS,
   now = () => new Date(),
@@ -51,7 +53,31 @@ export function createAuthService({
       const passwordHash = account?.passwordHash ?? (await getDummyHash());
       const passwordMatches = await verifyPassword(data.password, passwordHash);
 
-      if (!account || !account.isActive || !passwordMatches) {
+      let mfaValid = true;
+      if (account && account.isActive && account.mfaEnabled) {
+        const mfaRecord = adminRepository.findMfaByAdminId(account.id);
+        const secret = mfaRecord ? decryptMfaSecret(mfaRecord.secretCiphertext) : null;
+        mfaValid = !!secret && verifyTotp(data.totpCode ?? '', secret, { window: 1 });
+      }
+
+      if (!account || !account.isActive || !passwordMatches || !mfaValid) {
+        if (securityEventRepository) {
+          securityEventRepository.log({
+            eventType: 'login_failed',
+            adminId: account?.id ?? null,
+            requestId,
+            details: {
+              email: data.email,
+              reason: !account
+                ? 'unknown_account'
+                : !account.isActive
+                  ? 'inactive'
+                  : !passwordMatches
+                    ? 'bad_password'
+                    : 'bad_totp',
+            },
+          });
+        }
         throw new HttpError(401, INVALID_CREDENTIALS_MESSAGE);
       }
 
@@ -75,12 +101,22 @@ export function createAuthService({
       if (!opened) throw new HttpError(401, INVALID_CREDENTIALS_MESSAGE);
 
       adminRepository.recordLogin(account.id, issuedAt);
+      if (account.mfaEnabled) adminRepository.recordMfaVerification(account.id, issuedAt);
 
       // Old sessions of everybody are cleaned here, so the table does not grow forever
       sessionRepository.deleteStale(
         issuedAt.toISOString(),
         new Date(issuedAt.getTime() - sessionPolicy.idleMs).toISOString(),
       );
+
+      if (securityEventRepository) {
+        securityEventRepository.log({
+          eventType: 'login_success',
+          adminId: account.id,
+          requestId,
+          details: { sessionExpiresAt: expiresAt.toISOString() },
+        });
+      }
 
       return {
         token,
@@ -90,6 +126,7 @@ export function createAuthService({
           displayName: account.displayName,
           role: account.role,
           credentialUpdateRequired: account.needsPasswordUpdate,
+          mfaEnabled: account.mfaEnabled ?? false,
         },
         expiresAt: expiresAt.toISOString(),
         csrfToken: deriveCsrfToken(token),
