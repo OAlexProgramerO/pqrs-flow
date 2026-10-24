@@ -62,6 +62,7 @@ export function validateLogin(input) {
 
   const email = typeof body.email === 'string' ? normalizeEmail(body.email) : '';
   const password = typeof body.password === 'string' ? body.password : '';
+  const totpCode = typeof body.totpCode === 'string' ? body.totpCode.trim() : '';
 
   if (!email) errors.email = 'Email address is required.';
   else if (email.length > LIMITS.requesterEmail.max || !EMAIL_PATTERN.test(email)) {
@@ -71,7 +72,11 @@ export function validateLogin(input) {
   if (!password) errors.password = 'Password is required.';
   else if (password.length > PASSWORD_LIMITS.max) errors.password = 'Password is too long.';
 
-  return { valid: Object.keys(errors).length === 0, errors, data: { email, password } };
+  if (totpCode && !/^\d{6}$/.test(totpCode)) {
+    errors.totpCode = 'Enter a valid 6-digit verification code.';
+  }
+
+  return { valid: Object.keys(errors).length === 0, errors, data: { email, password, totpCode } };
 }
 
 /**

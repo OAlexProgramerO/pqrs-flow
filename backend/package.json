@@ -25,9 +25,13 @@
     "express": "^4.21.2",
     "helmet": "^8.0.0",
     "morgan": "^1.10.0",
-    "multer": "^2.4.0",
+    "multer": "^2.5.0",
     "nodemailer": "^10.1.7",
-    "zod": "^4.6.5"
+    "otplib": "^13.5.0",
+    "zod": "^4.6.7"
+  },
+  "overrides": {
+    "body-parser": "^1.20.9"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.10.2",

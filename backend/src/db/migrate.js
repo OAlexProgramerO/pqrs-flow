@@ -186,5 +186,52 @@ export function runMigrations(db, migrationsDir = DEFAULT_MIGRATIONS_DIR) {
     `);
   }
 
+  if (!tableExists(db, 'admin_mfa')) {
+    db.exec(`
+      CREATE TABLE admin_mfa (
+        admin_id INTEGER PRIMARY KEY,
+        secret_ciphertext TEXT NOT NULL,
+        enabled INTEGER NOT NULL DEFAULT 0 CHECK (enabled IN (0, 1)),
+        created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+        last_verified_at TEXT,
+        FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE CASCADE
+      ) STRICT;
+    `);
+  }
+
+  if (!tableExists(db, 'login_attempts')) {
+    db.exec(`
+      CREATE TABLE login_attempts (
+        scope TEXT NOT NULL,
+        key TEXT NOT NULL,
+        window_start TEXT NOT NULL,
+        attempts INTEGER NOT NULL DEFAULT 1 CHECK (attempts >= 1),
+        updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+        PRIMARY KEY (scope, key)
+      ) STRICT;
+      CREATE INDEX login_attempts_window_idx ON login_attempts (scope, key, window_start);
+    `);
+  }
+
+  if (!tableExists(db, 'security_events')) {
+    db.exec(`
+      CREATE TABLE security_events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        event_type TEXT NOT NULL,
+        admin_id INTEGER,
+        actor_admin_id INTEGER,
+        request_id TEXT,
+        ip_address TEXT,
+        user_agent TEXT,
+        details TEXT,
+        created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+        FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE SET NULL,
+        FOREIGN KEY (actor_admin_id) REFERENCES admins(id) ON DELETE SET NULL
+      ) STRICT;
+      CREATE INDEX security_events_admin_id_idx ON security_events (admin_id, created_at DESC);
+      CREATE INDEX security_events_type_idx ON security_events (event_type, created_at DESC);
+    `);
+  }
+
   return currentVersion;
 }
