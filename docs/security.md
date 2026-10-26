@@ -1,6 +1,6 @@
 # Security
 
-This document describes the security model of PQRS Flow 0.4.1, what to do before putting it online, and what it does **not** cover. Passing the automated tests is not a security review. Test the system in your own environment before exposing it.
+This document describes the security model of PQRS Flow 0.6.0, what to do before putting it online, and what it does **not** cover. Passing the automated tests is not a security review. Test the system in your own environment before exposing it.
 
 ## What is protected and how
 
@@ -24,6 +24,21 @@ This document describes the security model of PQRS Flow 0.4.1, what to do before
 | Attachment storage               | Uploaded files are kept in a dedicated storage directory outside the web root, named with server-generated ids and isolated by request; downloads are gated by explicit request authorization.                                                                                    |
 | Leaking data to the public       | Public lookup still requires case number and email and exposes no staff-only deadline data; the staff API is never opened by CORS.                                                                                                                                                |
 | Sensitive data in logs           | Passwords and tokens are never logged. The access log drops the query string of `/api/admin`, where searches may hold names and emails.                                                                                                                                           |
+
+## Multi-factor authentication and recovery
+
+- Staff members can enroll an authenticator app from **Account security**. Enrollment requires the current password, and MFA is not enabled until a valid TOTP code confirms the setup.
+- TOTP secrets are encrypted before storage. In production, configure `MFA_ENCRYPTION_KEY` as a long, random secret kept outside the database. An existing `SESSION_COOKIE_SECRET` or `SESSION_SECRET` is used as a compatibility fallback; changing the key used to encrypt MFA secrets makes them unreadable.
+- Enabling MFA creates ten one-time recovery codes. The raw codes are shown only once; the database stores SHA-256 hashes. Each code can be used once to sign in or, after re-authenticating with the password, disable MFA when the authenticator device is unavailable.
+- Recovery codes are credentials: keep them private and offline. Generate a new set by disabling and re-enabling MFA. Disabling MFA removes remaining recovery codes.
+- MFA setup, enablement, disablement, failed MFA changes, recovery-code use and login results are recorded as security events. Event metadata must never include passwords, TOTP secrets, verification codes, recovery codes, cookies or session tokens.
+
+## Security-event administration
+
+- `GET /api/admin/security-events` is restricted to active administrators through the server-side `staff:manage` permission.
+- The endpoint supports `eventType`, inclusive UTC `from` / `to` dates, `page` and `pageSize` (maximum 100). Results are ordered newest first and return `Cache-Control: no-store`.
+- The administrator-only **Security events** section in Account security provides the filters and pagination. It displays event type, timestamp, account id, IP address and request id; it does not display event details or credentials.
+- Security-event rows are append-only at the SQLite layer. The application does not currently implement automatic retention or deletion. Define and document a retention period appropriate to your organization before production use, and account for applicable privacy requirements when retaining IP addresses and user-agent strings.
 
 ## Deployment checklist
 

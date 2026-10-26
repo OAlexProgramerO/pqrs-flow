@@ -5,9 +5,11 @@ import { createAdminRepository } from './repositories/admin.repository.js';
 import { createAccountAuditRepository } from './repositories/account-audit.repository.js';
 import { createDeadlinesRepository } from './repositories/deadlines.repository.js';
 import { createSecurityEventRepository } from './repositories/security-events.repository.js';
+import { createMfaRepository } from './repositories/mfa.repository.js';
 import { createSessionRepository } from './repositories/session.repository.js';
 import { createAccountService } from './services/admin-accounts.js';
 import { createAuthService } from './services/auth.service.js';
+import { createMfaService } from './services/mfa.service.js';
 
 /**
  * Builds everything the staff area needs on top of one database connection.
@@ -19,6 +21,7 @@ export function createAdminContext(db, { sessionPolicy = env.session, passwordPa
   const adminRepository = createAdminRepository(db, accountAuditRepository);
   const sessionRepository = createSessionRepository(db, accountAuditRepository);
   const securityEventRepository = createSecurityEventRepository(db);
+  const mfaRepository = createMfaRepository(db);
   const adminPqrsRepository = createAdminPqrsRepository(db);
   const adminReportsRepository = createAdminReportsRepository(db);
   const deadlinesRepository = createDeadlinesRepository(db);
@@ -40,10 +43,23 @@ export function createAdminContext(db, { sessionPolicy = env.session, passwordPa
     sessionRepository,
     accountAuditRepository,
     securityEventRepository,
+    mfaRepository,
     adminPqrsRepository,
     adminReportsRepository,
     deadlinesRepository,
-    authService: createAuthService({ ...options, securityEventRepository, sessionPolicy }),
+    authService: createAuthService({
+      ...options,
+      securityEventRepository,
+      mfaRepository,
+      sessionPolicy,
+    }),
+    mfaService: createMfaService({
+      adminRepository,
+      mfaRepository,
+      securityEventRepository,
+      passwordParams,
+      now: clock,
+    }),
     accountService: createAccountService(options),
   };
 }

@@ -44,6 +44,20 @@
           <small class="field-error" id="password-error"></small>
         </div>
 
+        <div class="form-group">
+          <label for="totpCode">Authenticator code or recovery code (if enabled)</label>
+          <input
+            type="text"
+            id="totpCode"
+            name="totpCode"
+            inputmode="text"
+            autocomplete="one-time-code"
+            maxlength="12"
+            aria-describedby="totpCode-error"
+          />
+          <small class="field-error" id="totpCode-error"></small>
+        </div>
+
         <button type="submit" class="btn btn-primary" id="loginBtn">Log in</button>
       </form>
 

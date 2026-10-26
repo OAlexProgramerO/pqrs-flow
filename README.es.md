@@ -8,7 +8,7 @@
 
 Un sistema web para radicar, consultar y gestionar **PQRS** — _Peticiones, Quejas, Reclamos y Sugerencias_. Está construido de principio a fin con JavaScript, priorizando la simplicidad, la ausencia de un paso de compilación en el frontend y límites de arquitectura claros.
 
-**Implementación local: v0.5.0 — Calidad y automatización** — El proyecto ahora incluye reportes de cobertura, una suite de humo con navegador real y comprobaciones automatizadas de accesibilidad para los recorridos públicos y del personal. Esta implementación es local; no implica una publicación ni un despliegue. Consulta los filtros y detalles en [docs/api.md](./docs/api.md) y [docs/security.md](./docs/security.md) antes de exponer la aplicación (documentación en inglés).
+**Implementación local: v0.6.0 — MFA y auditoría de seguridad** — El personal puede configurar autenticación multifactor TOTP, generar códigos de recuperación de un solo uso y consultar eventos de seguridad mediante una vista paginada exclusiva para administradores. Esta implementación es local; no implica una publicación ni un despliegue. Consulta los filtros y detalles en [docs/api.md](./docs/api.md) y [docs/security.md](./docs/security.md) antes de exponer la aplicación (documentación en inglés).
 
 > Este archivo es la versión en español de [README.md](./README.md). Si algo difiere, el README en inglés y el código son la referencia. Los cambios de la implementación local v0.5.0 están en [CHANGELOG.md](./CHANGELOG.md).
 

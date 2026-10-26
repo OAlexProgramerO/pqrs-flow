@@ -72,8 +72,8 @@ export function validateLogin(input) {
   if (!password) errors.password = 'Password is required.';
   else if (password.length > PASSWORD_LIMITS.max) errors.password = 'Password is too long.';
 
-  if (totpCode && !/^\d{6}$/.test(totpCode)) {
-    errors.totpCode = 'Enter a valid 6-digit verification code.';
+  if (totpCode && !/^(?:\d{6}|[A-Z0-9_-]{12})$/i.test(totpCode)) {
+    errors.totpCode = 'Enter a 6-digit authenticator code or a 12-character recovery code.';
   }
 
   return { valid: Object.keys(errors).length === 0, errors, data: { email, password, totpCode } };

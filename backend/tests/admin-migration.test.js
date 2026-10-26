@@ -88,11 +88,11 @@ const insertAdmin = (db, email = 'a@example.com') =>
     )
     .run(email).lastInsertRowid;
 
-test('a fresh database ends at version 8 with every new table, index and trigger', () => {
+test('a fresh database ends at version 9 with every new table, index and trigger', () => {
   const db = openDatabase({ filename: ':memory:' });
   open.push(db);
 
-  assert.equal(db.pragma('user_version', { simple: true }), 8);
+  assert.equal(db.pragma('user_version', { simple: true }), 9);
   for (const table of [
     'admins',
     'admin_sessions',
@@ -106,6 +106,8 @@ test('a fresh database ends at version 8 with every new table, index and trigger
     'deadline_rules',
     'deadline_holidays',
     'attachments',
+    'admin_mfa_recovery_codes',
+    'security_events',
   ]) {
     assert.ok(names(db, 'table').includes(table), table);
   }
@@ -126,6 +128,8 @@ test('a fresh database ends at version 8 with every new table, index and trigger
     'idx_pqrs_deadline_due_status',
     'idx_attachments_pqrs',
     'idx_attachments_visibility',
+    'admin_mfa_recovery_codes_admin_idx',
+    'security_events_created_idx',
   ]) {
     assert.ok(names(db, 'index').includes(index), index);
   }
@@ -134,6 +138,8 @@ test('a fresh database ends at version 8 with every new table, index and trigger
     'account_audit_no_update',
     'pqrs_audit_no_delete',
     'pqrs_audit_no_update',
+    'security_events_no_delete',
+    'security_events_no_update',
   ]);
   assert.deepEqual(
     db.pragma('table_info(pqrs_audit)').map((column) => column.name),
@@ -168,7 +174,7 @@ test('the v0.3.1 audit history survives migration without adding non-contract fi
 
   const db = openDatabase({ filename });
   open.push(db);
-  assert.equal(db.pragma('user_version', { simple: true }), 8);
+  assert.equal(db.pragma('user_version', { simple: true }), 9);
   assert.deepEqual(
     db
       .prepare(
@@ -236,7 +242,7 @@ test('a database made by v0.1.3 keeps its requests and case numbers when it is m
   const db = openDatabase({ filename });
   open.push(db);
 
-  assert.equal(db.pragma('user_version', { simple: true }), 8);
+  assert.equal(db.pragma('user_version', { simple: true }), 9);
   assert.deepEqual(db.prepare('SELECT id, case_number, status FROM pqrs ORDER BY id').all(), [
     { id: 1, case_number: 'PQRS-2026-000001', status: 'filed' },
     { id: 2, case_number: 'PQRS-2026-000002', status: 'answered' },
@@ -272,7 +278,7 @@ test('a pre-v0.3.1 database keeps records and sessions and maps legacy full-acce
 
   const db = openDatabase({ filename });
   open.push(db);
-  assert.equal(db.pragma('user_version', { simple: true }), 8);
+  assert.equal(db.pragma('user_version', { simple: true }), 9);
   assert.deepEqual(db.prepare('SELECT email, role FROM admins').all(), [
     { email: 'legacy@example.com', role: 'administrator' },
   ]);
@@ -287,7 +293,7 @@ test('a database from the broken pre-migration schema is repaired and then migra
   db.exec('CREATE TABLE pqrs (case_number TEXT, subject TEXT, type TEXT)');
   db.exec("INSERT INTO pqrs VALUES ('PQRS-2025-000007', 'Old subject', 'claim')");
 
-  assert.equal(runMigrations(db), 8);
+  assert.equal(runMigrations(db), 9);
   assert.deepEqual(db.prepare('SELECT case_number, subject, status FROM pqrs').all(), [
     { case_number: 'PQRS-2025-000007', subject: 'Old subject', status: 'filed' },
   ]);
@@ -297,10 +303,10 @@ test('a database from the broken pre-migration schema is repaired and then migra
 test('running the migrations again does nothing, so a restart is safe', () => {
   const db = raw();
 
-  assert.equal(runMigrations(db), 8);
+  assert.equal(runMigrations(db), 9);
   const adminId = insertAdmin(db);
-  assert.equal(runMigrations(db), 8);
-  assert.equal(runMigrations(db), 8);
+  assert.equal(runMigrations(db), 9);
+  assert.equal(runMigrations(db), 9);
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM admins WHERE id = ?').get(adminId).n, 1);
 });
 
@@ -315,7 +321,7 @@ test('a database file survives being closed and opened again', () => {
   const second = openDatabase({ filename });
   open.push(second);
   assert.equal(second.prepare('SELECT COUNT(*) AS n FROM admins').get().n, 1);
-  assert.equal(second.pragma('user_version', { simple: true }), 8);
+  assert.equal(second.pragma('user_version', { simple: true }), 9);
   second.close();
   removeDatabaseFiles(filename);
 });
@@ -330,7 +336,7 @@ test('upgrading from the v0.3.5 schema adds the report index without changing re
 
   const db = openDatabase({ filename });
   open.push(db);
-  assert.equal(db.pragma('user_version', { simple: true }), 8);
+  assert.equal(db.pragma('user_version', { simple: true }), 9);
   assert.deepEqual(db.prepare('SELECT case_number, type FROM pqrs').get(), {
     case_number: 'PQRS-2026-000123',
     type: 'claim',

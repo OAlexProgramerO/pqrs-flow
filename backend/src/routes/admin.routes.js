@@ -1,6 +1,8 @@
 import multer from 'multer';
 import { Router } from 'express';
 import { createAdminAuthController } from '../controllers/admin-auth.controller.js';
+import { createAdminMfaController } from '../controllers/admin-mfa.controller.js';
+import { createAdminSecurityEventsController } from '../controllers/admin-security-events.controller.js';
 import { createAdminAccountController } from '../controllers/admin-account.controller.js';
 import { createAdminPqrsController } from '../controllers/admin-pqrs.controller.js';
 import { createAdminReportsController } from '../controllers/admin-reports.controller.js';
@@ -43,6 +45,8 @@ export function createAdminRoutes({
     adminAuth,
   });
   const accounts = createAdminAccountController({ getAdmin, adminAuth });
+  const mfa = createAdminMfaController({ getAdmin });
+  const securityEvents = createAdminSecurityEventsController({ getAdmin });
   const pqrs = createAdminPqrsController({
     getRepository: () => getAdmin().adminPqrsRepository,
     getNow,
@@ -82,6 +86,16 @@ export function createAdminRoutes({
   router.use(adminAuth.requirePasswordUpdate);
 
   router.delete('/sessions/others', ...managementLimiters, accounts.revokeOtherSessions);
+
+  router.get('/mfa', mfa.status);
+  router.post('/mfa/setup', ...managementLimiters, mfa.setup);
+  router.post('/mfa/enable', ...managementLimiters, mfa.enable);
+  router.post('/mfa/disable', ...managementLimiters, mfa.disable);
+  router.get(
+    '/security-events',
+    adminAuth.requirePermission(PERMISSIONS.STAFF_MANAGE),
+    securityEvents.list,
+  );
   router.delete('/sessions/:sessionId', ...managementLimiters, accounts.revokeSession);
 
   router.get('/staff', adminAuth.requirePermission(PERMISSIONS.STAFF_MANAGE), accounts.list);

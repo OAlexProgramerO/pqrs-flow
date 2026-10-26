@@ -54,6 +54,18 @@ test('validateAttachmentFile accepts safe image uploads and rejects unsupported 
   );
 });
 
+test('validateAttachmentFile rejects binary content masquerading as text', () => {
+  assert.throws(
+    () =>
+      validateAttachmentFile({
+        buffer: Buffer.from([0x00, 0x01, 0x02, 0x03, 0x04, 0x05]),
+        originalname: 'dangerous.txt',
+        mimetype: 'text/plain',
+      }),
+    /content does not match|not allowed|not supported/i,
+  );
+});
+
 test('saveAttachmentRecord stores a file outside the public directory and records metadata', () => {
   const { repository, attachments } = setupDatabase();
   const storageDir = makeTempDir();

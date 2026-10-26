@@ -4,6 +4,11 @@ import {
   getSessions,
   revokeOtherSessions,
   revokeSession,
+  getMfaStatus,
+  beginMfaSetup,
+  enableMfa,
+  disableMfa,
+  getSecurityEvents,
 } from './admin-api.js';
 import { describeFailure } from './messages.js';
 import { goToLogin, isUnauthorized, startSession } from './session.js';
@@ -147,10 +152,185 @@ revokeOthersButton.addEventListener('click', async () => {
   }
 });
 
+const mfaStatus = document.getElementById('mfaStatus');
+const mfaSetupForm = document.getElementById('mfaSetupForm');
+const mfaSetupPanel = document.getElementById('mfaSetup');
+const mfaEnableForm = document.getElementById('mfaEnableForm');
+const mfaDisableForm = document.getElementById('mfaDisableForm');
+const mfaRecoveryPanel = document.getElementById('mfaRecoveryPanel');
+const mfaMessage = document.getElementById('mfaMessage');
+
+function showMfaMessage(text, kind = '') {
+  showMessage(mfaMessage, text, kind);
+}
+
+function showRecoveryCodes(codes) {
+  document.getElementById('mfaRecoveryCodes').textContent = codes.join('\n');
+  document.getElementById('mfaSecret').textContent = '';
+  document.getElementById('mfaUri').textContent = '';
+  mfaRecoveryPanel.hidden = false;
+  mfaSetupPanel.hidden = true;
+  mfaSetupForm.hidden = true;
+  mfaDisableForm.hidden = true;
+  mfaStatus.textContent = 'MFA is enabled. Save your recovery codes before leaving this page.';
+}
+
+async function loadMfa() {
+  try {
+    const status = await getMfaStatus();
+    mfaStatus.textContent = status.enabled
+      ? `MFA is enabled. ${status.recoveryCodesRemaining} recovery code(s) remain.`
+      : 'MFA is not enabled.';
+    mfaSetupForm.hidden = status.enabled;
+    mfaDisableForm.hidden = !status.enabled;
+    mfaSetupPanel.hidden = true;
+    mfaRecoveryPanel.hidden = true;
+  } catch (error) {
+    if (isUnauthorized(error)) return goToLogin();
+    showMessage(mfaStatus, describeFailure(error), 'error');
+  }
+}
+
+mfaSetupForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const button = document.getElementById('mfaSetupBtn');
+  button.disabled = true;
+  try {
+    const { secret, otpauthUri } = await beginMfaSetup(mfaSetupForm.elements.password.value);
+    document.getElementById('mfaSecret').textContent = secret;
+    document.getElementById('mfaUri').textContent = otpauthUri;
+    mfaSetupPanel.hidden = false;
+    mfaSetupForm.hidden = true;
+    mfaSetupForm.reset();
+    showMfaMessage('Scan or enter the secret, then verify a code to enable MFA.');
+  } catch (error) {
+    if (isUnauthorized(error)) return goToLogin();
+    showMfaMessage(describeFailure(error), 'error');
+  } finally {
+    button.disabled = false;
+  }
+});
+
+mfaEnableForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const button = document.getElementById('mfaEnableBtn');
+  button.disabled = true;
+  try {
+    const values = Object.fromEntries(new FormData(mfaEnableForm));
+    const result = await enableMfa(values);
+    mfaEnableForm.reset();
+    showRecoveryCodes(result.recoveryCodes);
+    showMfaMessage('MFA enabled successfully.', 'success');
+  } catch (error) {
+    if (isUnauthorized(error)) return goToLogin();
+    showMfaMessage(describeFailure(error), 'error');
+  } finally {
+    button.disabled = false;
+  }
+});
+
+document.getElementById('mfaRecoveryDone').addEventListener('click', async () => {
+  mfaRecoveryPanel.hidden = true;
+  document.getElementById('mfaRecoveryCodes').textContent = '';
+  await loadMfa();
+});
+
+mfaDisableForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  if (!window.confirm('Disable multi-factor authentication for this account?')) return;
+  const button = document.getElementById('mfaDisableBtn');
+  button.disabled = true;
+  try {
+    await disableMfa(Object.fromEntries(new FormData(mfaDisableForm)));
+    mfaDisableForm.reset();
+    showMfaMessage('MFA has been disabled.', 'success');
+    await loadMfa();
+  } catch (error) {
+    if (isUnauthorized(error)) return goToLogin();
+    showMfaMessage(describeFailure(error), 'error');
+  } finally {
+    button.disabled = false;
+  }
+});
+
+const eventsState = document.getElementById('eventsState');
+const eventsWrap = document.getElementById('eventsWrap');
+const eventsRows = document.getElementById('eventsRows');
+const eventsPagination = document.getElementById('eventsPagination');
+let eventsPage = 1;
+const eventsPageSize = 25;
+let eventsTotal = 0;
+let eventsAdmin = false;
+
+function eventCell(label, value) {
+  const cell = document.createElement('td');
+  cell.dataset.label = label;
+  cell.textContent = value ?? '—';
+  return cell;
+}
+
+async function loadSecurityEvents() {
+  if (!eventsAdmin) return;
+  const formValues = Object.fromEntries(new FormData(document.getElementById('eventsFilterForm')));
+  showMessage(eventsState, 'Loading security events…');
+  eventsWrap.hidden = true;
+  eventsPagination.hidden = true;
+  try {
+    const result = await getSecurityEvents({
+      ...formValues,
+      page: eventsPage,
+      pageSize: eventsPageSize,
+    });
+    eventsRows.replaceChildren();
+    for (const item of result.items) {
+      const row = document.createElement('tr');
+      row.append(
+        eventCell('Time (UTC)', formatDateTime(item.createdAt)),
+        eventCell('Event', item.eventType),
+        eventCell('Account ID', item.adminId === null ? '—' : String(item.adminId)),
+        eventCell('IP address', item.ipAddress),
+        eventCell('Request ID', item.requestId),
+      );
+      eventsRows.append(row);
+    }
+    eventsTotal = result.totalItems;
+    eventsWrap.hidden = result.items.length === 0;
+    showMessage(eventsState, result.items.length ? '' : 'No security events match these filters.');
+    const pages = Math.max(1, Math.ceil(eventsTotal / eventsPageSize));
+    eventsPagination.hidden = false;
+    document.getElementById('eventsPageInfo').textContent =
+      `Page ${eventsPage} of ${pages} · ${eventsTotal} event(s)`;
+    document.getElementById('eventsPrev').disabled = eventsPage <= 1;
+    document.getElementById('eventsNext').disabled = eventsPage >= pages;
+  } catch (error) {
+    if (isUnauthorized(error)) return goToLogin();
+    showMessage(eventsState, describeFailure(error), 'error');
+  }
+}
+
+document.getElementById('eventsFilterForm').addEventListener('submit', (event) => {
+  event.preventDefault();
+  eventsPage = 1;
+  loadSecurityEvents();
+});
+document.getElementById('eventsPrev').addEventListener('click', () => {
+  eventsPage = Math.max(1, eventsPage - 1);
+  loadSecurityEvents();
+});
+document.getElementById('eventsNext').addEventListener('click', () => {
+  if (eventsPage * eventsPageSize < eventsTotal) eventsPage += 1;
+  loadSecurityEvents();
+});
+
 try {
   const admin = await startSession();
   document.getElementById('forcedPasswordNotice').hidden = !admin.credentialUpdateRequired;
-  await loadSessions();
+  await Promise.all([loadSessions(), loadMfa()]);
+  eventsAdmin = admin.role === 'administrator';
+  document.querySelectorAll('[data-admin-only]').forEach((element) => {
+    element.hidden = !eventsAdmin;
+  });
+  await loadSecurityEvents();
 } catch (error) {
   showMessage(sessionsState, describeFailure(error), 'error');
 }

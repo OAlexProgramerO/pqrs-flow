@@ -1,7 +1,5 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
-import * as otplib from 'otplib';
-
-const { authenticator } = otplib;
+import { generateSecret, generateURI, verifySync } from 'otplib';
 
 const CIPHER_ALGORITHM = 'aes-256-gcm';
 const IV_BYTES = 12;
@@ -10,18 +8,23 @@ const AUTH_TAG_BYTES = 16;
 export function getMfaEncryptionKey(rawKey) {
   const text = String(rawKey ?? '').trim();
   const fallback =
-    process.env.SESSION_COOKIE_SECRET || process.env.SESSION_SECRET || 'pqrs-flow-mfa-dev-key';
+    process.env.SESSION_COOKIE_SECRET ||
+    process.env.SESSION_SECRET ||
+    (process.env.NODE_ENV === 'production' ? '' : 'pqrs-flow-mfa-dev-key');
+  if (!text && !fallback) {
+    throw new Error('MFA_ENCRYPTION_KEY must be configured in production.');
+  }
   return createHash('sha256')
     .update(text || fallback)
     .digest();
 }
 
 export function generateTotpSecret() {
-  return authenticator.generateSecret();
+  return generateSecret({ length: 20 });
 }
 
 export function createTotpUri(email, secret, issuer = 'PQRS Flow') {
-  return authenticator.keyuri(email, issuer, secret);
+  return generateURI({ issuer, label: email, secret });
 }
 
 export function verifyTotp(code, secret, { window = 1 } = {}) {
@@ -30,11 +33,12 @@ export function verifyTotp(code, secret, { window = 1 } = {}) {
   }
 
   try {
-    return authenticator.verify({
+    const result = verifySync({
       token: code.trim(),
       secret,
-      window,
+      epochTolerance: Math.max(0, Number(window) || 0) * 30,
     });
+    return result.valid;
   } catch {
     return false;
   }

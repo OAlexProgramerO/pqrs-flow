@@ -4,6 +4,23 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [SemVer](h
 
 ## [Unreleased]
 
+### Added
+
+- Staff self-service TOTP MFA enrollment, verification, disablement and one-time recovery codes. Recovery codes are stored as hashes, consumed once at login and displayed only when generated.
+- Administrator-only, paginated security-event API and interface with event-type and UTC date filters.
+- Migration `009_mfa_recovery_security_events.sql` adds hashed recovery-code storage, query indexes and append-only protections for security events.
+- Focused tests for one-time recovery codes and append-only, filterable security events.
+
+### Security
+
+- TOTP secrets are encrypted at rest. Production deployments must configure `MFA_ENCRYPTION_KEY` (or an existing `SESSION_COOKIE_SECRET` / `SESSION_SECRET` fallback) and keep it outside the database.
+- Login security events no longer store the submitted email address; MFA recovery-code use and MFA configuration changes are audited without recording codes or secrets.
+
+### Validation
+
+- Backend suite: 500 passed, 0 failed.
+- ESLint and Prettier checks passed on the changed source and documentation files. Dependency audit remains to be run in the target development environment.
+
 ## [0.5.0] - 2026-10-23
 
 ### Added
