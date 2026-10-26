@@ -8,6 +8,8 @@ export function createAdminAuthController({ getAuthService, adminAuth }) {
         const result = await getAuthService().login(req.body, {
           previousToken: adminAuth.readSessionToken(req),
           requestId: req.id,
+          ipAddress: req.ip,
+          userAgent: String(req.get('user-agent') ?? '').slice(0, 512),
         });
 
         adminAuth.setSessionCookie(res, result.token);

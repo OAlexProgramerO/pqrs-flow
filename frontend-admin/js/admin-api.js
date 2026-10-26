@@ -80,8 +80,13 @@ export function buildQuery(params = {}) {
 }
 
 /** Logs in. Resolves with { admin, csrfToken, expiresAt }. */
-export async function login({ email, password }) {
-  return remember(await request('/api/admin/login', { method: 'POST', body: { email, password } }));
+export async function login({ email, password, totpCode }) {
+  return remember(
+    await request('/api/admin/login', {
+      method: 'POST',
+      body: { email, password, ...(totpCode ? { totpCode } : {}) },
+    }),
+  );
 }
 
 /** Who is logged in. Rejects with status 401 when nobody is. Also refreshes the CSRF token. */
@@ -231,4 +236,24 @@ export function revokeSession(sessionId) {
 
 export function revokeOtherSessions() {
   return request('/api/admin/sessions/others', { method: 'DELETE' });
+}
+
+export function getMfaStatus() {
+  return request('/api/admin/mfa');
+}
+
+export function beginMfaSetup(password) {
+  return request('/api/admin/mfa/setup', { method: 'POST', body: { password } });
+}
+
+export function enableMfa({ password, code }) {
+  return request('/api/admin/mfa/enable', { method: 'POST', body: { password, code } });
+}
+
+export function disableMfa({ password, code }) {
+  return request('/api/admin/mfa/disable', { method: 'POST', body: { password, code } });
+}
+
+export function getSecurityEvents(params = {}) {
+  return request(`/api/admin/security-events${buildQuery(params)}`);
 }

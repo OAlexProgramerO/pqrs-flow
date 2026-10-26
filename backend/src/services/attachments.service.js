@@ -30,6 +30,30 @@ function getFileExtension(filename = '') {
   return normalizeExtensionName(cleaned.slice(lastDot));
 }
 
+function detectTextSignature(buffer = Buffer.alloc(0)) {
+  if (buffer.length === 0 || buffer.includes(0)) return null;
+
+  try {
+    const decoded = new TextDecoder('utf-8', { fatal: true }).decode(buffer);
+    for (const char of decoded) {
+      const code = char.codePointAt(0);
+      if (
+        code === 0x09 ||
+        code === 0x0a ||
+        code === 0x0d ||
+        (code >= 0x20 && code <= 0x7e) ||
+        code >= 0x80
+      ) {
+        continue;
+      }
+      return null;
+    }
+    return 'txt';
+  } catch {
+    return null;
+  }
+}
+
 function detectSignature(buffer = Buffer.alloc(0)) {
   if (
     buffer.length >= 4 &&
@@ -86,7 +110,7 @@ function detectSignature(buffer = Buffer.alloc(0)) {
   if (buffer.length >= 2 && buffer[0] === 0xd0 && buffer[1] === 0xcf) {
     return 'doc';
   }
-  return 'txt';
+  return detectTextSignature(buffer);
 }
 
 function safeFilename(originalName, extension) {

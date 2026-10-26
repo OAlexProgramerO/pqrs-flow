@@ -75,6 +75,151 @@
         </form>
         <div id="passwordMessage" class="message" role="status" aria-live="polite" hidden></div>
       </section>
+      <section class="panel" aria-labelledby="mfa-title">
+        <h2 id="mfa-title">Multi-factor authentication (MFA)</h2>
+        <p class="hint">
+          Use an authenticator app. Recovery codes are shown once when MFA is enabled; store them
+          somewhere private and offline.
+        </p>
+        <p id="mfaStatus" class="message" role="status" aria-live="polite">Loading MFA status…</p>
+        <div id="mfaSetup" hidden>
+          <p>Enter this secret in your authenticator app:</p>
+          <p><code id="mfaSecret"></code></p>
+          <p class="hint">If your app supports setup links, use this URI:</p>
+          <p><code id="mfaUri"></code></p>
+          <form id="mfaEnableForm" class="security-form" novalidate>
+            <div class="form-group">
+              <label for="mfaEnablePassword">Current password</label>
+              <input
+                id="mfaEnablePassword"
+                name="password"
+                type="password"
+                required
+                autocomplete="current-password"
+              />
+            </div>
+            <div class="form-group">
+              <label for="mfaEnableCode">6-digit authenticator code</label>
+              <input
+                id="mfaEnableCode"
+                name="code"
+                inputmode="numeric"
+                pattern="[0-9]{6}"
+                maxlength="6"
+                required
+                autocomplete="one-time-code"
+              />
+            </div>
+            <button class="btn btn-primary" type="submit" id="mfaEnableBtn">
+              Verify and enable MFA
+            </button>
+          </form>
+        </div>
+        <div id="mfaRecoveryPanel" hidden>
+          <h3>Save your recovery codes now</h3>
+          <p class="message error">These codes will not be shown again. Each code works once.</p>
+          <pre id="mfaRecoveryCodes" class="recovery-codes"></pre>
+          <button type="button" class="btn btn-secondary" id="mfaRecoveryDone">
+            I have saved these codes
+          </button>
+        </div>
+        <form id="mfaSetupForm" class="security-form" novalidate>
+          <div class="form-group">
+            <label for="mfaSetupPassword">Current password to begin setup</label>
+            <input
+              id="mfaSetupPassword"
+              name="password"
+              type="password"
+              required
+              autocomplete="current-password"
+            />
+          </div>
+          <button class="btn btn-primary" type="submit" id="mfaSetupBtn">Set up MFA</button>
+        </form>
+        <form id="mfaDisableForm" class="security-form" novalidate hidden>
+          <div class="form-group">
+            <label for="mfaDisablePassword">Current password</label>
+            <input
+              id="mfaDisablePassword"
+              name="password"
+              type="password"
+              required
+              autocomplete="current-password"
+            />
+          </div>
+          <div class="form-group">
+            <label for="mfaDisableCode">Authenticator code or one-time recovery code</label>
+            <input
+              id="mfaDisableCode"
+              name="code"
+              inputmode="text"
+              maxlength="12"
+              required
+              autocomplete="one-time-code"
+            />
+          </div>
+          <button class="btn btn-secondary" type="submit" id="mfaDisableBtn">Disable MFA</button>
+        </form>
+        <div id="mfaMessage" class="message" role="status" aria-live="polite" hidden></div>
+      </section>
+
+      <section class="panel" aria-labelledby="events-title" data-admin-only hidden>
+        <h2 id="events-title">Security events</h2>
+        <p class="hint">
+          Visible to administrators only. Results are paginated and never include credentials,
+          session tokens or MFA secrets.
+        </p>
+        <form id="eventsFilterForm" class="filters" novalidate>
+          <div class="form-group">
+            <label for="eventType">Event type</label>
+            <select id="eventType" name="eventType">
+              <option value="">All event types</option>
+              <option value="login_success">Login succeeded</option>
+              <option value="login_failed">Login failed</option>
+              <option value="mfa_enabled">MFA enabled</option>
+              <option value="mfa_disabled">MFA disabled</option>
+              <option value="mfa_recovery_code_used">Recovery code used</option>
+              <option value="mfa_enable_failed">MFA enable failed</option>
+              <option value="mfa_disable_failed">MFA disable failed</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="eventsFrom">From (UTC)</label>
+            <input type="date" id="eventsFrom" name="from" />
+          </div>
+          <div class="form-group">
+            <label for="eventsTo">To (UTC)</label>
+            <input type="date" id="eventsTo" name="to" />
+          </div>
+          <button class="btn btn-primary" type="submit">Filter events</button>
+        </form>
+        <div id="eventsState" class="message" role="status" aria-live="polite">
+          Loading security events…
+        </div>
+        <div class="table-wrap" id="eventsWrap" hidden>
+          <table>
+            <caption class="visually-hidden">
+              Security event history
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Time (UTC)</th>
+                <th scope="col">Event</th>
+                <th scope="col">Account ID</th>
+                <th scope="col">IP address</th>
+                <th scope="col">Request ID</th>
+              </tr>
+            </thead>
+            <tbody id="eventsRows"></tbody>
+          </table>
+        </div>
+        <nav class="pagination" id="eventsPagination" aria-label="Security event pages" hidden>
+          <button type="button" class="btn btn-secondary" id="eventsPrev">Previous</button>
+          <span id="eventsPageInfo"></span>
+          <button type="button" class="btn btn-secondary" id="eventsNext">Next</button>
+        </nav>
+      </section>
+
       <section class="panel" aria-labelledby="sessions-title">
         <div class="panel-heading">
           <div>

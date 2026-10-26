@@ -1,7 +1,7 @@
 import { AdminApiError, getSession, login } from './admin-api.js';
 import { describeFailure } from './messages.js';
 
-const FIELDS = ['email', 'password'];
+const FIELDS = ['email', 'password', 'totpCode'];
 const form = document.getElementById('loginForm');
 const messageEl = document.getElementById('loginMessage');
 const submitBtn = document.getElementById('loginBtn');
@@ -28,10 +28,13 @@ function showFieldErrors(errors) {
 }
 
 // Only checks that something was typed. The server decides everything else.
-function checkFields({ email, password }) {
+function checkFields({ email, password, totpCode = '' }) {
   const errors = {};
   if (!email.trim()) errors.email = 'Email address is required.';
   if (!password) errors.password = 'Password is required.';
+  if (totpCode && !/^(?:\d{6}|[A-Z0-9_-]{12})$/i.test(totpCode.trim())) {
+    errors.totpCode = 'Enter a 6-digit authenticator code or a 12-character recovery code.';
+  }
   return errors;
 }
 
@@ -53,7 +56,11 @@ form.addEventListener('submit', async (event) => {
   submitBtn.textContent = 'Logging in…';
 
   try {
-    const result = await login({ email: data.email.trim(), password: data.password });
+    const result = await login({
+      email: data.email.trim(),
+      password: data.password,
+      totpCode: data.totpCode.trim(),
+    });
     window.location.assign(
       result.admin.credentialUpdateRequired ? '/admin/security.html' : '/admin/',
     );

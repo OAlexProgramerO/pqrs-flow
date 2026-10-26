@@ -168,6 +168,21 @@ dialog .panel {
   margin: 0;
 }
 
+.recovery-codes {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  line-height: 1.8;
+}
+
+code {
+  overflow-wrap: anywhere;
+}
+
 /* ---- Metrics ---- */
 
 .metrics {

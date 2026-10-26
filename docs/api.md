@@ -213,6 +213,30 @@ shape is unchanged.
 
 Every attempt counts, successful or not. The counters live in the memory of the server and restart with it. Known trade-off: someone who knows a case number can use up its 8 attempts and make the owner wait. Behind a proxy, set `TRUST_PROXY` (see the README) so the client address is the real one.
 
+### Multi-factor authentication
+
+All endpoints below require an authenticated staff session and a valid CSRF token for `POST` requests. MFA management is unavailable while the account is required to change its password.
+
+| Method | Endpoint             | Purpose                                                                                                                                                      |
+| ------ | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GET`  | `/admin/mfa`         | Returns whether MFA is enabled and the number of unused recovery codes.                                                                                      |
+| `POST` | `/admin/mfa/setup`   | Requires `{ "password": "current password" }`; returns the TOTP secret and `otpauthUri` once for enrollment. The response is `no-store`.                     |
+| `POST` | `/admin/mfa/enable`  | Requires `{ "password": "...", "code": "123456" }`; enables MFA and returns ten one-time recovery codes. Save them immediately; they are not returned again. |
+| `POST` | `/admin/mfa/disable` | Requires the current password and either a valid TOTP code or an unused recovery code. Remaining recovery codes are deleted.                                 |
+
+When MFA is enabled, `POST /admin/login` also accepts `totpCode`, containing either a six-digit TOTP value or a 12-character recovery code. A recovery code is consumed on successful use. Login failures keep the same generic authentication response.
+
+### Security events
+
+`GET /admin/security-events` is restricted to administrators and accepts these optional query parameters:
+
+- `eventType`: event type such as `login_failed` or `mfa_enabled`.
+- `from`, `to`: inclusive UTC dates in `YYYY-MM-DD` format.
+- `page`: positive page number, default `1`.
+- `pageSize`: number of rows from `1` to `100`, default `25`.
+
+The response contains `items`, `totalItems`, `page` and `pageSize`. Each item includes its event id/type, account and actor ids, request id, IP address and timestamp. Raw event details and user-agent strings are deliberately omitted from this administrative view. Responses are `Cache-Control: no-store`.
+
 ## Other errors
 
 ### Unknown routes

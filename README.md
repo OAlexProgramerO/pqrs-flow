@@ -8,7 +8,7 @@
 
 A web system to submit, track and manage **PQRS** — _Peticiones, Quejas, Reclamos y Sugerencias_ (Petitions, Complaints, Claims and Suggestions). Built end to end with JavaScript, prioritizing simplicity, no frontend build step and clear architectural boundaries.
 
-**Local implementation: v0.5.0 — Quality engineering** — Coverage reporting, a real-browser smoke suite and automated accessibility checks now exercise the public and staff journeys without redesigning the app. This implementation is local only; no public release or deployment is claimed. See [docs/api.md](./docs/api.md) for filters and export details and [docs/security.md](./docs/security.md) before exposing the application.
+**Local implementation: v0.6.0 — MFA and security auditability** — Staff can enroll in TOTP multi-factor authentication, generate one-time recovery codes, and review security events through an administrator-only paginated view. This implementation is local only; no public release or deployment is claimed. See [docs/api.md](./docs/api.md) for filters and export details and [docs/security.md](./docs/security.md) before exposing the application.
 
 ---
 

@@ -23,6 +23,7 @@ export function createAuthService({
   adminRepository,
   sessionRepository,
   securityEventRepository,
+  mfaRepository,
   sessionPolicy,
   passwordParams = DEFAULT_SCRYPT_PARAMS,
   now = () => new Date(),
@@ -43,7 +44,7 @@ export function createAuthService({
      * `previousToken` is the cookie the browser already had: that session is closed, so a
      * login always gives a brand new session (no session fixation).
      */
-    async login(input, { previousToken, requestId } = {}) {
+    async login(input, { previousToken, requestId, ipAddress, userAgent } = {}) {
       const { valid, errors, data } = validateLogin(input);
       if (!valid) throw new ValidationError(errors);
 
@@ -54,10 +55,15 @@ export function createAuthService({
       const passwordMatches = await verifyPassword(data.password, passwordHash);
 
       let mfaValid = true;
+      let recoveryCodeUsed = false;
       if (account && account.isActive && account.mfaEnabled) {
         const mfaRecord = adminRepository.findMfaByAdminId(account.id);
         const secret = mfaRecord ? decryptMfaSecret(mfaRecord.secretCiphertext) : null;
         mfaValid = !!secret && verifyTotp(data.totpCode ?? '', secret, { window: 1 });
+        if (!mfaValid && mfaRepository && data.totpCode) {
+          recoveryCodeUsed = mfaRepository.consumeRecoveryCode(account.id, data.totpCode);
+          mfaValid = recoveryCodeUsed;
+        }
       }
 
       if (!account || !account.isActive || !passwordMatches || !mfaValid) {
@@ -66,15 +72,16 @@ export function createAuthService({
             eventType: 'login_failed',
             adminId: account?.id ?? null,
             requestId,
+            ipAddress,
+            userAgent,
             details: {
-              email: data.email,
               reason: !account
                 ? 'unknown_account'
                 : !account.isActive
                   ? 'inactive'
                   : !passwordMatches
                     ? 'bad_password'
-                    : 'bad_totp',
+                    : 'bad_mfa',
             },
           });
         }
@@ -114,8 +121,20 @@ export function createAuthService({
           eventType: 'login_success',
           adminId: account.id,
           requestId,
-          details: { sessionExpiresAt: expiresAt.toISOString() },
+          ipAddress,
+          userAgent,
+          details: { mfaUsed: Boolean(account.mfaEnabled), recoveryCodeUsed },
         });
+        if (recoveryCodeUsed) {
+          securityEventRepository.log({
+            eventType: 'mfa_recovery_code_used',
+            adminId: account.id,
+            requestId,
+            ipAddress,
+            userAgent,
+            details: { remainingRecoveryCodes: mfaRepository.countRecoveryCodes(account.id) },
+          });
+        }
       }
 
       return {
