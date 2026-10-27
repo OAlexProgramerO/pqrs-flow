@@ -4,6 +4,10 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [SemVer](h
 
 ## [Unreleased]
 
+No unreleased application changes yet. The next planned milestone is v0.7.0; see [docs/roadmap/v0.7.0-plan.md](./docs/roadmap/v0.7.0-plan.md).
+
+## [0.6.0] - 2026-10-26
+
 ### Added
 
 - Staff self-service TOTP MFA enrollment, verification, disablement and one-time recovery codes. Recovery codes are stored as hashes, consumed once at login and displayed only when generated.
@@ -18,8 +22,8 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [SemVer](h
 
 ### Validation
 
-- Backend suite: 500 passed, 0 failed.
-- ESLint and Prettier checks passed on the changed source and documentation files. Dependency audit remains to be run in the target development environment.
+- Backend suite: 500 passed, 0 failed (local validation reported for this implementation).
+- ESLint and Prettier checks passed on the changed source and documentation files. The dependency audit remains to be run in the target development environment; do not treat this entry as proof of a public release or production deployment.
 
 ## [0.5.0] - 2026-10-23
 

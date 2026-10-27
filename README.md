@@ -8,7 +8,7 @@
 
 A web system to submit, track and manage **PQRS** — _Peticiones, Quejas, Reclamos y Sugerencias_ (Petitions, Complaints, Claims and Suggestions). Built end to end with JavaScript, prioritizing simplicity, no frontend build step and clear architectural boundaries.
 
-**Local implementation: v0.6.0 — MFA and security auditability** — Staff can enroll in TOTP multi-factor authentication, generate one-time recovery codes, and review security events through an administrator-only paginated view. This implementation is local only; no public release or deployment is claimed. See [docs/api.md](./docs/api.md) for filters and export details and [docs/security.md](./docs/security.md) before exposing the application.
+**Current implementation: v0.6.0 — MFA and security auditability. Next planned version: v0.7.0 — containerization.** Staff can enroll in TOTP multi-factor authentication, generate one-time recovery codes, and review security events through an administrator-only paginated view. The v0.6.0 implementation is integrated into `main`; check GitHub Releases and tags for publication status. The next planned milestone packages the application in a hardened Docker image with persistent storage and a documented Compose setup. See [ROADMAP.md](./ROADMAP.md) and [docs/roadmap/v0.7.0-plan.md](./docs/roadmap/v0.7.0-plan.md). See [docs/api.md](./docs/api.md) for API details and [docs/security.md](./docs/security.md) before exposing the application.
 
 ---
 
@@ -24,26 +24,27 @@ Many organizations still handle feedback, complaints and requests through scatte
 
 ### Project status
 
-| Feature                                                                   | Version | Status              |
-| ------------------------------------------------------------------------- | ------- | ------------------- |
-| Express server, health endpoint, static site                              | 0.0.1   | Done                |
-| Submission form with client-side validation                               | 0.0.2   | Done                |
-| Database, migrations and repository                                       | 0.0.3   | Done                |
-| `POST /api/pqrs`, form connected to the API, case number                  | 0.1.0   | Done                |
-| Status lookup with case number and email                                  | 0.1.1   | Done                |
-| Rate limit for submissions, compression, proxy settings                   | 0.1.2   | Done                |
-| Cache headers for static files, CORS from the environment                 | 0.1.3   | Done                |
-| Staff panel: login, dashboard, search, status changes                     | 0.2.0   | Done                |
-| Audit history of every status change                                      | 0.2.0   | Done                |
-| Clean shutdown, Spanish README, isolation regression tests                | 0.3.0   | Done                |
-| Staff roles, account management and security settings                     | 0.3.1   | Done                |
-| Replies, internal notes, assignment and request audit                     | 0.3.2   | Implemented locally |
-| Configurable business-day deadlines and holiday calendar                  | 0.3.3   | Implemented locally |
-| Secure attachments and application refinement                             | 0.3.4   | Implemented locally |
-| Transactional email notifications                                         | 0.3.5   | Implemented locally |
-| Staff reports and operational analytics                                   | 0.4.0   | Implemented locally |
-| Filtered staff CSV export with spreadsheet formula mitigation             | 0.4.1   | Implemented locally |
-| Coverage reports, Playwright browser smoke tests and accessibility checks | 0.5.0   | Implemented locally |
+| Feature                                                                     | Version | Status              |
+| --------------------------------------------------------------------------- | ------- | ------------------- |
+| Express server, health endpoint, static site                                | 0.0.1   | Done                |
+| Submission form with client-side validation                                 | 0.0.2   | Done                |
+| Database, migrations and repository                                         | 0.0.3   | Done                |
+| `POST /api/pqrs`, form connected to the API, case number                    | 0.1.0   | Done                |
+| Status lookup with case number and email                                    | 0.1.1   | Done                |
+| Rate limit for submissions, compression, proxy settings                     | 0.1.2   | Done                |
+| Cache headers for static files, CORS from the environment                   | 0.1.3   | Done                |
+| Staff panel: login, dashboard, search, status changes                       | 0.2.0   | Done                |
+| Audit history of every status change                                        | 0.2.0   | Done                |
+| Clean shutdown, Spanish README, isolation regression tests                  | 0.3.0   | Done                |
+| Staff roles, account management and security settings                       | 0.3.1   | Done                |
+| Replies, internal notes, assignment and request audit                       | 0.3.2   | Implemented locally |
+| Configurable business-day deadlines and holiday calendar                    | 0.3.3   | Implemented locally |
+| Secure attachments and application refinement                               | 0.3.4   | Implemented locally |
+| Transactional email notifications                                           | 0.3.5   | Implemented locally |
+| Staff reports and operational analytics                                     | 0.4.0   | Implemented locally |
+| Filtered staff CSV export with spreadsheet formula mitigation               | 0.4.1   | Implemented locally |
+| Coverage reports, Playwright browser smoke tests and accessibility checks   | 0.5.0   | Implemented locally |
+| TOTP MFA, one-time recovery codes and administrator security-event explorer | 0.6.0   | Implemented locally |
 
 ## ✨ What it does today
 
@@ -242,30 +243,28 @@ To run one test file use `npm --prefix backend test -- tests/admin-audit.test.js
 
 ## 🗺️ Planned next versions
 
-The completed v0.3.1–v0.4.1 implementations are local milestones, not statements that they have been publicly released. Future work remains planned, and its order may change. The branch names and reasons behind each decision are in [ROADMAP.md](./ROADMAP.md).
+Version `0.6.0` is integrated into `main` as the current implementation milestone. This does not by itself claim that a GitHub Release or production deployment exists; check the repository's tags and Releases for publication status. The next planned version is `0.7.0`. Plans can change after review; see [ROADMAP.md](./ROADMAP.md) for scope and decisions.
 
-| Version | Work                                                                                                                                                                   |
-| ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0.5.0   | **Quality.** Coverage report, an end-to-end test of the whole flow in a real browser, an automated accessibility check.                                                |
-| 0.5.1   | **Authentication hardening.** Second factor (TOTP), login limits and sessions that survive a restart and work with more than one server process, a security event log. |
-| 0.5.2   | **Docker.** Multi-stage image and `docker compose`.                                                                                                                    |
-| 0.5.3   | **Deployment.** Cloud deployment, CI/CD and automatic database backups.                                                                                                |
-| 0.9.0   | **Release candidate.** Feature freeze, demo data, screenshots and final documentation.                                                                                 |
-| 1.0.0   | **First stable release** with a public demo.                                                                                                                           |
+| Version | Work                                                                                                                                                                               |
+| ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0.7.0   | **Containerization.** Hardened multi-stage Docker image, non-root runtime, persistent storage for SQLite and attachments, health check, and documented Docker Compose setup.       |
+| 0.8.0   | **Deployment and operations.** CI/CD release workflow, deployment guide, backup and restore procedures, and an operational checklist for secrets, persistent volumes and recovery. |
+| 0.9.0   | **Release candidate.** Feature freeze, reproducible demo data, screenshots, end-to-end verification and final documentation.                                                       |
+| 1.0.0   | **First stable release** with a public demo, documented support boundaries and a verified release process.                                                                         |
 
 ### Known limits of the current implementation
 
-These are deliberate and are the reason for some of the versions above:
+These limits remain relevant while the next milestones are planned:
 
-- Everyone with either staff role can see and change every request; per-request assignment and access restrictions are not implemented.
-- The case-detail workflow supports official responses, internal notes and assignments; there is no broad audit explorer.
-- The login limits and the staff sessions are meant for **one server process**. The limit counters live in memory and restart with the server. With several instances behind a load balancer the limits would be per instance (0.5.1).
-- There is no second factor or password-reset email, so there is no "forgot my password" link: recovery needs access to the server (0.5.1). The v0.3.5 notifications are limited to request receipts and published responses.
-- A login counts every attempt toward the account limit, so someone who knows an email can make that account wait. Accounts can still be recovered from the terminal.
-- Logins and failed attempts are not recorded in a security event log. Account, password and session changes are recorded in the append-only account audit; status changes have their own audit. A broader event log is planned for 0.5.1.
-- The same happens with the public lookup: it allows 8 attempts per case number every 15 minutes, so someone who knows a case number can make its real owner wait. No data is exposed by this. See [docs/security.md](./docs/security.md).
-- The search ignores letter case only for English letters (a limit of SQLite's `LIKE`), and dates in the filters are in UTC.
-- Passing the automated tests does not mean the system is ready for production. Review [docs/security.md](./docs/security.md) and test it in your environment first.
+- Both active staff roles can see and change every request; per-request assignment-based access restrictions are not implemented.
+- TOTP MFA and one-time recovery codes are available, but password recovery still requires an administrator with access to the server terminal; there is no self-service password-reset email flow.
+- Login and public-lookup rate-limit counters are held in memory. They reset when the process restarts and are not shared between multiple server processes. Run one server process for now; containerization does not change this limitation.
+- A person who knows a staff email can consume that account's login-attempt budget. The per-address limit and administrator-assisted terminal recovery are the current mitigations.
+- The public lookup has an in-memory limit of 8 attempts per case number per 15-minute window. Someone who knows a case number can temporarily exhaust that budget; lookup still requires the email and does not expose request data.
+- Security events and account/status audit trails exist, but automatic retention and deletion policies are not implemented. Define a retention period and review applicable privacy requirements before production use.
+- The search ignores letter case only for English letters (a limitation of SQLite `LIKE`), and date filters use UTC.
+- SQLite is a single-file database and does not provide high availability. Backups and restore procedures must be established and tested before production use.
+- Passing automated tests does not mean the system is production-ready. Review [docs/security.md](./docs/security.md) and validate the deployment in its target environment.
 
 ## 🤝 Contributing
 

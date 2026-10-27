@@ -8,9 +8,9 @@
 
 Un sistema web para radicar, consultar y gestionar **PQRS** — _Peticiones, Quejas, Reclamos y Sugerencias_. Está construido de principio a fin con JavaScript, priorizando la simplicidad, la ausencia de un paso de compilación en el frontend y límites de arquitectura claros.
 
-**Implementación local: v0.6.0 — MFA y auditoría de seguridad** — El personal puede configurar autenticación multifactor TOTP, generar códigos de recuperación de un solo uso y consultar eventos de seguridad mediante una vista paginada exclusiva para administradores. Esta implementación es local; no implica una publicación ni un despliegue. Consulta los filtros y detalles en [docs/api.md](./docs/api.md) y [docs/security.md](./docs/security.md) antes de exponer la aplicación (documentación en inglés).
+**Implementación actual: v0.6.0 — MFA y auditoría de seguridad. Siguiente versión planeada: v0.7.0 — contenerización.** El personal puede configurar autenticación multifactor TOTP, generar códigos de recuperación de un solo uso y consultar eventos de seguridad mediante una vista paginada exclusiva para administradores. La implementación v0.6.0 está integrada en `main`; consulta las etiquetas y publicaciones de GitHub para verificar su estado de publicación. El siguiente hito planea empaquetar la aplicación en una imagen Docker endurecida, con almacenamiento persistente y una configuración documentada de Compose. Consulta [ROADMAP.md](./ROADMAP.md) y [docs/roadmap/v0.7.0-plan.md](./docs/roadmap/v0.7.0-plan.md). La documentación técnica está en inglés: [docs/api.md](./docs/api.md) y [docs/security.md](./docs/security.md).
 
-> Este archivo es la versión en español de [README.md](./README.md). Si algo difiere, el README en inglés y el código son la referencia. Los cambios de la implementación local v0.5.0 están en [CHANGELOG.md](./CHANGELOG.md).
+> Este archivo es la versión en español de [README.md](./README.md). Si algo difiere, el README en inglés y el código son la referencia. Los cambios de la implementación v0.6.0 y el historial de versiones están en [CHANGELOG.md](./CHANGELOG.md).
 
 ---
 
@@ -26,26 +26,27 @@ Muchas organizaciones todavía gestionan sugerencias, quejas y solicitudes con c
 
 ### Estado del proyecto
 
-| Funcionalidad                                                          | Versión | Estado                  |
-| ---------------------------------------------------------------------- | ------- | ----------------------- |
-| Servidor Express, endpoint de salud, sitio estático                    | 0.0.1   | Hecho                   |
-| Formulario de radicación con validación en el cliente                  | 0.0.2   | Hecho                   |
-| Base de datos, migraciones y repositorio                               | 0.0.3   | Hecho                   |
-| `POST /api/pqrs`, formulario conectado a la API, número de caso        | 0.1.0   | Hecho                   |
-| Consulta de estado con número de caso y correo                         | 0.1.1   | Hecho                   |
-| Límite de radicaciones, compresión, configuración de proxy             | 0.1.2   | Hecho                   |
-| Cabeceras de caché para archivos estáticos, CORS desde el entorno      | 0.1.3   | Hecho                   |
-| Panel del personal: login, tablero, búsqueda, cambios de estado        | 0.2.0   | Hecho                   |
-| Historial de auditoría de cada cambio de estado                        | 0.2.0   | Hecho                   |
-| Apagado limpio, README en español, pruebas de regresión de aislamiento | 0.3.0   | Hecho                   |
-| Roles, cuentas y seguridad del personal                                | 0.3.1   | Hecho                   |
-| Respuestas, notas internas, asignación y auditoría de solicitudes      | 0.3.2   | Implementado localmente |
-| Reglas configurables de plazos hábiles y calendario de festivos        | 0.3.3   | Implementado localmente |
-| Adjuntos seguros y refinamiento de la aplicación                       | 0.3.4   | Implementado localmente |
-| Notificaciones transaccionales por correo                              | 0.3.5   | Implementado localmente |
-| Reportes y analítica operativa                                         | 0.4.0   | Implementado localmente |
-| Exportación CSV filtrada del personal con mitigación de fórmulas       | 0.4.1   | Implementado localmente |
-| Reportes de cobertura, pruebas de navegador real y accesibilidad       | 0.5.0   | Implementado localmente |
+| Funcionalidad                                                                              | Versión | Estado                  |
+| ------------------------------------------------------------------------------------------ | ------- | ----------------------- |
+| Servidor Express, endpoint de salud, sitio estático                                        | 0.0.1   | Hecho                   |
+| Formulario de radicación con validación en el cliente                                      | 0.0.2   | Hecho                   |
+| Base de datos, migraciones y repositorio                                                   | 0.0.3   | Hecho                   |
+| `POST /api/pqrs`, formulario conectado a la API, número de caso                            | 0.1.0   | Hecho                   |
+| Consulta de estado con número de caso y correo                                             | 0.1.1   | Hecho                   |
+| Límite de radicaciones, compresión, configuración de proxy                                 | 0.1.2   | Hecho                   |
+| Cabeceras de caché para archivos estáticos, CORS desde el entorno                          | 0.1.3   | Hecho                   |
+| Panel del personal: login, tablero, búsqueda, cambios de estado                            | 0.2.0   | Hecho                   |
+| Historial de auditoría de cada cambio de estado                                            | 0.2.0   | Hecho                   |
+| Apagado limpio, README en español, pruebas de regresión de aislamiento                     | 0.3.0   | Hecho                   |
+| Roles, cuentas y seguridad del personal                                                    | 0.3.1   | Hecho                   |
+| Respuestas, notas internas, asignación y auditoría de solicitudes                          | 0.3.2   | Implementado localmente |
+| Reglas configurables de plazos hábiles y calendario de festivos                            | 0.3.3   | Implementado localmente |
+| Adjuntos seguros y refinamiento de la aplicación                                           | 0.3.4   | Implementado localmente |
+| Notificaciones transaccionales por correo                                                  | 0.3.5   | Implementado localmente |
+| Reportes y analítica operativa                                                             | 0.4.0   | Implementado localmente |
+| Exportación CSV filtrada del personal con mitigación de fórmulas                           | 0.4.1   | Implementado localmente |
+| Reportes de cobertura, pruebas de navegador real y accesibilidad                           | 0.5.0   | Implementado localmente |
+| MFA TOTP, códigos de recuperación de un uso y visor administrativo de eventos de seguridad | 0.6.0   | Implementado localmente |
 
 ## ✨ Qué hace hoy
 
@@ -245,30 +246,28 @@ Para ejecutar un solo archivo de pruebas usa `npm --prefix backend test -- tests
 
 ## 🗺️ Próximas versiones planeadas
 
-Las implementaciones v0.3.1–v0.4.1 son hitos locales; esto no afirma que se hayan publicado. El trabajo futuro sigue planeado y su orden puede cambiar. Los nombres de las ramas y las razones de cada decisión están en [ROADMAP.md](./ROADMAP.md).
+La versión `0.6.0` está integrada en `main` como el hito actual de implementación. Esto no significa por sí solo que exista una publicación de GitHub o un despliegue en producción; consulta las etiquetas y publicaciones del repositorio para verificarlo. La siguiente versión planeada es `0.7.0`. El plan puede cambiar después de la revisión; consulta [ROADMAP.md](./ROADMAP.md) para conocer el alcance y las decisiones.
 
-| Versión | Trabajo                                                                                                                                                                                                      |
-| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 0.5.0   | **Calidad.** Informe de cobertura, una prueba de extremo a extremo de todo el flujo en un navegador real, una verificación automática de accesibilidad.                                                      |
-| 0.5.1   | **Endurecimiento de la autenticación.** Segundo factor (TOTP), límites de login y sesiones que sobreviven a un reinicio y funcionan con más de un proceso del servidor, un registro de eventos de seguridad. |
-| 0.5.2   | **Docker.** Imagen multi-etapa y `docker compose`.                                                                                                                                                           |
-| 0.5.3   | **Despliegue.** Despliegue en la nube, CI/CD y copias de seguridad automáticas de la base de datos.                                                                                                          |
-| 0.9.0   | **Candidata a versión final.** Congelación de funcionalidades, datos de demostración, capturas de pantalla y documentación final.                                                                            |
-| 1.0.0   | **Primera versión estable** con una demostración pública.                                                                                                                                                    |
+| Versión | Trabajo                                                                                                                                                                                                               |
+| ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0.7.0   | **Contenerización.** Imagen Docker multi-etapa endurecida, ejecución sin privilegios de root, almacenamiento persistente para SQLite y adjuntos, comprobación de salud y configuración documentada de Docker Compose. |
+| 0.8.0   | **Despliegue y operación.** Flujo CI/CD para publicaciones, guía de despliegue, procedimientos de copia de seguridad y restauración, y lista operativa para secretos, volúmenes persistentes y recuperación.          |
+| 0.9.0   | **Candidata a versión final.** Congelación de funcionalidades, datos de demostración reproducibles, capturas, verificación de extremo a extremo y documentación final.                                                |
+| 1.0.0   | **Primera versión estable** con una demostración pública, límites de soporte documentados y un proceso de publicación verificado.                                                                                     |
 
 ### Límites conocidos de la implementación actual
 
-Son deliberados y son la razón de algunas de las versiones anteriores:
+Estos límites siguen siendo relevantes mientras se planifican los siguientes hitos:
 
-- Todos los usuarios activos de ambos roles pueden ver y modificar todas las solicitudes; todavía no hay restricciones por asignación.
-- La vista de detalle permite respuestas oficiales, notas internas y asignaciones; aún no hay un explorador amplio de auditoría.
-- Los límites de login y las sesiones del personal están pensados para **un solo proceso del servidor**. Los contadores de límites viven en memoria y se reinician con el servidor. Con varias instancias detrás de un balanceador, los límites serían por instancia (0.5.1).
-- No hay segundo factor ni correo de restablecimiento de contraseña, por lo que la recuperación requiere acceso al servidor (0.5.1). Los avisos v0.3.5 se limitan a radicaciones y respuestas publicadas.
-- Un login cuenta cada intento para el límite de la cuenta, así que quien conozca un correo puede hacer esperar a esa cuenta. El personal aún puede recuperarse desde la terminal.
-- Los inicios de sesión y sus fallos no se registran en una bitácora de eventos de seguridad. Los cambios de cuenta, contraseña y sesiones sí quedan en la auditoría append-only de cuentas; los cambios de estado tienen su propia auditoría. Una bitácora de eventos más amplia está planeada para 0.5.1.
-- Lo mismo ocurre con la consulta pública: permite 8 intentos por número de caso cada 15 minutos, así que quien conozca un número de caso puede hacer esperar a su verdadero dueño. Esto no expone ningún dato. Ver [docs/security.md](./docs/security.md).
-- La búsqueda ignora mayúsculas y minúsculas solo para las letras del inglés (un límite del `LIKE` de SQLite), y las fechas de los filtros están en UTC.
-- Que las pruebas automáticas pasen no significa que el sistema esté listo para producción. Revisa [docs/security.md](./docs/security.md) y pruébalo en tu entorno primero.
+- Ambos roles activos del personal pueden consultar y modificar todas las solicitudes; todavía no hay restricciones de acceso por asignación individual.
+- MFA TOTP y códigos de recuperación de un solo uso están disponibles, pero recuperar una contraseña todavía requiere un administrador con acceso a la terminal del servidor; no existe un flujo de restablecimiento autónomo por correo.
+- Los contadores de límites de login y consulta pública viven en memoria. Se reinician al reiniciar el proceso y no se comparten entre varios procesos. Por ahora debe ejecutarse un solo proceso del servidor; la contenerización no cambia esta limitación.
+- Una persona que conoce el correo de un usuario puede consumir el presupuesto de intentos de login de esa cuenta. Los límites por dirección y la recuperación mediante un administrador desde la terminal son las mitigaciones actuales.
+- La consulta pública limita a 8 intentos por número de caso durante cada ventana de 15 minutos en memoria. Alguien que conoce el número puede agotar temporalmente ese límite; la consulta sigue exigiendo el correo y no expone los datos de la solicitud.
+- Existen eventos de seguridad y auditorías de cuentas y estados, pero no hay políticas automáticas de retención y eliminación. Define un periodo de retención y revisa los requisitos de privacidad aplicables antes de usar el sistema en producción.
+- La búsqueda ignora mayúsculas y minúsculas solo para letras inglesas (limitación de `LIKE` en SQLite), y los filtros de fecha usan UTC.
+- SQLite es una base de datos de un solo archivo y no ofrece alta disponibilidad. Antes de producción, deben establecerse y probarse las copias de seguridad y la restauración.
+- Que las pruebas automáticas pasen no significa que el sistema esté listo para producción. Revisa [docs/security.md](./docs/security.md) y valida el despliegue en el entorno de destino.
 
 ## 🤝 Contribuir
 
