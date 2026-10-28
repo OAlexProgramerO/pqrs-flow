@@ -109,3 +109,66 @@ jobs:
 
       - name: Audit
         run: npm --prefix backend audit --omit=dev --audit-level=high
+
+  container:
+    name: Docker build and smoke test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build container image
+        run: docker build --tag pqrs-flow:ci .
+
+      - name: Start container with isolated persistent volumes
+        run: |
+          docker volume create pqrs-flow-ci-data
+          docker volume create pqrs-flow-ci-attachments
+          docker run --detach --name pqrs-flow-ci \
+            --publish 127.0.0.1:3000:3000 \
+            --env NODE_ENV=production \
+            --env PORT=3000 \
+            --env DB_PATH=data/pqrs.db \
+            --env ATTACHMENTS_STORAGE_DIR=data/attachments \
+            --env SESSION_COOKIE_SECURE=false \
+            --volume pqrs-flow-ci-data:/app/data \
+            --volume pqrs-flow-ci-attachments:/app/data/attachments \
+            pqrs-flow:ci
+
+      - name: Wait for health and exercise database initialization
+        run: |
+          for attempt in $(seq 1 30); do
+            if [ "$(docker inspect --format='{{.State.Health.Status}}' pqrs-flow-ci 2>/dev/null)" = "healthy" ]; then
+              break
+            fi
+            sleep 2
+          done
+          test "$(docker inspect --format='{{.State.Health.Status}}' pqrs-flow-ci)" = "healthy"
+          curl --fail --silent http://127.0.0.1:3000/api/health
+          status=$(curl --silent --output /dev/null --write-out '%{http_code}' \
+            --request POST --header 'Content-Type: application/json' \
+            --data '{}' http://127.0.0.1:3000/api/pqrs)
+          test "$status" = "400"
+          docker run --rm --volume pqrs-flow-ci-data:/data \
+            --entrypoint node pqrs-flow:ci \
+            -e "const fs=require('fs');if(!fs.existsSync('/data/pqrs.db'))process.exit(1)"
+
+      - name: Restart and verify persisted database
+        run: |
+          docker restart pqrs-flow-ci
+          for attempt in $(seq 1 30); do
+            if [ "$(docker inspect --format='{{.State.Health.Status}}' pqrs-flow-ci)" = "healthy" ]; then
+              break
+            fi
+            sleep 2
+          done
+          test "$(docker inspect --format='{{.State.Health.Status}}' pqrs-flow-ci)" = "healthy"
+          docker run --rm --volume pqrs-flow-ci-data:/data \
+            --entrypoint node pqrs-flow:ci \
+            -e "const fs=require('fs');if(!fs.existsSync('/data/pqrs.db'))process.exit(1)"
+
+      - name: Clean up test container and volumes
+        if: always()
+        run: |
+          docker rm --force pqrs-flow-ci || true
+          docker volume rm pqrs-flow-ci-data pqrs-flow-ci-attachments || true

@@ -8,7 +8,7 @@
 
 A web system to submit, track and manage **PQRS** — _Peticiones, Quejas, Reclamos y Sugerencias_ (Petitions, Complaints, Claims and Suggestions). Built end to end with JavaScript, prioritizing simplicity, no frontend build step and clear architectural boundaries.
 
-**Current implementation: v0.6.0 — MFA and security auditability. Next planned version: v0.7.0 — containerization.** Staff can enroll in TOTP multi-factor authentication, generate one-time recovery codes, and review security events through an administrator-only paginated view. The v0.6.0 implementation is integrated into `main`; check GitHub Releases and tags for publication status. The next planned milestone packages the application in a hardened Docker image with persistent storage and a documented Compose setup. See [ROADMAP.md](./ROADMAP.md) and [docs/roadmap/v0.7.0-plan.md](./docs/roadmap/v0.7.0-plan.md). See [docs/api.md](./docs/api.md) for API details and [docs/security.md](./docs/security.md) before exposing the application.
+**Current implementation: v0.6.0 — MFA and security auditability. v0.7.0 containerization is implemented locally and awaiting full validation; it is not yet a published release.** Staff can enroll in TOTP multi-factor authentication, generate one-time recovery codes, and review security events through an administrator-only paginated view. The v0.6.0 implementation is integrated into `main`; check GitHub Releases and tags for publication status. The local v0.7.0 implementation adds a hardened Docker image, persistent storage, and a documented Compose setup; validation is pending. See [ROADMAP.md](./ROADMAP.md) and [docs/roadmap/v0.7.0-plan.md](./docs/roadmap/v0.7.0-plan.md). See [docs/api.md](./docs/api.md) for API details and [docs/security.md](./docs/security.md) before exposing the application.
 
 ---
 
@@ -204,6 +204,33 @@ curl -X POST http://localhost:3000/api/pqrs \
   -d '{"type":"petition","subject":"Street light is broken","description":"The street light in front of my house has been off for two weeks.","requesterName":"Ana Gomez","requesterEmail":"ana@example.com"}'
 ```
 
+### Docker Compose (optional)
+
+Prerequisites: Docker Engine/Desktop with Compose v2. The existing local Node.js workflow remains available.
+
+From the repository root in PowerShell:
+
+```powershell
+docker compose config
+docker compose up --build -d
+docker compose ps
+docker compose logs -f app
+Invoke-RestMethod http://localhost:3000/api/health
+docker compose down
+```
+
+The service binds to `127.0.0.1:3000` by default and runs as UID `10001`, not root. The image is built from the backend lockfile and includes only production dependencies and runtime assets. Docker health reports that the HTTP health endpoint responds; it is not a full security, database-integrity, or external-email check.
+
+SQLite persists in the named volume `pqrs_flow_database`; attachments persist separately in `pqrs_flow_attachments`. Rebuilding the image or running `docker compose down` preserves both volumes. To remove the containers but keep data, use `docker compose down`. **To permanently delete the stored database and attachments**, run `docker compose down --volumes` only after confirming that the data is disposable or safely backed up.
+
+The Compose port is loopback-only. To deliberately expose it on a network, change the port binding only after planning HTTPS, secure cookies, firewall rules, and trusted-proxy settings. Do not set `TRUST_PROXY=true` unless every forwarded address is trustworthy. For HTTPS-terminated deployments, configure `SESSION_COOKIE_SECURE=true`.
+
+Optional SMTP and CORS settings can be supplied as environment variables using the names documented in `.env.example` and `backend/src/config/env.js`. Never place real credentials in the image, Dockerfile, Compose file, or source control. Keep any local `.env` untracked. Keep `MFA_ENCRYPTION_KEY` stable across restarts and upgrades; changing it can make existing encrypted values unreadable. `SESSION_COOKIE_SECRET` and `SESSION_SECRET` are also forwarded when configured.
+
+Back up the SQLite database and attachment volume as one coordinated set. Do not copy only `pqrs.db` while the app is writing, because SQLite WAL data may still be in `-wal` / `-shm` sidecars. For a simple consistent offline backup, stop the service with `docker compose stop`, preserve both volumes using your platform's approved volume-backup procedure, then start it with `docker compose start`. Backup automation is not included in v0.7.0.
+
+This setup is for one application instance using SQLite. Do not scale the service to multiple replicas against the same database volume. Containerization does not by itself certify the application for production or provide cloud deployment, automated backups, or image publishing.
+
 ## 📜 Available scripts
 
 | Command            | Description                                       |
@@ -243,7 +270,7 @@ To run one test file use `npm --prefix backend test -- tests/admin-audit.test.js
 
 ## 🗺️ Planned next versions
 
-Version `0.6.0` is integrated into `main` as the current implementation milestone. This does not by itself claim that a GitHub Release or production deployment exists; check the repository's tags and Releases for publication status. The next planned version is `0.7.0`. Plans can change after review; see [ROADMAP.md](./ROADMAP.md) for scope and decisions.
+Version `0.6.0` is integrated into `main` as the current implementation milestone. This does not by itself claim that a GitHub Release or production deployment exists; check the repository's tags and Releases for publication status. Version `0.7.0` is implemented locally and pending validation. Plans can change after review; see [ROADMAP.md](./ROADMAP.md) for scope and decisions.
 
 | Version | Work                                                                                                                                                                               |
 | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

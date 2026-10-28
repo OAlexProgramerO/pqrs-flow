@@ -79,3 +79,17 @@ This document describes the security model of PQRS Flow 0.6.0, what to do before
 ## Reporting a problem
 
 Open a private security advisory in the GitHub repository, or contact the maintainer directly. Please do not publish details of a vulnerability in a public issue before it is fixed.
+
+## Container deployment notes (v0.7.0)
+
+The Docker image runs the Node.js process as UID `10001`, uses a read-only root filesystem with a small `/tmp` tmpfs, enables `no-new-privileges`, and keeps persistent writes in named volumes. These controls reduce some container-level risks; they do not replace patching, access control, HTTPS, host security, or an application security review.
+
+Compose binds port `3000` to `127.0.0.1` by default. Do not expose it publicly without a deliberate network and HTTPS design. If TLS terminates at a trusted reverse proxy, configure `SESSION_COOKIE_SECURE=true` and set `TRUST_PROXY` only to the actual trusted proxy topology. Avoid `TRUST_PROXY=true` for arbitrary clients.
+
+The `healthy` status checks only that `/api/health` responds successfully. It does not prove that every database migration, SMTP delivery, or external dependency is healthy. CI additionally sends a request that initializes the SQLite database and checks that the database file remains present after container restart.
+
+The database and attachment files are stored in separate named volumes (`pqrs_flow_database` and `pqrs_flow_attachments`). They must be backed up and restored together to preserve attachment metadata/content consistency. Do not copy only the main SQLite file while the service is running: WAL mode may have pending data in sidecar files. v0.7.0 does not provide automated backup, restore, or point-in-time recovery.
+
+Keep `.env` files out of Git and out of image layers. Compose interpolates optional settings from the shell or the local Compose `.env` file; the committed Compose file contains no real credentials. SMTP credentials, if used, must be supplied locally and protected as secrets. Keep `MFA_ENCRYPTION_KEY` stable across restarts and upgrades. Do not rotate or replace such a key without a separately designed data migration.
+
+This deployment supports one application instance backed by SQLite. Do not run multiple replicas against the same database volume. Docker packaging is not a production certification and does not add image publishing, automated deployment, cloud infrastructure, or backup automation.

@@ -4,6 +4,17 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [SemVer](h
 
 ## [Unreleased]
 
+### Added
+
+- Add a multi-stage Docker image that runs the application as a non-root user and installs only backend production dependencies.
+- Add Docker Compose with separate named volumes for SQLite data and uploaded attachments, a loopback-only port binding, and an HTTP health check.
+- Add Docker build and container smoke-test coverage to GitHub Actions without publishing an image.
+- Document container operations, persistent data, secret handling, and single-instance SQLite limits in English and Spanish.
+
+### Validation
+
+- Container build and runtime behavior must be confirmed by the Docker-capable CI job; do not treat local source checks as a successful image build.
+
 No unreleased application changes yet. The next planned milestone is v0.7.0; see [docs/roadmap/v0.7.0-plan.md](./docs/roadmap/v0.7.0-plan.md).
 
 ## [0.6.0] - 2026-10-26

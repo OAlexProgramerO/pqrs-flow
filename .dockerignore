@@ -1,0 +1,46 @@
+
+# Secrets and local environment files
+.env
+.env.*
+!.env.example
+!.env.docker.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# Git and local tooling
+.git
+.git/**
+.gitattributes
+.githooks
+.vscode
+.idea
+
+# Dependencies must be installed for the target Linux image
+node_modules
+**/node_modules
+
+# Local databases, SQLite sidecars, uploads, and backups
+data
+**/data
+*.db
+*.sqlite
+*.sqlite3
+*-wal
+*-shm
+**/attachments
+**/uploads
+**/backups
+*.bak
+*.backup
+
+# Generated artifacts
+coverage
+**/coverage
+playwright-report
+test-results
+**/test-results
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db

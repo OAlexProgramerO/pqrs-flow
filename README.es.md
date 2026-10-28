@@ -8,7 +8,7 @@
 
 Un sistema web para radicar, consultar y gestionar **PQRS** — _Peticiones, Quejas, Reclamos y Sugerencias_. Está construido de principio a fin con JavaScript, priorizando la simplicidad, la ausencia de un paso de compilación en el frontend y límites de arquitectura claros.
 
-**Implementación actual: v0.6.0 — MFA y auditoría de seguridad. Siguiente versión planeada: v0.7.0 — contenerización.** El personal puede configurar autenticación multifactor TOTP, generar códigos de recuperación de un solo uso y consultar eventos de seguridad mediante una vista paginada exclusiva para administradores. La implementación v0.6.0 está integrada en `main`; consulta las etiquetas y publicaciones de GitHub para verificar su estado de publicación. El siguiente hito planea empaquetar la aplicación en una imagen Docker endurecida, con almacenamiento persistente y una configuración documentada de Compose. Consulta [ROADMAP.md](./ROADMAP.md) y [docs/roadmap/v0.7.0-plan.md](./docs/roadmap/v0.7.0-plan.md). La documentación técnica está en inglés: [docs/api.md](./docs/api.md) y [docs/security.md](./docs/security.md).
+**Implementación actual: v0.6.0 — MFA y trazabilidad de seguridad. La contenerización de v0.7.0 está implementada localmente y pendiente de validación completa; todavía no es una versión publicada.** El personal puede configurar autenticación multifactor TOTP, generar códigos de recuperación de un solo uso y consultar eventos de seguridad mediante una vista paginada exclusiva para administradores. La implementación v0.6.0 está integrada en `main`; consulta las etiquetas y publicaciones de GitHub para verificar su estado de publicación. La implementación local de v0.7.0 incorpora una imagen Docker endurecida, almacenamiento persistente y configuración de Compose; su validación sigue pendiente. Consulta [ROADMAP.md](./ROADMAP.md) y [docs/roadmap/v0.7.0-plan.md](./docs/roadmap/v0.7.0-plan.md). La documentación técnica está en inglés: [docs/api.md](./docs/api.md) y [docs/security.md](./docs/security.md).
 
 > Este archivo es la versión en español de [README.md](./README.md). Si algo difiere, el README en inglés y el código son la referencia. Los cambios de la implementación v0.6.0 y el historial de versiones están en [CHANGELOG.md](./CHANGELOG.md).
 
@@ -206,6 +206,33 @@ curl -X POST http://localhost:3000/api/pqrs \
   -H "Content-Type: application/json" \
   -d '{"type":"petition","subject":"Street light is broken","description":"The street light in front of my house has been off for two weeks.","requesterName":"Ana Gomez","requesterEmail":"ana@example.com"}'
 ```
+
+### Docker Compose (opcional)
+
+Requisitos: Docker Engine/Desktop con Compose v2. El flujo local existente con Node.js sigue disponible.
+
+Desde la raíz del repositorio en PowerShell:
+
+```powershell
+docker compose config
+docker compose up --build -d
+docker compose ps
+docker compose logs -f app
+Invoke-RestMethod http://localhost:3000/api/health
+docker compose down
+```
+
+El servicio se enlaza por defecto a `127.0.0.1:3000` y se ejecuta con el UID `10001`, no como root. La imagen se construye usando el lockfile del backend e incluye únicamente dependencias de producción y archivos necesarios en ejecución. El estado `healthy` confirma que responde el endpoint HTTP de salud; no certifica la integridad completa de la base de datos, la seguridad ni el envío externo de correos.
+
+SQLite persiste en el volumen nombrado `pqrs_flow_database`; los adjuntos se guardan por separado en `pqrs_flow_attachments`. Reconstruir la imagen o ejecutar `docker compose down` conserva ambos volúmenes. Para eliminar los contenedores sin borrar datos, usa `docker compose down`. **Para borrar permanentemente la base de datos y los adjuntos**, ejecuta `docker compose down --volumes` únicamente después de confirmar que los datos son desechables o cuentan con una copia segura.
+
+El puerto de Compose solo se expone en loopback. Expón el servicio en una red únicamente después de planear HTTPS, cookies seguras, reglas de firewall y la configuración de proxies confiables. No uses `TRUST_PROXY=true` salvo que todas las direcciones reenviadas sean confiables. Si HTTPS termina en un proxy, configura `SESSION_COOKIE_SECURE=true`.
+
+Los parámetros opcionales de SMTP y CORS pueden pasarse como variables de entorno con los nombres documentados en `.env.example` y `backend/src/config/env.js`. Nunca incluyas credenciales reales en la imagen, el Dockerfile, Compose ni el control de versiones. Mantén el `.env` local fuera de Git. Mantén `MFA_ENCRYPTION_KEY` estable entre reinicios y actualizaciones; cambiarla puede impedir descifrar los valores existentes. `SESSION_COOKIE_SECRET` y `SESSION_SECRET` también se pasan cuando están configuradas.
+
+La base SQLite y el volumen de adjuntos deben respaldarse como un conjunto coordinado. No copies únicamente `pqrs.db` mientras la aplicación escribe, porque SQLite puede conservar datos en los archivos auxiliares `-wal` y `-shm`. Para una copia offline sencilla y consistente, detén el servicio con `docker compose stop`, conserva ambos volúmenes mediante el procedimiento de respaldo aprobado para tu plataforma y luego inicia con `docker compose start`. v0.7.0 no incluye automatización de respaldos.
+
+Esta configuración está pensada para una sola instancia que usa SQLite. No escales el servicio a varias réplicas que compartan el mismo volumen de base de datos. La contenerización no certifica por sí sola que la aplicación esté lista para producción ni incluye despliegue en la nube, respaldos automáticos o publicación de imágenes.
 
 ## 📜 Scripts disponibles
 

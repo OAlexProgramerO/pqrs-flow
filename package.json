@@ -37,7 +37,12 @@
     "db:reset": "npm --prefix backend run db:reset",
     "prepare": "git config core.hooksPath .githooks || exit 0",
     "ready": "prettier --write . && npm run check",
-    "admin": "npm --prefix backend run admin --"
+    "admin": "npm --prefix backend run admin --",
+    "docker:build": "docker build -t pqrs-flow:local .",
+    "docker:up": "docker compose up --build -d",
+    "docker:logs": "docker compose logs -f app",
+    "docker:health": "docker compose ps",
+    "docker:down": "docker compose down"
   },
   "engines": {
     "node": ">=22"
