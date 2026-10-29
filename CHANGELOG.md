@@ -4,6 +4,16 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [SemVer](h
 
 ## [Unreleased]
 
+### Changed
+
+- Align root and backend package metadata, the `/api/health` version, README status, roadmap, and release documentation for the v0.7.1 maintenance release.
+
+### Validation
+
+- Run `npm run check` and the Docker build/runtime smoke test before tagging or publishing v0.7.1.
+
+## [0.7.0]
+
 ### Added
 
 - Add a multi-stage Docker image that runs the application as a non-root user and installs only backend production dependencies.
@@ -13,9 +23,7 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [SemVer](h
 
 ### Validation
 
-- Container build and runtime behavior must be confirmed by the Docker-capable CI job; do not treat local source checks as a successful image build.
-
-No unreleased application changes yet. The next planned milestone is v0.7.0; see [docs/roadmap/v0.7.0-plan.md](./docs/roadmap/v0.7.0-plan.md).
+- Docker image build and runtime behavior are covered by the Docker-capable CI job. Verify the current workflow result before relying on a particular build.
 
 ## [0.6.0] - 2026-10-26
 

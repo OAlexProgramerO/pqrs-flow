@@ -8,7 +8,7 @@
 
 A web system to submit, track and manage **PQRS** — _Peticiones, Quejas, Reclamos y Sugerencias_ (Petitions, Complaints, Claims and Suggestions). Built end to end with JavaScript, prioritizing simplicity, no frontend build step and clear architectural boundaries.
 
-**Current implementation: v0.6.0 — MFA and security auditability. v0.7.0 containerization is implemented locally and awaiting full validation; it is not yet a published release.** Staff can enroll in TOTP multi-factor authentication, generate one-time recovery codes, and review security events through an administrator-only paginated view. The v0.6.0 implementation is integrated into `main`; check GitHub Releases and tags for publication status. The local v0.7.0 implementation adds a hardened Docker image, persistent storage, and a documented Compose setup; validation is pending. See [ROADMAP.md](./ROADMAP.md) and [docs/roadmap/v0.7.0-plan.md](./docs/roadmap/v0.7.0-plan.md). See [docs/api.md](./docs/api.md) for API details and [docs/security.md](./docs/security.md) before exposing the application.
+**Current code version: v0.7.1 (maintenance release preparation).** The published v0.7.0 milestone adds a hardened Docker image, persistent storage for SQLite and attachments, a container health check, and a documented Docker Compose setup. Version 0.7.1 aligns package metadata, the API health response, the changelog, and project documentation; it does not introduce new application features. See [CHANGELOG.md](./CHANGELOG.md), [ROADMAP.md](./ROADMAP.md), and [docs/roadmap/v0.7.0-plan.md](./docs/roadmap/v0.7.0-plan.md). See [docs/api.md](./docs/api.md) for API details and [docs/security.md](./docs/security.md) before exposing the application.
 
 ---
 
@@ -44,7 +44,9 @@ Many organizations still handle feedback, complaints and requests through scatte
 | Staff reports and operational analytics                                     | 0.4.0   | Implemented locally |
 | Filtered staff CSV export with spreadsheet formula mitigation               | 0.4.1   | Implemented locally |
 | Coverage reports, Playwright browser smoke tests and accessibility checks   | 0.5.0   | Implemented locally |
-| TOTP MFA, one-time recovery codes and administrator security-event explorer | 0.6.0   | Implemented locally |
+| TOTP MFA, one-time recovery codes and administrator security-event explorer | 0.6.0   | Done                |
+| Hardened Docker image, persistent volumes and container health check        | 0.7.0   | Released            |
+| Version metadata and release-documentation consistency                      | 0.7.1   | In preparation      |
 
 ## ✨ What it does today
 
@@ -270,11 +272,11 @@ To run one test file use `npm --prefix backend test -- tests/admin-audit.test.js
 
 ## 🗺️ Planned next versions
 
-Version `0.6.0` is integrated into `main` as the current implementation milestone. This does not by itself claim that a GitHub Release or production deployment exists; check the repository's tags and Releases for publication status. Version `0.7.0` is implemented locally and pending validation. Plans can change after review; see [ROADMAP.md](./ROADMAP.md) for scope and decisions.
+Version `0.7.0` delivers containerization. Version `0.7.1` is a maintenance release in preparation to align version metadata and release documentation; it does not add application functionality. Plans can change after review; see [ROADMAP.md](./ROADMAP.md) for scope and decisions.
 
 | Version | Work                                                                                                                                                                               |
 | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0.7.0   | **Containerization.** Hardened multi-stage Docker image, non-root runtime, persistent storage for SQLite and attachments, health check, and documented Docker Compose setup.       |
+| 0.7.1   | **Release consistency.** Align package versions, API health metadata, changelog, README files and roadmap with the v0.7.0 release. No new application features.                    |
 | 0.8.0   | **Deployment and operations.** CI/CD release workflow, deployment guide, backup and restore procedures, and an operational checklist for secrets, persistent volumes and recovery. |
 | 0.9.0   | **Release candidate.** Feature freeze, reproducible demo data, screenshots, end-to-end verification and final documentation.                                                       |
 | 1.0.0   | **First stable release** with a public demo, documented support boundaries and a verified release process.                                                                         |

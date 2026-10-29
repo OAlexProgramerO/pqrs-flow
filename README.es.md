@@ -8,7 +8,7 @@
 
 Un sistema web para radicar, consultar y gestionar **PQRS** — _Peticiones, Quejas, Reclamos y Sugerencias_. Está construido de principio a fin con JavaScript, priorizando la simplicidad, la ausencia de un paso de compilación en el frontend y límites de arquitectura claros.
 
-**Implementación actual: v0.6.0 — MFA y trazabilidad de seguridad. La contenerización de v0.7.0 está implementada localmente y pendiente de validación completa; todavía no es una versión publicada.** El personal puede configurar autenticación multifactor TOTP, generar códigos de recuperación de un solo uso y consultar eventos de seguridad mediante una vista paginada exclusiva para administradores. La implementación v0.6.0 está integrada en `main`; consulta las etiquetas y publicaciones de GitHub para verificar su estado de publicación. La implementación local de v0.7.0 incorpora una imagen Docker endurecida, almacenamiento persistente y configuración de Compose; su validación sigue pendiente. Consulta [ROADMAP.md](./ROADMAP.md) y [docs/roadmap/v0.7.0-plan.md](./docs/roadmap/v0.7.0-plan.md). La documentación técnica está en inglés: [docs/api.md](./docs/api.md) y [docs/security.md](./docs/security.md).
+**Versión actual del código: v0.7.1 (preparación de una versión de mantenimiento).** El hito publicado v0.7.0 incorpora una imagen Docker endurecida, almacenamiento persistente para SQLite y adjuntos, una comprobación de salud del contenedor y una configuración documentada de Docker Compose. La versión 0.7.1 alinea los metadatos de los paquetes, la respuesta de salud de la API, el changelog y la documentación; no añade funcionalidades nuevas a la aplicación. Consulta [CHANGELOG.md](./CHANGELOG.md), [ROADMAP.md](./ROADMAP.md) y [docs/roadmap/v0.7.0-plan.md](./docs/roadmap/v0.7.0-plan.md). La documentación técnica está en inglés: [docs/api.md](./docs/api.md) y [docs/security.md](./docs/security.md).
 
 > Este archivo es la versión en español de [README.md](./README.md). Si algo difiere, el README en inglés y el código son la referencia. Los cambios de la implementación v0.6.0 y el historial de versiones están en [CHANGELOG.md](./CHANGELOG.md).
 
@@ -46,7 +46,9 @@ Muchas organizaciones todavía gestionan sugerencias, quejas y solicitudes con c
 | Reportes y analítica operativa                                                             | 0.4.0   | Implementado localmente |
 | Exportación CSV filtrada del personal con mitigación de fórmulas                           | 0.4.1   | Implementado localmente |
 | Reportes de cobertura, pruebas de navegador real y accesibilidad                           | 0.5.0   | Implementado localmente |
-| MFA TOTP, códigos de recuperación de un uso y visor administrativo de eventos de seguridad | 0.6.0   | Implementado localmente |
+| MFA TOTP, códigos de recuperación de un uso y visor administrativo de eventos de seguridad | 0.6.0   | Hecho                   |
+| Imagen Docker endurecida, volúmenes persistentes y salud del contenedor                    | 0.7.0   | Publicado               |
+| Consistencia de metadatos y documentación de versión                                       | 0.7.1   | En preparación          |
 
 ## ✨ Qué hace hoy
 
@@ -273,14 +275,14 @@ Para ejecutar un solo archivo de pruebas usa `npm --prefix backend test -- tests
 
 ## 🗺️ Próximas versiones planeadas
 
-La versión `0.6.0` está integrada en `main` como el hito actual de implementación. Esto no significa por sí solo que exista una publicación de GitHub o un despliegue en producción; consulta las etiquetas y publicaciones del repositorio para verificarlo. La siguiente versión planeada es `0.7.0`. El plan puede cambiar después de la revisión; consulta [ROADMAP.md](./ROADMAP.md) para conocer el alcance y las decisiones.
+La versión `0.7.0` incorpora la contenerización. La versión `0.7.1` está en preparación como versión de mantenimiento para alinear los metadatos de versión y la documentación; no añade funcionalidades a la aplicación. El plan puede cambiar después de la revisión; consulta [ROADMAP.md](./ROADMAP.md) para conocer el alcance y las decisiones.
 
-| Versión | Trabajo                                                                                                                                                                                                               |
-| ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0.7.0   | **Contenerización.** Imagen Docker multi-etapa endurecida, ejecución sin privilegios de root, almacenamiento persistente para SQLite y adjuntos, comprobación de salud y configuración documentada de Docker Compose. |
-| 0.8.0   | **Despliegue y operación.** Flujo CI/CD para publicaciones, guía de despliegue, procedimientos de copia de seguridad y restauración, y lista operativa para secretos, volúmenes persistentes y recuperación.          |
-| 0.9.0   | **Candidata a versión final.** Congelación de funcionalidades, datos de demostración reproducibles, capturas, verificación de extremo a extremo y documentación final.                                                |
-| 1.0.0   | **Primera versión estable** con una demostración pública, límites de soporte documentados y un proceso de publicación verificado.                                                                                     |
+| Versión | Trabajo                                                                                                                                                                                                      |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 0.7.1   | **Consistencia de versión.** Alinear versiones de paquetes, metadatos de salud de la API, changelog, README y hoja de ruta con la versión v0.7.0. Sin funcionalidades nuevas.                                |
+| 0.8.0   | **Despliegue y operación.** Flujo CI/CD para publicaciones, guía de despliegue, procedimientos de copia de seguridad y restauración, y lista operativa para secretos, volúmenes persistentes y recuperación. |
+| 0.9.0   | **Candidata a versión final.** Congelación de funcionalidades, datos de demostración reproducibles, capturas, verificación de extremo a extremo y documentación final.                                       |
+| 1.0.0   | **Primera versión estable** con una demostración pública, límites de soporte documentados y un proceso de publicación verificado.                                                                            |
 
 ### Límites conocidos de la implementación actual
 

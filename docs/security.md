@@ -1,6 +1,6 @@
 # Security
 
-This document describes the security model of PQRS Flow 0.6.0, what to do before putting it online, and what it does **not** cover. Passing the automated tests is not a security review. Test the system in your own environment before exposing it.
+This document describes the security model of PQRS Flow 0.7.1, what to do before putting it online, and what it does **not** cover. Passing the automated tests is not a security review. Test the system in your own environment before exposing it.
 
 ## What is protected and how
 
@@ -62,7 +62,7 @@ This document describes the security model of PQRS Flow 0.6.0, what to do before
 - **Stopping the server:** `Ctrl+C` (`SIGINT`) and `SIGTERM` close the server cleanly: new connections are refused, requests in progress get up to 10 seconds, and the SQLite connection is closed so the `-wal` and `-shm` files are checkpointed and removed. Process managers usually send `SIGTERM` when they stop a service, so leave them at least that long before they force a kill. `SIGKILL`, a crash or a power cut cannot be handled: SQLite recovers the database from its WAL the next time it opens.
 - **Audit history:** status changes are stored in `pqrs_audit`. Administrators can review each account's account/role/password/session audit from the account-management page; these records are stored in `account_audit`. Case details show request history, but there is no broad cross-case audit explorer.
 
-## Known limits of 0.6.0
+## Known limits of the current implementation
 
 - **One process.** Login and public-lookup counters are in memory. With several processes each one counts alone, so the effective limit is higher. Sessions are stored in SQLite, but the application is currently intended to run as one server process.
 - **Password recovery.** TOTP and one-time MFA recovery codes are available, but they recover MFA access rather than a forgotten account password. A forgotten password still requires an administrator to use the server terminal; there is no self-service password-reset email flow. Configured email notifications are limited to request receipts and published-response notices.
