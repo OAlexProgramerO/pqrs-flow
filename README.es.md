@@ -8,7 +8,7 @@
 
 Un sistema web para radicar, consultar y gestionar **PQRS** — _Peticiones, Quejas, Reclamos y Sugerencias_. Está construido de principio a fin con JavaScript, priorizando la simplicidad, la ausencia de un paso de compilación en el frontend y límites de arquitectura claros.
 
-**Versión actual del código: v0.7.1 (preparación de una versión de mantenimiento).** El hito publicado v0.7.0 incorpora una imagen Docker endurecida, almacenamiento persistente para SQLite y adjuntos, una comprobación de salud del contenedor y una configuración documentada de Docker Compose. La versión 0.7.1 alinea los metadatos de los paquetes, la respuesta de salud de la API, el changelog y la documentación; no añade funcionalidades nuevas a la aplicación. Consulta [CHANGELOG.md](./CHANGELOG.md), [ROADMAP.md](./ROADMAP.md) y [docs/roadmap/v0.7.0-plan.md](./docs/roadmap/v0.7.0-plan.md). La documentación técnica está en inglés: [docs/api.md](./docs/api.md) y [docs/security.md](./docs/security.md).
+**Current code version: v0.7.2 (maintenance release preparation).** The published v0.7.0 milestone adds a hardened Docker image, persistent storage for SQLite and attachments, a container health check, and a documented Docker Compose setup. Version 0.7.2 corrects package and lockfile version metadata, confirms the API health version source, and reconciles release records. It does not introduce new application features. The earlier v0.7.1 preparation was superseded before publication. Consulta [CHANGELOG.md](./CHANGELOG.md), [ROADMAP.md](./ROADMAP.md) y [docs/roadmap/v0.7.0-plan.md](./docs/roadmap/v0.7.0-plan.md). La documentación técnica está en inglés: [docs/api.md](./docs/api.md) y [docs/security.md](./docs/security.md).
 
 > Este archivo es la versión en español de [README.md](./README.md). Si algo difiere, el README en inglés y el código son la referencia. Los cambios de la implementación v0.6.0 y el historial de versiones están en [CHANGELOG.md](./CHANGELOG.md).
 
@@ -48,7 +48,8 @@ Muchas organizaciones todavía gestionan sugerencias, quejas y solicitudes con c
 | Reportes de cobertura, pruebas de navegador real y accesibilidad                           | 0.5.0   | Implementado localmente |
 | MFA TOTP, códigos de recuperación de un uso y visor administrativo de eventos de seguridad | 0.6.0   | Hecho                   |
 | Imagen Docker endurecida, volúmenes persistentes y salud del contenedor                    | 0.7.0   | Publicado               |
-| Consistencia de metadatos y documentación de versión                                       | 0.7.1   | En preparación          |
+| Initial version-consistency preparation (superseded before publication)                  | 0.7.1   | Superseded (unreleased) |
+| Package, lockfile, API metadata and release-record consistency                            | 0.7.2   | In preparation          |
 
 ## ✨ Qué hace hoy
 
@@ -275,11 +276,12 @@ Para ejecutar un solo archivo de pruebas usa `npm --prefix backend test -- tests
 
 ## 🗺️ Próximas versiones planeadas
 
-La versión `0.7.0` incorpora la contenerización. La versión `0.7.1` está en preparación como versión de mantenimiento para alinear los metadatos de versión y la documentación; no añade funcionalidades a la aplicación. El plan puede cambiar después de la revisión; consulta [ROADMAP.md](./ROADMAP.md) para conocer el alcance y las decisiones.
+Version `0.7.0` delivers containerization. Version `0.7.1` was superseded before publication. Version `0.7.2` is the current maintenance release preparation, aligning package and lockfile versions, API metadata, and release records without adding application functionality. El plan puede cambiar después de la revisión; consulta [ROADMAP.md](./ROADMAP.md) para conocer el alcance y las decisiones.
 
 | Versión | Trabajo                                                                                                                                                                                                      |
 | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 0.7.1   | **Consistencia de versión.** Alinear versiones de paquetes, metadatos de salud de la API, changelog, README y hoja de ruta con la versión v0.7.0. Sin funcionalidades nuevas.                                |
+| 0.7.1   | **Superseded before publication.** The initial maintenance-release preparation was replaced by v0.7.2; no v0.7.1 tag or public release is implied. |
+| 0.7.2   | **Release consistency.** Align package and lockfile versions, API health metadata, changelog, README files, security documentation and roadmap. No new application features. |
 | 0.8.0   | **Despliegue y operación.** Flujo CI/CD para publicaciones, guía de despliegue, procedimientos de copia de seguridad y restauración, y lista operativa para secretos, volúmenes persistentes y recuperación. |
 | 0.9.0   | **Candidata a versión final.** Congelación de funcionalidades, datos de demostración reproducibles, capturas, verificación de extremo a extremo y documentación final.                                       |
 | 1.0.0   | **Primera versión estable** con una demostración pública, límites de soporte documentados y un proceso de publicación verificado.                                                                            |

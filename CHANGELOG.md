@@ -4,13 +4,20 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [SemVer](h
 
 ## [Unreleased]
 
+_No changes recorded yet._
+
+## [0.7.2] - Unreleased
+
 ### Changed
 
-- Align root and backend package metadata, the `/api/health` version, README status, roadmap, and release documentation for the v0.7.1 maintenance release.
+- Align the root package, backend package, and both lockfiles on version `0.7.2`.
+- Keep the API health endpoint version sourced from the backend package metadata.
+- Reconcile the README files, roadmap, security documentation, and changelog so release status is explicit and consistent.
+- Record v0.7.1 as superseded before publication; no v0.7.1 release or tag is implied by this repository state.
 
 ### Validation
 
-- Run `npm run check` and the Docker build/runtime smoke test before tagging or publishing v0.7.1.
+- Run `npm run check`, verify `/api/health` reports `0.7.2`, and complete the Docker build/runtime smoke test before tagging or publishing.
 
 ## [0.7.0]
 

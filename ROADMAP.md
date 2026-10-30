@@ -31,7 +31,8 @@ Path from **v0.0.1** to **v1.0.0**. Implementation status, Git tags and public p
 | 0.5.0   | `chore/quality`                     | Coverage report, end-to-end smoke test, accessibility check                                      | Implemented locally |
 | 0.6.0   | `feat/v0.6.0-mfa-audit`             | TOTP MFA, one-time recovery codes and administrator security-event explorer                      | Released            |
 | 0.7.0   | `feat/v0.7.0-containerization`      | Hardened Docker image, persistent data storage, health check and Docker Compose                  | Released            |
-| 0.7.1   | `chore/v0.7.1-version-consistency`  | Align package versions, API health metadata, changelog and project documentation                 | In preparation      |
+| 0.7.1   | `chore/v0.7.1-version-consistency`  | Initial version-consistency release preparation; superseded before publication                  | Superseded (unreleased) |
+| 0.7.2   | `chore/v0.7.2-release-consistency`  | Correct package and lockfile versions, API metadata, release status, and English release records | In preparation      |
 | 0.8.0   | `feat/v0.8.0-deployment-operations` | Deployment workflow, backup and restore procedures, operations documentation                     | Planned             |
 | 0.9.0   | `chore/release-candidate`           | Feature freeze, reproducible demo data, screenshots and final docs                               | Planned             |
 | 1.0.0   | `chore/release-1.0`                 | First stable release with a public demo                                                          | Planned             |
