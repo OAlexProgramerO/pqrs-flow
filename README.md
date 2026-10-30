@@ -24,30 +24,30 @@ Many organizations still handle feedback, complaints and requests through scatte
 
 ### Project status
 
-| Feature                                                                     | Version | Status              |
-| --------------------------------------------------------------------------- | ------- | ------------------- |
-| Express server, health endpoint, static site                                | 0.0.1   | Done                |
-| Submission form with client-side validation                                 | 0.0.2   | Done                |
-| Database, migrations and repository                                         | 0.0.3   | Done                |
-| `POST /api/pqrs`, form connected to the API, case number                    | 0.1.0   | Done                |
-| Status lookup with case number and email                                    | 0.1.1   | Done                |
-| Rate limit for submissions, compression, proxy settings                     | 0.1.2   | Done                |
-| Cache headers for static files, CORS from the environment                   | 0.1.3   | Done                |
-| Staff panel: login, dashboard, search, status changes                       | 0.2.0   | Done                |
-| Audit history of every status change                                        | 0.2.0   | Done                |
-| Clean shutdown, Spanish README, isolation regression tests                  | 0.3.0   | Done                |
-| Staff roles, account management and security settings                       | 0.3.1   | Done                |
-| Replies, internal notes, assignment and request audit                       | 0.3.2   | Implemented locally |
-| Configurable business-day deadlines and holiday calendar                    | 0.3.3   | Implemented locally |
-| Secure attachments and application refinement                               | 0.3.4   | Implemented locally |
-| Transactional email notifications                                           | 0.3.5   | Implemented locally |
-| Staff reports and operational analytics                                     | 0.4.0   | Implemented locally |
-| Filtered staff CSV export with spreadsheet formula mitigation               | 0.4.1   | Implemented locally |
-| Coverage reports, Playwright browser smoke tests and accessibility checks   | 0.5.0   | Implemented locally |
-| TOTP MFA, one-time recovery codes and administrator security-event explorer | 0.6.0   | Done                |
-| Hardened Docker image, persistent volumes and container health check        | 0.7.0   | Released            |
-| Initial version-consistency preparation (superseded before publication)    | 0.7.1   | Superseded (unreleased) |
-| Package, lockfile, API metadata and release-record consistency               | 0.7.2   | In preparation      |
+| Feature                                                                     | Version | Status                  |
+| --------------------------------------------------------------------------- | ------- | ----------------------- |
+| Express server, health endpoint, static site                                | 0.0.1   | Done                    |
+| Submission form with client-side validation                                 | 0.0.2   | Done                    |
+| Database, migrations and repository                                         | 0.0.3   | Done                    |
+| `POST /api/pqrs`, form connected to the API, case number                    | 0.1.0   | Done                    |
+| Status lookup with case number and email                                    | 0.1.1   | Done                    |
+| Rate limit for submissions, compression, proxy settings                     | 0.1.2   | Done                    |
+| Cache headers for static files, CORS from the environment                   | 0.1.3   | Done                    |
+| Staff panel: login, dashboard, search, status changes                       | 0.2.0   | Done                    |
+| Audit history of every status change                                        | 0.2.0   | Done                    |
+| Clean shutdown, Spanish README, isolation regression tests                  | 0.3.0   | Done                    |
+| Staff roles, account management and security settings                       | 0.3.1   | Done                    |
+| Replies, internal notes, assignment and request audit                       | 0.3.2   | Implemented locally     |
+| Configurable business-day deadlines and holiday calendar                    | 0.3.3   | Implemented locally     |
+| Secure attachments and application refinement                               | 0.3.4   | Implemented locally     |
+| Transactional email notifications                                           | 0.3.5   | Implemented locally     |
+| Staff reports and operational analytics                                     | 0.4.0   | Implemented locally     |
+| Filtered staff CSV export with spreadsheet formula mitigation               | 0.4.1   | Implemented locally     |
+| Coverage reports, Playwright browser smoke tests and accessibility checks   | 0.5.0   | Implemented locally     |
+| TOTP MFA, one-time recovery codes and administrator security-event explorer | 0.6.0   | Done                    |
+| Hardened Docker image, persistent volumes and container health check        | 0.7.0   | Released                |
+| Initial version-consistency preparation (superseded before publication)     | 0.7.1   | Superseded (unreleased) |
+| Package, lockfile, API metadata and release-record consistency              | 0.7.2   | In preparation          |
 
 ## ✨ What it does today
 
@@ -277,8 +277,8 @@ Version `0.7.0` delivers containerization. Version `0.7.1` was superseded before
 
 | Version | Work                                                                                                                                                                               |
 | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0.7.1   | **Superseded before publication.** The initial maintenance-release preparation was replaced by v0.7.2; no v0.7.1 tag or public release is implied. |
-| 0.7.2   | **Release consistency.** Align package and lockfile versions, API health metadata, changelog, README files, security documentation and roadmap. No new application features. |
+| 0.7.1   | **Superseded before publication.** The initial maintenance-release preparation was replaced by v0.7.2; no v0.7.1 tag or public release is implied.                                 |
+| 0.7.2   | **Release consistency.** Align package and lockfile versions, API health metadata, changelog, README files, security documentation and roadmap. No new application features.       |
 | 0.8.0   | **Deployment and operations.** CI/CD release workflow, deployment guide, backup and restore procedures, and an operational checklist for secrets, persistent volumes and recovery. |
 | 0.9.0   | **Release candidate.** Feature freeze, reproducible demo data, screenshots, end-to-end verification and final documentation.                                                       |
 | 1.0.0   | **First stable release** with a public demo, documented support boundaries and a verified release process.                                                                         |

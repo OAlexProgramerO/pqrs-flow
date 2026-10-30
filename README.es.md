@@ -48,8 +48,8 @@ Muchas organizaciones todavía gestionan sugerencias, quejas y solicitudes con c
 | Reportes de cobertura, pruebas de navegador real y accesibilidad                           | 0.5.0   | Implementado localmente |
 | MFA TOTP, códigos de recuperación de un uso y visor administrativo de eventos de seguridad | 0.6.0   | Hecho                   |
 | Imagen Docker endurecida, volúmenes persistentes y salud del contenedor                    | 0.7.0   | Publicado               |
-| Initial version-consistency preparation (superseded before publication)                  | 0.7.1   | Superseded (unreleased) |
-| Package, lockfile, API metadata and release-record consistency                            | 0.7.2   | In preparation          |
+| Initial version-consistency preparation (superseded before publication)                    | 0.7.1   | Superseded (unreleased) |
+| Package, lockfile, API metadata and release-record consistency                             | 0.7.2   | In preparation          |
 
 ## ✨ Qué hace hoy
 
@@ -280,8 +280,8 @@ Version `0.7.0` delivers containerization. Version `0.7.1` was superseded before
 
 | Versión | Trabajo                                                                                                                                                                                                      |
 | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 0.7.1   | **Superseded before publication.** The initial maintenance-release preparation was replaced by v0.7.2; no v0.7.1 tag or public release is implied. |
-| 0.7.2   | **Release consistency.** Align package and lockfile versions, API health metadata, changelog, README files, security documentation and roadmap. No new application features. |
+| 0.7.1   | **Superseded before publication.** The initial maintenance-release preparation was replaced by v0.7.2; no v0.7.1 tag or public release is implied.                                                           |
+| 0.7.2   | **Release consistency.** Align package and lockfile versions, API health metadata, changelog, README files, security documentation and roadmap. No new application features.                                 |
 | 0.8.0   | **Despliegue y operación.** Flujo CI/CD para publicaciones, guía de despliegue, procedimientos de copia de seguridad y restauración, y lista operativa para secretos, volúmenes persistentes y recuperación. |
 | 0.9.0   | **Candidata a versión final.** Congelación de funcionalidades, datos de demostración reproducibles, capturas, verificación de extremo a extremo y documentación final.                                       |
 | 1.0.0   | **Primera versión estable** con una demostración pública, límites de soporte documentados y un proceso de publicación verificado.                                                                            |
