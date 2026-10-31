@@ -8,7 +8,7 @@
 
 Un sistema web para radicar, consultar y gestionar **PQRS** — _Peticiones, Quejas, Reclamos y Sugerencias_. Está construido de principio a fin con JavaScript, priorizando la simplicidad, la ausencia de un paso de compilación en el frontend y límites de arquitectura claros.
 
-**Current code version: v0.7.2 (maintenance release preparation).** The published v0.7.0 milestone adds a hardened Docker image, persistent storage for SQLite and attachments, a container health check, and a documented Docker Compose setup. Version 0.7.2 corrects package and lockfile version metadata, confirms the API health version source, and reconciles release records. It does not introduce new application features. The earlier v0.7.1 preparation was superseded before publication. Consulta [CHANGELOG.md](./CHANGELOG.md), [ROADMAP.md](./ROADMAP.md) y [docs/roadmap/v0.7.0-plan.md](./docs/roadmap/v0.7.0-plan.md). La documentación técnica está en inglés: [docs/api.md](./docs/api.md) y [docs/security.md](./docs/security.md).
+**Versión actual del código: v0.8.0 (implementación local).** La versión 0.8.0 incorpora respaldos coordinados offline de la base SQLite y los adjuntos, manifiestos de verificación, restauración validada y guías operativas. La aplicación debe estar detenida para respaldar y restaurar. El hito publicado v0.7.0 incorporó Docker y los volúmenes persistentes; v0.7.2 alineó los metadatos y la documentación de versión. Consulta [CHANGELOG.md](./CHANGELOG.md), [ROADMAP.md](./ROADMAP.md) y la [guía de respaldo y restauración](./docs/operations/backup-restore.es.md).
 
 > Este archivo es la versión en español de [README.md](./README.md). Si algo difiere, el README en inglés y el código son la referencia. Los cambios de la implementación v0.6.0 y el historial de versiones están en [CHANGELOG.md](./CHANGELOG.md).
 
@@ -48,8 +48,8 @@ Muchas organizaciones todavía gestionan sugerencias, quejas y solicitudes con c
 | Reportes de cobertura, pruebas de navegador real y accesibilidad                           | 0.5.0   | Implementado localmente |
 | MFA TOTP, códigos de recuperación de un uso y visor administrativo de eventos de seguridad | 0.6.0   | Hecho                   |
 | Imagen Docker endurecida, volúmenes persistentes y salud del contenedor                    | 0.7.0   | Publicado               |
-| Initial version-consistency preparation (superseded before publication)                    | 0.7.1   | Superseded (unreleased) |
-| Package, lockfile, API metadata and release-record consistency                             | 0.7.2   | In preparation          |
+| Consistencia de metadatos y documentación de versión                                       | 0.7.1   | Publicado               |
+| Respaldos coordinados de SQLite y adjuntos, verificación y restauración                    | 0.8.0   | Implementado localmente |
 
 ## ✨ Qué hace hoy
 
@@ -210,6 +210,26 @@ curl -X POST http://localhost:3000/api/pqrs \
   -d '{"type":"petition","subject":"Street light is broken","description":"The street light in front of my house has been off for two weeks.","requesterName":"Ana Gomez","requesterEmail":"ana@example.com"}'
 ```
 
+### Respaldo y restauración (v0.8.0)
+
+Detén la aplicación antes de crear un respaldo coordinado de la base y los adjuntos. Desde la raíz del proyecto:
+
+```powershell
+docker compose stop
+npm run db:backup
+docker compose start
+```
+
+Restaura únicamente con la aplicación detenida; el comando valida las sumas y la integridad de SQLite antes de reemplazar los datos:
+
+```powershell
+docker compose stop
+npm run db:restore -- "C:\ruta\absoluta\a\la\carpeta-del-respaldo"
+docker compose start
+```
+
+Consulta la [guía completa de respaldo y restauración](./docs/operations/backup-restore.es.md) para conocer los límites, la confirmación en producción y las verificaciones posteriores.
+
 ### Docker Compose (opcional)
 
 Requisitos: Docker Engine/Desktop con Compose v2. El flujo local existente con Node.js sigue disponible.
@@ -276,12 +296,11 @@ Para ejecutar un solo archivo de pruebas usa `npm --prefix backend test -- tests
 
 ## 🗺️ Próximas versiones planeadas
 
-Version `0.7.0` delivers containerization. Version `0.7.1` was superseded before publication. Version `0.7.2` is the current maintenance release preparation, aligning package and lockfile versions, API metadata, and release records without adding application functionality. El plan puede cambiar después de la revisión; consulta [ROADMAP.md](./ROADMAP.md) para conocer el alcance y las decisiones.
+La versión `0.7.0` incorpora la contenerización. La versión `0.7.1` está en preparación como versión de mantenimiento para alinear los metadatos de versión y la documentación; no añade funcionalidades a la aplicación. El plan puede cambiar después de la revisión; consulta [ROADMAP.md](./ROADMAP.md) para conocer el alcance y las decisiones.
 
 | Versión | Trabajo                                                                                                                                                                                                      |
 | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 0.7.1   | **Superseded before publication.** The initial maintenance-release preparation was replaced by v0.7.2; no v0.7.1 tag or public release is implied.                                                           |
-| 0.7.2   | **Release consistency.** Align package and lockfile versions, API health metadata, changelog, README files, security documentation and roadmap. No new application features.                                 |
+| 0.7.1   | **Consistencia de versión.** Alinear versiones de paquetes, metadatos de salud de la API, changelog, README y hoja de ruta con la versión v0.7.0. Sin funcionalidades nuevas.                                |
 | 0.8.0   | **Despliegue y operación.** Flujo CI/CD para publicaciones, guía de despliegue, procedimientos de copia de seguridad y restauración, y lista operativa para secretos, volúmenes persistentes y recuperación. |
 | 0.9.0   | **Candidata a versión final.** Congelación de funcionalidades, datos de demostración reproducibles, capturas, verificación de extremo a extremo y documentación final.                                       |
 | 1.0.0   | **Primera versión estable** con una demostración pública, límites de soporte documentados y un proceso de publicación verificado.                                                                            |

@@ -4,20 +4,32 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [SemVer](h
 
 ## [Unreleased]
 
-_No changes recorded yet._
+## [0.8.0] - 2026-10-30
 
-## [0.7.2] - Unreleased
+### Added
 
-### Changed
+- Add an offline backup command that uses SQLite's online backup API and copies uploaded attachments into one timestamped backup directory.
+- Add a manifest with SHA-256 checksums for the database and every attachment.
+- Add a restore command that validates the backup format, checksums, SQLite integrity and foreign keys before replacing live data, with staged files and best-effort rollback.
+- Add English and Spanish operational guides covering coordinated backups, restore drills, sensitive data, secrets and Docker volume operations.
 
-- Align the root package, backend package, and both lockfiles on version `0.7.2`.
-- Keep the API health endpoint version sourced from the backend package metadata.
-- Reconcile the README files, roadmap, security documentation, and changelog so release status is explicit and consistent.
-- Record v0.7.1 as superseded before publication; no v0.7.1 release or tag is implied by this repository state.
+### Security and operational notes
+
+- Backups and restores require the application to be stopped so the database and attachment files form a coordinated set.
+- Restore in production requires the explicit `RESTORE_CONFIRM=YES` environment confirmation.
+- Backups do not include `.env`, credentials, encryption keys or infrastructure configuration.
 
 ### Validation
 
-- Run `npm run check`, verify `/api/health` reports `0.7.2`, and complete the Docker build/runtime smoke test before tagging or publishing.
+- Pending local formatting, automated test and Docker restore-drill validation. Do not publish this version until these checks pass.
+
+### Changed
+
+- Align root and backend package metadata, the `/api/health` version, README status, roadmap, and release documentation for the v0.7.2 maintenance release.
+
+### Validation
+
+- Run `npm run check` and the Docker build/runtime smoke test before tagging or publishing v0.7.2.
 
 ## [0.7.0]
 

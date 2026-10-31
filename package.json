@@ -1,6 +1,6 @@
 {
   "name": "pqrs-flow",
-  "version": "0.7.2",
+  "version": "0.8.0",
   "description": "Web system to submit, track and manage PQRS (Petitions, Complaints, Claims and Suggestions) built with JavaScript",
   "private": true,
   "author": "OAlexProgramerO",
@@ -42,7 +42,9 @@
     "docker:up": "docker compose up --build -d",
     "docker:logs": "docker compose logs -f app",
     "docker:health": "docker compose ps",
-    "docker:down": "docker compose down"
+    "docker:down": "docker compose down",
+    "db:backup": "npm --prefix backend run db:backup",
+    "db:restore": "npm --prefix backend run db:restore --"
   },
   "engines": {
     "node": ">=22"

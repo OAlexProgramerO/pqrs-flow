@@ -8,7 +8,7 @@
 
 A web system to submit, track and manage **PQRS** — _Peticiones, Quejas, Reclamos y Sugerencias_ (Petitions, Complaints, Claims and Suggestions). Built end to end with JavaScript, prioritizing simplicity, no frontend build step and clear architectural boundaries.
 
-**Current code version: v0.7.2 (maintenance release preparation).** The published v0.7.0 milestone adds a hardened Docker image, persistent storage for SQLite and attachments, a container health check, and a documented Docker Compose setup. Version 0.7.2 corrects package and lockfile version metadata, confirms the API health version source, and reconciles release records. It does not introduce new application features. The earlier v0.7.1 preparation was superseded before publication. See [CHANGELOG.md](./CHANGELOG.md), [ROADMAP.md](./ROADMAP.md), and [docs/roadmap/v0.7.0-plan.md](./docs/roadmap/v0.7.0-plan.md). See [docs/api.md](./docs/api.md) for API details and [docs/security.md](./docs/security.md) before exposing the application.
+**Current code version: v0.8.0 (local implementation).** Version 0.8.0 adds coordinated offline backups of the SQLite database and uploaded attachments, checksum manifests, validated restore, and operational guides. The application must be stopped for backup and restore. The published v0.7.0 milestone provides the hardened Docker image and persistent volumes; v0.7.2 aligns version metadata and release documentation. See [CHANGELOG.md](./CHANGELOG.md), [ROADMAP.md](./ROADMAP.md), and [the backup and restore guide](./docs/operations/backup-restore.md).
 
 ---
 
@@ -24,30 +24,30 @@ Many organizations still handle feedback, complaints and requests through scatte
 
 ### Project status
 
-| Feature                                                                     | Version | Status                  |
-| --------------------------------------------------------------------------- | ------- | ----------------------- |
-| Express server, health endpoint, static site                                | 0.0.1   | Done                    |
-| Submission form with client-side validation                                 | 0.0.2   | Done                    |
-| Database, migrations and repository                                         | 0.0.3   | Done                    |
-| `POST /api/pqrs`, form connected to the API, case number                    | 0.1.0   | Done                    |
-| Status lookup with case number and email                                    | 0.1.1   | Done                    |
-| Rate limit for submissions, compression, proxy settings                     | 0.1.2   | Done                    |
-| Cache headers for static files, CORS from the environment                   | 0.1.3   | Done                    |
-| Staff panel: login, dashboard, search, status changes                       | 0.2.0   | Done                    |
-| Audit history of every status change                                        | 0.2.0   | Done                    |
-| Clean shutdown, Spanish README, isolation regression tests                  | 0.3.0   | Done                    |
-| Staff roles, account management and security settings                       | 0.3.1   | Done                    |
-| Replies, internal notes, assignment and request audit                       | 0.3.2   | Implemented locally     |
-| Configurable business-day deadlines and holiday calendar                    | 0.3.3   | Implemented locally     |
-| Secure attachments and application refinement                               | 0.3.4   | Implemented locally     |
-| Transactional email notifications                                           | 0.3.5   | Implemented locally     |
-| Staff reports and operational analytics                                     | 0.4.0   | Implemented locally     |
-| Filtered staff CSV export with spreadsheet formula mitigation               | 0.4.1   | Implemented locally     |
-| Coverage reports, Playwright browser smoke tests and accessibility checks   | 0.5.0   | Implemented locally     |
-| TOTP MFA, one-time recovery codes and administrator security-event explorer | 0.6.0   | Done                    |
-| Hardened Docker image, persistent volumes and container health check        | 0.7.0   | Released                |
-| Initial version-consistency preparation (superseded before publication)     | 0.7.1   | Superseded (unreleased) |
-| Package, lockfile, API metadata and release-record consistency              | 0.7.2   | In preparation          |
+| Feature                                                                     | Version | Status              |
+| --------------------------------------------------------------------------- | ------- | ------------------- |
+| Express server, health endpoint, static site                                | 0.0.1   | Done                |
+| Submission form with client-side validation                                 | 0.0.2   | Done                |
+| Database, migrations and repository                                         | 0.0.3   | Done                |
+| `POST /api/pqrs`, form connected to the API, case number                    | 0.1.0   | Done                |
+| Status lookup with case number and email                                    | 0.1.1   | Done                |
+| Rate limit for submissions, compression, proxy settings                     | 0.1.2   | Done                |
+| Cache headers for static files, CORS from the environment                   | 0.1.3   | Done                |
+| Staff panel: login, dashboard, search, status changes                       | 0.2.0   | Done                |
+| Audit history of every status change                                        | 0.2.0   | Done                |
+| Clean shutdown, Spanish README, isolation regression tests                  | 0.3.0   | Done                |
+| Staff roles, account management and security settings                       | 0.3.1   | Done                |
+| Replies, internal notes, assignment and request audit                       | 0.3.2   | Implemented locally |
+| Configurable business-day deadlines and holiday calendar                    | 0.3.3   | Implemented locally |
+| Secure attachments and application refinement                               | 0.3.4   | Implemented locally |
+| Transactional email notifications                                           | 0.3.5   | Implemented locally |
+| Staff reports and operational analytics                                     | 0.4.0   | Implemented locally |
+| Filtered staff CSV export with spreadsheet formula mitigation               | 0.4.1   | Implemented locally |
+| Coverage reports, Playwright browser smoke tests and accessibility checks   | 0.5.0   | Implemented locally |
+| TOTP MFA, one-time recovery codes and administrator security-event explorer | 0.6.0   | Done                |
+| Hardened Docker image, persistent volumes and container health check        | 0.7.0   | Released            |
+| Version metadata and release-documentation consistency                      | 0.7.1   | Released            |
+| Coordinated SQLite and attachment backups, checksum validation and restore  | 0.8.0   | Implemented locally |
 
 ## ✨ What it does today
 
@@ -207,6 +207,26 @@ curl -X POST http://localhost:3000/api/pqrs \
   -d '{"type":"petition","subject":"Street light is broken","description":"The street light in front of my house has been off for two weeks.","requesterName":"Ana Gomez","requesterEmail":"ana@example.com"}'
 ```
 
+### Backup and restore (v0.8.0)
+
+Stop the application before creating a coordinated backup of the database and attachments. From the repository root:
+
+```powershell
+docker compose stop
+npm run db:backup
+docker compose start
+```
+
+Restore only while the application is stopped; the command validates checksums and SQLite integrity before replacing data:
+
+```powershell
+docker compose stop
+npm run db:restore -- "C:\absolute\path\to\backup-directory"
+docker compose start
+```
+
+See [the full backup and restore guide](./docs/operations/backup-restore.md) for limitations, production confirmation and recovery checks.
+
 ### Docker Compose (optional)
 
 Prerequisites: Docker Engine/Desktop with Compose v2. The existing local Node.js workflow remains available.
@@ -273,12 +293,11 @@ To run one test file use `npm --prefix backend test -- tests/admin-audit.test.js
 
 ## 🗺️ Planned next versions
 
-Version `0.7.0` delivers containerization. Version `0.7.1` was superseded before publication. Version `0.7.2` is the current maintenance release preparation, aligning package and lockfile versions, API metadata, and release records without adding application functionality. Plans can change after review; see [ROADMAP.md](./ROADMAP.md) for scope and decisions.
+Version `0.7.0` delivers containerization. Version `0.7.1` is a maintenance release in preparation to align version metadata and release documentation; it does not add application functionality. Plans can change after review; see [ROADMAP.md](./ROADMAP.md) for scope and decisions.
 
 | Version | Work                                                                                                                                                                               |
 | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0.7.1   | **Superseded before publication.** The initial maintenance-release preparation was replaced by v0.7.2; no v0.7.1 tag or public release is implied.                                 |
-| 0.7.2   | **Release consistency.** Align package and lockfile versions, API health metadata, changelog, README files, security documentation and roadmap. No new application features.       |
+| 0.7.1   | **Release consistency.** Align package versions, API health metadata, changelog, README files and roadmap with the v0.7.0 release. No new application features.                    |
 | 0.8.0   | **Deployment and operations.** CI/CD release workflow, deployment guide, backup and restore procedures, and an operational checklist for secrets, persistent volumes and recovery. |
 | 0.9.0   | **Release candidate.** Feature freeze, reproducible demo data, screenshots, end-to-end verification and final documentation.                                                       |
 | 1.0.0   | **First stable release** with a public demo, documented support boundaries and a verified release process.                                                                         |

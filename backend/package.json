@@ -1,6 +1,6 @@
 {
   "name": "pqrs-flow-backend",
-  "version": "0.7.2",
+  "version": "0.8.0",
   "private": true,
   "type": "module",
   "main": "src/server.js",
@@ -13,7 +13,9 @@
     "test:a11y": "playwright test --config ./tests/e2e/playwright.config.js --grep @a11y",
     "seed": "node scripts/seed.js",
     "db:reset": "node scripts/reset-db.js",
-    "admin": "node scripts/admin.js"
+    "admin": "node scripts/admin.js",
+    "db:backup": "node scripts/backup.js",
+    "db:restore": "node scripts/restore.js"
   },
   "engines": {
     "node": ">=22"
