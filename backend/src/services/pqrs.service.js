@@ -31,6 +31,7 @@ export function lookupPqrs(repository, input) {
     type: found.type,
     status: found.status,
     createdAt: found.createdAt,
+    timeline: found.timeline ?? [],
   };
   if (found.officialResponse) {
     publicRecord.officialResponse = {

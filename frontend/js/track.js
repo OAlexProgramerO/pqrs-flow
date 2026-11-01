@@ -58,6 +58,38 @@ export function initTrack() {
     return item;
   }
 
+  function showActivityHistory(events = []) {
+    const list = document.getElementById('activityTimeline');
+    const empty = document.getElementById('historyEmpty');
+    const labels = {
+      status_change: 'Request status updated',
+      response_published: 'Official response published',
+    };
+    const items = events.map((event) => {
+      const item = document.createElement('li');
+      const title = document.createElement('strong');
+      const detail = document.createElement('span');
+      const date = document.createElement('time');
+      title.textContent = labels[event.type] ?? 'Request activity';
+      detail.textContent = event.status ? ` Status: ${describeStatus(event.status).label}.` : '';
+      date.dateTime = event.createdAt;
+      date.textContent = ` ${formatDateTime(event.createdAt)}`;
+      item.append(title, detail, date);
+      return item;
+    });
+    list.replaceChildren(...items);
+    empty.hidden = items.length > 0;
+  }
+
+  function showOfficialResponse(response, publishedAt) {
+    const panel = document.getElementById('officialResponsePanel');
+    panel.hidden = !response;
+    if (!response) return;
+    document.getElementById('officialResponseText').textContent = response;
+    document.getElementById('officialResponseDate').textContent =
+      `Published: ${formatDateTime(publishedAt)}`;
+  }
+
   function showResult(result) {
     const info = describeStatus(result.status);
 
@@ -72,6 +104,8 @@ export function initTrack() {
     document
       .getElementById('timeline')
       .replaceChildren(...buildTimeline(result.status).map(buildTimelineItem));
+    showActivityHistory(result.timeline);
+    showOfficialResponse(result.officialResponse, result.publishedAt);
 
     messageEl.hidden = true;
     lookupSection.hidden = true;
@@ -84,6 +118,9 @@ export function initTrack() {
     FIELDS.forEach((field) => showFieldError(field));
     messageEl.hidden = true;
     resultPanel.hidden = true;
+    document.getElementById('officialResponsePanel').hidden = true;
+    document.getElementById('activityTimeline').replaceChildren();
+    document.getElementById('historyEmpty').hidden = true;
     lookupSection.hidden = false;
     form.elements.caseNumber.focus();
   }

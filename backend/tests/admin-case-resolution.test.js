@@ -45,8 +45,10 @@ test('draft responses and internal notes stay private; published responses use t
     'caseNumber',
     'createdAt',
     'status',
+    'timeline',
     'type',
   ]);
+  assert.deepEqual(privateLookup.json.timeline, []);
   assert.equal(privateLookup.text.includes('Draft wording'), false);
   assert.equal(privateLookup.text.includes('Internal case note'), false);
 

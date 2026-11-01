@@ -139,7 +139,13 @@ test('lookup answers 200 with the public fields and forbids caching', () => {
   assert.deepEqual(errors, []);
   assert.equal(res.statusCode, 200);
   assert.equal(res.headers['Cache-Control'], 'no-store');
-  assert.deepEqual(Object.keys(res.body).sort(), ['caseNumber', 'createdAt', 'status', 'type']);
+  assert.deepEqual(Object.keys(res.body).sort(), [
+    'caseNumber',
+    'createdAt',
+    'status',
+    'timeline',
+    'type',
+  ]);
   assert.equal(res.body.caseNumber, created.caseNumber);
 });
 

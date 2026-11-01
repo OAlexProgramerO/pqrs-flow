@@ -4,6 +4,24 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [SemVer](h
 
 ## [Unreleased]
 
+## [0.9.0] - Unreleased
+
+### Added
+
+- Public request activity timeline based only on audited status changes and published official responses.
+- Public display of the official response publication timestamp and response text in the tracking experience.
+- Privacy-focused response contract: internal notes, draft replies, staff identities, assignments and audit request identifiers are never exposed to citizens.
+- Expanded tracking-page accessibility with semantic activity entries and live result rendering.
+
+### Changed
+
+- Align root/backend package metadata and lockfiles to `0.9.0`.
+- Refresh the public tracking experience to distinguish current workflow progress from the chronological public activity history.
+
+### Validation
+
+- Pending local formatting, lint, unit, browser and accessibility checks. Treat this as an implementation milestone, not a published release.
+
 ## [0.8.0] - 2026-10-30
 
 ### Added

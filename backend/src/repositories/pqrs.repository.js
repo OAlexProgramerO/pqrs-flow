@@ -46,6 +46,7 @@ export function createPqrsRepository(db) {
   // Only the columns a citizen may see. The email is compared without caring about case.
   const selectForLookup = db.prepare(`
     SELECT
+      p.id,
       p.case_number AS caseNumber,
       p.type,
       p.status,
@@ -105,6 +106,14 @@ export function createPqrsRepository(db) {
     return created;
   });
 
+  const selectPublicTimeline = db.prepare(`
+    SELECT action, previous_status AS previousStatus, new_status AS newStatus,
+      created_at AS createdAt
+    FROM pqrs_audit
+    WHERE pqrs_id = ? AND action IN ('status_change', 'response_published')
+    ORDER BY id ASC
+  `);
+
   const repository = {
     create(data, { now = new Date() } = {}) {
       return createInTransaction(data, now);
@@ -122,8 +131,17 @@ export function createPqrsRepository(db) {
       const found = selectForLookup.get(caseNumber, String(requesterEmail).toLowerCase());
       if (!found) return null;
 
-      const { officialResponse, publishedAt, ...publicRecord } = found;
-      return officialResponse ? { ...publicRecord, officialResponse, publishedAt } : publicRecord;
+      const { id, officialResponse, publishedAt, ...publicRecord } = found;
+      const timeline = selectPublicTimeline.all(id).map((event) => ({
+        type: event.action === 'response_published' ? 'response_published' : 'status_change',
+        status: event.newStatus,
+        createdAt: event.createdAt,
+      }));
+      return {
+        ...publicRecord,
+        timeline,
+        ...(officialResponse ? { officialResponse, publishedAt } : {}),
+      };
     },
   };
 

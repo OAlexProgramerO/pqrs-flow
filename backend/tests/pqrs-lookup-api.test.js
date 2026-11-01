@@ -51,7 +51,13 @@ test('POST /api/pqrs/lookup returns the status with the right case number and em
 
   assert.equal(res.status, 200);
   assert.match(res.headers.get('content-type'), /application\/json/);
-  assert.deepEqual(Object.keys(body).sort(), ['caseNumber', 'createdAt', 'status', 'type']);
+  assert.deepEqual(Object.keys(body).sort(), [
+    'caseNumber',
+    'createdAt',
+    'status',
+    'timeline',
+    'type',
+  ]);
   assert.equal(body.caseNumber, caseNumber);
   assert.equal(body.status, 'filed');
   assert.equal(body.type, 'claim');

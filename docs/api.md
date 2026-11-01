@@ -176,15 +176,25 @@ Checks the status of a request. It needs the case number **and** the email used 
   "caseNumber": "PQRS-2026-000001",
   "type": "petition",
   "status": "filed",
-  "createdAt": "2026-10-04T12:00:00.000Z"
+  "createdAt": "2026-10-04T12:00:00.000Z",
+  "timeline": [
+    {
+      "type": "status_change",
+      "status": "in_progress",
+      "previousStatus": "filed",
+      "createdAt": "2026-10-05T09:30:00.000Z"
+    }
+  ]
 }
 ```
 
-`status` is one of `filed`, `in_progress`, `answered`, `closed`. The response never contains the subject, the description, the name or the email, and it carries `Cache-Control: no-store`.
+`status` is one of `filed`, `in_progress`, `answered`, `closed`. `timeline` contains only
+public `status_change` and `response_published` events, in chronological order. It never
+exposes staff identities, assignments, internal notes, draft responses, or audit request IDs. The response never contains the subject, the description, the name or the email, and it carries `Cache-Control: no-store`.
 If staff have published an official response, the response also contains
 `"officialResponse": { "text": "...", "publishedAt": "..." }`. Draft responses and
-internal notes are never included. Without a published response, the original response
-shape is unchanged.
+internal notes are never included. `timeline` is present as an array (empty when no public
+events exist). All lookup responses remain `no-store` and require both case number and email.
 
 **Errors**
 

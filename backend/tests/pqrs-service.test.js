@@ -88,6 +88,7 @@ test('lookupPqrs returns the public fields when case number and email match', ()
       type: 'complaint',
       status: 'filed',
       createdAt: created.createdAt,
+      timeline: [],
     },
   );
 });
@@ -113,7 +114,13 @@ test('lookupPqrs never returns the description or personal data', () => {
     requesterEmail: input.requesterEmail,
   });
 
-  assert.deepEqual(Object.keys(found).sort(), ['caseNumber', 'createdAt', 'status', 'type']);
+  assert.deepEqual(Object.keys(found).sort(), [
+    'caseNumber',
+    'createdAt',
+    'status',
+    'timeline',
+    'type',
+  ]);
 });
 
 test('lookupPqrs gives the same 404 for a wrong email and an unknown case number', () => {

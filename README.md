@@ -8,7 +8,7 @@
 
 A web system to submit, track and manage **PQRS** — _Peticiones, Quejas, Reclamos y Sugerencias_ (Petitions, Complaints, Claims and Suggestions). Built end to end with JavaScript, prioritizing simplicity, no frontend build step and clear architectural boundaries.
 
-**Current code version: v0.8.0 (local implementation).** Version 0.8.0 adds coordinated offline backups of the SQLite database and uploaded attachments, checksum manifests, validated restore, and operational guides. The application must be stopped for backup and restore. The published v0.7.0 milestone provides the hardened Docker image and persistent volumes; v0.7.2 aligns version metadata and release documentation. See [CHANGELOG.md](./CHANGELOG.md), [ROADMAP.md](./ROADMAP.md), and [the backup and restore guide](./docs/operations/backup-restore.md).
+**Current code version: v0.9.0 (local implementation).** Version 0.9.0 adds a privacy-safe public activity timeline and displays official responses only after publication. It exposes audited status changes and response publication events without revealing internal notes, draft replies, staff identities or assignment details. Version 0.8.0 provides coordinated SQLite and attachment backups with checksum validation and restore procedures. See [CHANGELOG.md](./CHANGELOG.md), [ROADMAP.md](./ROADMAP.md), and [the backup and restore guide](./docs/operations/backup-restore.md).
 
 ---
 
@@ -47,7 +47,11 @@ Many organizations still handle feedback, complaints and requests through scatte
 | TOTP MFA, one-time recovery codes and administrator security-event explorer | 0.6.0   | Done                |
 | Hardened Docker image, persistent volumes and container health check        | 0.7.0   | Released            |
 | Version metadata and release-documentation consistency                      | 0.7.1   | Released            |
-| Coordinated SQLite and attachment backups, checksum validation and restore  | 0.8.0   | Implemented locally |
+| Coordinated SQLite and attachment backups, checksum validation and restore  | 0.8.0   | Implemented locally | \n  | Public activity timeline and published official response visibility | 0.9.0 | Implemented locally |
+
+## Public tracking experience (v0.9.0)
+
+After verifying a case number and the original requester email, citizens can review the current workflow progress, a chronological public activity history, and the official response once staff publish it. The public history deliberately excludes internal notes, draft responses, assignments, staff identities and internal audit metadata.
 
 ## ✨ What it does today
 

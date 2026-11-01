@@ -33,7 +33,12 @@ Path from **v0.0.1** to **v1.0.0**. Implementation status, Git tags and public p
 | 0.7.0   | `feat/v0.7.0-containerization`      | Hardened Docker image, persistent data storage, health check and Docker Compose                      | Released            |
 | 0.7.1   | `chore/v0.7.1-version-consistency`  | Align package versions, API health metadata, changelog and project documentation                     | Released            |
 | 0.8.0   | `feat/v0.8.0-deployment-operations` | Coordinated SQLite and attachment backup, checksum manifest, validated restore and operations guides | Implemented locally |
-| 0.9.0   | `chore/release-candidate`           | Feature freeze, reproducible demo data, screenshots and final docs                                   | Planned             |
+| 0.9.0   | `feat/v0.9.0-citizen-experience`    | Citizen-facing activity timeline, published response visibility, privacy-safe tracking               | Implemented locally |
+| 0.9.1   | `feat/v0.9.1-admin-workflow`        | Advanced staff assignment, workload views and workflow refinements                                   | Planned             |
+| 0.9.2   | `feat/v0.9.2-analytics`             | Expanded operational analytics and exportable reports                                                | Planned             |
+| 0.9.3   | `feat/v0.9.3-notifications`         | Citizen notification preferences and event-driven communication                                      | Planned             |
+| 0.9.4   | `chore/v0.9.4-hardening`            | Security, performance, accessibility and end-to-end hardening                                        | Planned             |
+| 0.9.5   | `chore/release-candidate`           | Feature freeze, reproducible demo data, screenshots and final docs                                   | Planned             |
 | 1.0.0   | `chore/release-1.0`                 | First stable release with a public demo                                                              | Planned             |
 
 The old 0.2.1 (`feat/staff-list`) and 0.2.2 (`feat/status-workflow`) were delivered together with the login in 0.2.0, so the panel is useful from its first release.

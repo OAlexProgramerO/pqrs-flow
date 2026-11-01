@@ -92,6 +92,18 @@
         <h3>Progress</h3>
         <ol class="timeline" id="timeline" aria-label="Progress of your request"></ol>
 
+        <section class="public-history" aria-labelledby="history-title">
+          <h3 id="history-title">Activity history</h3>
+          <ol id="activityTimeline" class="timeline" aria-label="Public request activity"></ol>
+          <p id="historyEmpty" class="hint" hidden>No additional activity has been recorded yet.</p>
+        </section>
+
+        <section id="officialResponsePanel" aria-labelledby="official-response-title" hidden>
+          <h3 id="official-response-title">Official response</h3>
+          <p id="officialResponseText"></p>
+          <p class="hint" id="officialResponseDate"></p>
+        </section>
+
         <button type="button" class="btn btn-secondary" id="anotherBtn">
           Check another request
         </button>

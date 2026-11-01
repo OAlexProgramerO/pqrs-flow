@@ -94,6 +94,7 @@ test('findForLookup returns only the public columns', () => {
     type: 'claim',
     status: 'filed',
     createdAt: created.createdAt,
+    timeline: [],
   });
 });
 

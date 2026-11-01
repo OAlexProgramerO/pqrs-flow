@@ -295,7 +295,13 @@ test('the public lookup shows no history and no staff names', async () => {
     .client()
     .post('/api/pqrs/lookup', { caseNumber, requesterEmail: 'ana@example.com' });
 
-  assert.deepEqual(Object.keys(res.json).sort(), ['caseNumber', 'createdAt', 'status', 'type']);
+  assert.deepEqual(Object.keys(res.json).sort(), [
+    'caseNumber',
+    'createdAt',
+    'status',
+    'timeline',
+    'type',
+  ]);
   assert.equal(/history|audit|admin|Test Staff|previous/i.test(res.text), false);
 });
 

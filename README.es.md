@@ -8,7 +8,7 @@
 
 Un sistema web para radicar, consultar y gestionar **PQRS** — _Peticiones, Quejas, Reclamos y Sugerencias_. Está construido de principio a fin con JavaScript, priorizando la simplicidad, la ausencia de un paso de compilación en el frontend y límites de arquitectura claros.
 
-**Versión actual del código: v0.8.0 (implementación local).** La versión 0.8.0 incorpora respaldos coordinados offline de la base SQLite y los adjuntos, manifiestos de verificación, restauración validada y guías operativas. La aplicación debe estar detenida para respaldar y restaurar. El hito publicado v0.7.0 incorporó Docker y los volúmenes persistentes; v0.7.2 alineó los metadatos y la documentación de versión. Consulta [CHANGELOG.md](./CHANGELOG.md), [ROADMAP.md](./ROADMAP.md) y la [guía de respaldo y restauración](./docs/operations/backup-restore.es.md).
+**Versión actual del código: v0.9.0 (implementación local).** La versión 0.9.0 incorpora una línea de actividad pública que protege la privacidad y muestra las respuestas oficiales únicamente después de su publicación. Expone cambios de estado auditados y eventos de publicación sin revelar notas internas, borradores, identidades del personal ni asignaciones. La versión 0.8.0 incorpora respaldos coordinados de SQLite y adjuntos, validación por checksum y procedimientos de restauración. Consulta [CHANGELOG.md](./CHANGELOG.md), [ROADMAP.md](./ROADMAP.md) y la [guía de respaldo y restauración](./docs/operations/backup-restore.es.md).
 
 > Este archivo es la versión en español de [README.md](./README.md). Si algo difiere, el README en inglés y el código son la referencia. Los cambios de la implementación v0.6.0 y el historial de versiones están en [CHANGELOG.md](./CHANGELOG.md).
 
