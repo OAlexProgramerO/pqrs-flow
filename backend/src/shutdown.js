@@ -2,6 +2,7 @@
  * Graceful shutdown of the HTTP server and the SQLite connection.
  *
  * - server: the http.Server returned by app.listen()
+ * - beforeClose: an optional async hook for stopping background work before the server closes
  * - closeDatabase: closes the shared SQLite connection (closeDb of db/database.js)
  * - timeoutMs: the longest the whole shutdown may take before the process is forced to stop
  * - log, exit, setTimer, clearTimer: replaced in tests
@@ -13,6 +14,7 @@ export const SHUTDOWN_TIMEOUT_MS = 10_000;
 
 export function createShutdown({
   server,
+  beforeClose = async () => {},
   closeDatabase,
   timeoutMs = SHUTDOWN_TIMEOUT_MS,
   log = console,
@@ -62,13 +64,24 @@ export function createShutdown({
     // The timer must never be the only thing keeping the process alive
     timer?.unref?.();
 
-    const closing = closeServer().then(
-      () => 0,
-      (error) => {
-        log.error('Could not close the HTTP server:', error);
-        return 1;
-      },
-    );
+    const closing = Promise.resolve()
+      .then(() => beforeClose())
+      .then(
+        () => 0,
+        (error) => {
+          log.error('Could not stop background work:', error);
+          return 1;
+        },
+      )
+      .then(async (result) => {
+        try {
+          await closeServer();
+          return result;
+        } catch (error) {
+          log.error('Could not close the HTTP server:', error);
+          return 1;
+        }
+      });
     code = await Promise.race([closing, forced]);
 
     // After a forced stop the timer already closed the database and ended the process

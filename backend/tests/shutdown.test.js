@@ -17,13 +17,14 @@ function fakeServer({ closeError, hang = false } = {}) {
   };
 }
 
-function setup({ server = fakeServer(), closeDatabase, timeoutMs } = {}) {
+function setup({ server = fakeServer(), beforeClose, closeDatabase, timeoutMs } = {}) {
   const events = [];
   const timers = [];
   const logs = { log: [], error: [] };
   const exits = [];
   const shutdown = createShutdown({
     server,
+    beforeClose,
     closeDatabase:
       closeDatabase ??
       (() => {
@@ -68,6 +69,47 @@ test('the database is closed only after the server has finished closing', async 
 
   await shutdown('SIGINT');
   assert.deepEqual(order, ['server closing', 'server closed', 'db closed']);
+});
+
+test('stops background work before closing the server and database', async () => {
+  const order = [];
+  const server = {
+    close(callback) {
+      order.push('server closing');
+      queueMicrotask(() => {
+        order.push('server closed');
+        callback();
+      });
+    },
+  };
+  const { shutdown } = setup({
+    server,
+    beforeClose: async () => {
+      order.push('worker stopping');
+    },
+    closeDatabase: () => order.push('database closed'),
+  });
+
+  await shutdown('SIGTERM');
+  assert.deepEqual(order, [
+    'worker stopping',
+    'server closing',
+    'server closed',
+    'database closed',
+  ]);
+});
+
+test('reports background shutdown errors and still closes the server and database', async () => {
+  const { shutdown, events, server, logs } = setup({
+    beforeClose: async () => {
+      throw new Error('worker');
+    },
+  });
+
+  assert.equal(await shutdown('SIGTERM'), 1);
+  assert.deepEqual(server.calls, ['close', 'closeIdleConnections']);
+  assert.deepEqual(events, ['db']);
+  assert.match(logs.error[0][0], /background work/);
 });
 
 test('repeated calls share one shutdown: no second close of the server or the database', async () => {
@@ -117,6 +159,7 @@ test('a late server close after the forced stop does not close the database agai
   const { shutdown, events, timers, exits } = setup({ server });
 
   const pending = shutdown('SIGTERM');
+  await new Promise((resolve) => setImmediate(resolve));
   timers[0].fn();
   release();
 

@@ -84,7 +84,7 @@ After verifying a case number and the original requester email, citizens can rev
 - **Security settings** (`/admin/security.html`): change your own password, review active sessions and revoke one or all other sessions. Password changes preserve the current session and revoke the rest.
 - **Append-only account audit**: account, role, password and session-management changes are recorded transactionally, including the request id. Passwords, session tokens and hashes are never included.
 - **Account tool** (`npm run admin`): bootstrap or recover accounts from the server's terminal. There are no default accounts.
-- **Email notifications**: request receipts and published-response notices are queued transactionally in SQLite and retried by the outbox processor when SMTP is enabled. Email delivery does not determine whether a request or response is saved.
+- **Email notifications**: request receipts and published-response notices are queued transactionally in SQLite, sent by the server's outbox worker when SMTP is enabled, and retried up to five times after delivery failures. If SMTP accepts a message immediately before an unclean shutdown, restart recovery may resend it. Email delivery does not determine whether a request or response is saved.
 - **Reporting**: `GET /api/admin/reports` uses SQLite aggregates for counts and response time, and the saved deadline/holiday snapshots plus status audit history for deadline state at the selected period end. See the API reference for denominators and historical limitations.
 - Clean shutdown: `Ctrl+C` or `SIGTERM` stop accepting connections, let running requests finish (up to 10 seconds) and close the SQLite database.
 - Demo data and database reset commands for local development.

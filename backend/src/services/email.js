@@ -100,20 +100,49 @@ export function createEmailProcessor({
       limit,
       now,
       transport: resolvedTransport,
+      render: renderEmailContent,
       logger,
     });
   }
 
   function start(intervalMs = 60_000) {
-    const timer = setInterval(async () => {
-      try {
-        await processOnce();
-      } catch (error) {
-        logger.error?.('Email outbox processing failed.', error);
-      }
-    }, intervalMs);
+    const recovery = repository.recoverInterrupted();
+    if (recovery.failed > 0) {
+      logger.warn?.('Interrupted email notifications reached the retry limit.', {
+        count: recovery.failed,
+      });
+    }
+
+    let inFlight;
+    let stopped = false;
+
+    function run() {
+      if (stopped) return Promise.resolve();
+      if (inFlight) return inFlight;
+
+      inFlight = processOnce()
+        .catch((error) => {
+          logger.error?.('Email outbox processing failed.', error);
+        })
+        .finally(() => {
+          inFlight = undefined;
+        });
+      return inFlight;
+    }
+
+    const timer = setInterval(run, intervalMs);
     timer.unref?.();
-    return { timer, processOnce, stop: () => clearInterval(timer) };
+    void run();
+
+    return {
+      timer,
+      processOnce,
+      async stop() {
+        stopped = true;
+        clearInterval(timer);
+        await inFlight;
+      },
+    };
   }
 
   return { processOnce, start };

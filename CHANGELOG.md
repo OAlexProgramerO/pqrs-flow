@@ -4,6 +4,10 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [SemVer](h
 
 ## [Unreleased]
 
+### Fixed
+
+- Start the transactional email outbox worker when SMTP notifications are enabled, render the existing citizen-safe templates, recover interrupted deliveries within the retry limit, and drain in-flight delivery before database shutdown.
+
 ## [0.9.0] - Unreleased
 
 ### Added

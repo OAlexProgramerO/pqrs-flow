@@ -62,6 +62,7 @@ export function createEmailNotificationRepository(db) {
   const markProcessing = db.prepare(`
     UPDATE email_notifications
     SET status = 'processing',
+        attempt_count = attempt_count + 1,
         last_attempt_at = @now
     WHERE id = @id AND status IN ('pending', 'failed')
   `);
@@ -69,7 +70,6 @@ export function createEmailNotificationRepository(db) {
   const markSent = db.prepare(`
     UPDATE email_notifications
     SET status = 'sent',
-        attempt_count = attempt_count + 1,
         last_attempt_at = @now,
         next_attempt_at = NULL,
         sent_at = @now,
@@ -80,7 +80,6 @@ export function createEmailNotificationRepository(db) {
   const markRetry = db.prepare(`
     UPDATE email_notifications
     SET status = 'pending',
-        attempt_count = attempt_count + 1,
         last_attempt_at = @now,
         next_attempt_at = @nextAttemptAt,
         last_error = @lastError
@@ -90,11 +89,25 @@ export function createEmailNotificationRepository(db) {
   const markFailed = db.prepare(`
     UPDATE email_notifications
     SET status = 'failed',
-        attempt_count = attempt_count + 1,
         last_attempt_at = @now,
         next_attempt_at = NULL,
         last_error = @lastError
     WHERE id = @id
+  `);
+  const recoverInterrupted = db.prepare(`
+    UPDATE email_notifications
+    SET status = CASE WHEN attempt_count >= @maxAttempts THEN 'failed' ELSE 'pending' END,
+        next_attempt_at = CASE WHEN attempt_count >= @maxAttempts THEN NULL ELSE @now END,
+        last_error = CASE
+          WHEN attempt_count >= @maxAttempts THEN @lastError
+          ELSE NULL
+        END
+    WHERE status = 'processing'
+  `);
+  const countInterruptedAtLimit = db.prepare(`
+    SELECT COUNT(*) AS total
+    FROM email_notifications
+    WHERE status = 'processing' AND attempt_count >= @maxAttempts
   `);
 
   const MAX_ATTEMPTS = 5;
@@ -165,10 +178,26 @@ export function createEmailNotificationRepository(db) {
         }).changes === 1
       );
     },
+    recoverInterrupted(now = new Date()) {
+      const maxAttempts = MAX_ATTEMPTS;
+      const failed = countInterruptedAtLimit.get({ maxAttempts }).total;
+      const result = recoverInterrupted.run({
+        now: new Date(now).toISOString(),
+        maxAttempts,
+        lastError: 'Delivery was interrupted after the maximum number of attempts.',
+      });
+      return { requeued: result.changes - failed, failed };
+    },
     nextAttemptAt,
     normalizeError,
     parsePayload,
-    async processPending({ limit = 20, now = new Date(), transport, logger = console } = {}) {
+    async processPending({
+      limit = 20,
+      now = new Date(),
+      transport,
+      render,
+      logger = console,
+    } = {}) {
       const rows = this.findDue(limit, now);
       let sent = 0;
       let processed = 0;
@@ -179,11 +208,16 @@ export function createEmailNotificationRepository(db) {
 
         try {
           const payload = this.parsePayload(row.payload) ?? {};
+          const content = render
+            ? render(row.notificationType, payload)
+            : {
+                subject: payload.subject ?? `PQRS notification (${row.notificationType})`,
+                text: payload.text ?? '',
+                html: payload.html ?? null,
+              };
           const result = await transport.send({
             to: row.recipientEmail,
-            subject: payload.subject ?? `PQRS notification (${row.notificationType})`,
-            text: payload.text ?? '',
-            html: payload.html ?? null,
+            ...content,
           });
 
           const rejected = Array.isArray(result?.rejected) ? result.rejected : [];

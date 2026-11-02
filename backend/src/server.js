@@ -1,7 +1,8 @@
 import { app } from './app.js';
 import { env } from './config/env.js';
-import { closeDb } from './db/database.js';
+import { closeDb, getDb } from './db/database.js';
 import { createShutdown, installShutdownHandlers } from './shutdown.js';
+import { createEmailProcessor } from './services/email.js';
 
 if (env.trustProxy === true) {
   console.warn(
@@ -18,6 +19,8 @@ if (env.nodeEnv === 'production' && !env.session.cookieSecure) {
   );
 }
 
+const emailWorker = env.email.enabled ? createEmailProcessor({ db: getDb() }).start() : null;
+
 const server = app.listen(env.port, () => {
   console.log(`PQRS Flow listening on http://localhost:${env.port}`);
 });
@@ -28,4 +31,10 @@ server.keepAliveTimeout = 65_000;
 server.headersTimeout = 66_000;
 
 // Ctrl+C and the stop signal of process managers close the server and the database cleanly
-installShutdownHandlers(createShutdown({ server, closeDatabase: closeDb }));
+installShutdownHandlers(
+  createShutdown({
+    server,
+    beforeClose: () => emailWorker?.stop(),
+    closeDatabase: closeDb,
+  }),
+);
