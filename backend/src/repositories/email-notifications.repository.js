@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+
 export const EMAIL_NOTIFICATION_STATUS = Object.freeze({
   PENDING: 'pending',
   PROCESSING: 'processing',
@@ -10,7 +12,15 @@ export const EMAIL_NOTIFICATION_TYPES = Object.freeze({
   RESPONSE_PUBLISHED: 'response_published',
 });
 
-export function createEmailNotificationRepository(db) {
+export function createEmailNotificationRepository(
+  db,
+  {
+    maxAttempts = 5,
+    retryInitialDelayMs = 30_000,
+    retryMaxDelayMs = 1_800_000,
+    processingLeaseMs = 60_000,
+  } = {},
+) {
   const insert = db.prepare(`
     INSERT INTO email_notifications (
       notification_type,
@@ -52,7 +62,7 @@ export function createEmailNotificationRepository(db) {
       sent_at AS sentAt,
       last_error AS lastError
     FROM email_notifications
-    WHERE status IN ('pending', 'failed')
+    WHERE status = 'pending'
       AND next_attempt_at IS NOT NULL
       AND next_attempt_at <= @now
     ORDER BY next_attempt_at ASC, id ASC
@@ -63,8 +73,9 @@ export function createEmailNotificationRepository(db) {
     UPDATE email_notifications
     SET status = 'processing',
         attempt_count = attempt_count + 1,
-        last_attempt_at = @now
-    WHERE id = @id AND status IN ('pending', 'failed')
+        last_attempt_at = @now,
+        claim_token = @claimToken
+    WHERE id = @id AND status = 'pending'
   `);
 
   const markSent = db.prepare(`
@@ -73,8 +84,10 @@ export function createEmailNotificationRepository(db) {
         last_attempt_at = @now,
         next_attempt_at = NULL,
         sent_at = @now,
-        last_error = NULL
-    WHERE id = @id
+        last_error = NULL,
+        last_error_at = NULL,
+        claim_token = NULL
+    WHERE id = @id AND status = 'processing' AND claim_token = @claimToken
   `);
 
   const markRetry = db.prepare(`
@@ -82,8 +95,10 @@ export function createEmailNotificationRepository(db) {
     SET status = 'pending',
         last_attempt_at = @now,
         next_attempt_at = @nextAttemptAt,
-        last_error = @lastError
-    WHERE id = @id
+        last_error = @lastError,
+        last_error_at = @now,
+        claim_token = NULL
+    WHERE id = @id AND status = 'processing' AND claim_token = @claimToken
   `);
 
   const markFailed = db.prepare(`
@@ -91,8 +106,17 @@ export function createEmailNotificationRepository(db) {
     SET status = 'failed',
         last_attempt_at = @now,
         next_attempt_at = NULL,
-        last_error = @lastError
-    WHERE id = @id
+        last_error = @lastError,
+        last_error_at = @now,
+        claim_token = NULL
+    WHERE id = @id AND status = 'processing' AND claim_token = @claimToken
+  `);
+  const countInterruptedAtLimit = db.prepare(`
+    SELECT COUNT(*) AS total
+    FROM email_notifications
+    WHERE status = 'processing'
+      AND attempt_count >= @maxAttempts
+      AND last_attempt_at <= @staleBefore
   `);
   const recoverInterrupted = db.prepare(`
     UPDATE email_notifications
@@ -101,21 +125,44 @@ export function createEmailNotificationRepository(db) {
         last_error = CASE
           WHEN attempt_count >= @maxAttempts THEN @lastError
           ELSE NULL
-        END
-    WHERE status = 'processing'
+        END,
+        last_error_at = CASE
+          WHEN attempt_count >= @maxAttempts THEN @now
+          ELSE last_error_at
+        END,
+        claim_token = NULL
+    WHERE status = 'processing' AND last_attempt_at <= @staleBefore
   `);
-  const countInterruptedAtLimit = db.prepare(`
-    SELECT COUNT(*) AS total
+  const summaryQuery = db.prepare(`
+    SELECT
+      COUNT(*) FILTER (WHERE status = 'pending') AS pendingCount,
+      COUNT(*) FILTER (WHERE status = 'processing') AS processingCount,
+      COUNT(*) FILTER (WHERE status = 'sent') AS deliveredCount,
+      COUNT(*) FILTER (WHERE status = 'failed') AS failedCount,
+      MIN(created_at) FILTER (WHERE status = 'pending') AS oldestPendingAt,
+      MAX(sent_at) FILTER (WHERE status = 'sent') AS lastSuccessfulDeliveryAt,
+      MAX(last_error_at) FILTER (WHERE last_error_at IS NOT NULL) AS lastFailureAt
     FROM email_notifications
-    WHERE status = 'processing' AND attempt_count >= @maxAttempts
   `);
 
-  const MAX_ATTEMPTS = 5;
-  const RETRY_DELAY_MS = 5 * 60 * 1000;
+  function classifyError(error) {
+    const responseCode = Number(error?.responseCode);
+    const code = String(error?.code ?? '')
+      .toUpperCase()
+      .replace(/[^A-Z0-9_]/g, '')
+      .slice(0, 32);
+    const hasResponseCode = responseCode >= 400 && responseCode <= 599;
+    const permanent =
+      error?.permanent === true ||
+      (hasResponseCode ? responseCode >= 500 : code === 'EAUTH' || code === 'EENVELOPE');
 
-  function normalizeError(error) {
-    const message = String(error ?? 'unknown error').trim();
-    return message.length > 200 ? `${message.slice(0, 197)}...` : message;
+    return {
+      retryable: !permanent,
+      code: hasResponseCode ? `SMTP_${responseCode}` : code || 'SMTP_DELIVERY_FAILED',
+      message: permanent
+        ? 'SMTP permanently rejected the message.'
+        : 'SMTP delivery failed temporarily.',
+    };
   }
 
   function parsePayload(payload) {
@@ -128,13 +175,26 @@ export function createEmailNotificationRepository(db) {
 
   function nextAttemptAt(baseDate, attemptCount) {
     const attempts = Math.max(1, Number(attemptCount) || 1);
-    const delayMs = Math.min(RETRY_DELAY_MS * attempts, 30 * 60 * 1000);
+    const delayMs = Math.min(retryInitialDelayMs * 2 ** (attempts - 1), retryMaxDelayMs);
     return new Date(baseDate.getTime() + delayMs).toISOString();
   }
 
+  const recoverInterruptedTransaction = db.transaction((now) => {
+    const staleBefore = new Date(now.getTime() - processingLeaseMs).toISOString();
+    const failed = countInterruptedAtLimit.get({ maxAttempts, staleBefore }).total;
+    const result = recoverInterrupted.run({
+      now: now.toISOString(),
+      maxAttempts,
+      staleBefore,
+      lastError: 'Delivery was interrupted after the maximum number of attempts.',
+    });
+    return { requeued: result.changes - failed, failed };
+  });
+
   return {
-    MAX_ATTEMPTS,
-    RETRY_DELAY_MS,
+    MAX_ATTEMPTS: maxAttempts,
+    RETRY_INITIAL_DELAY_MS: retryInitialDelayMs,
+    RETRY_MAX_DELAY_MS: retryMaxDelayMs,
     enqueue({ notificationType, pqrsId, recipientEmail, data, createdAt = new Date() }) {
       const timestamp = new Date(createdAt).toISOString();
       const result = insert.run({
@@ -153,47 +213,71 @@ export function createEmailNotificationRepository(db) {
     findDue(limit = 20, now = new Date()) {
       return selectDue.all({ now: new Date(now).toISOString(), limit });
     },
-    markProcessing(id, now = new Date()) {
-      return markProcessing.run({ id, now: new Date(now).toISOString() }).changes === 1;
+    markProcessing(id, now = new Date(), claimToken = randomUUID()) {
+      return (
+        markProcessing.run({
+          id,
+          now: new Date(now).toISOString(),
+          claimToken,
+        }).changes === 1
+      );
     },
-    markSent(id, now = new Date()) {
-      return markSent.run({ id, now: new Date(now).toISOString() }).changes === 1;
+    markSent(id, claimToken, now = new Date()) {
+      return (
+        markSent.run({
+          id,
+          now: new Date(now).toISOString(),
+          claimToken,
+        }).changes === 1
+      );
     },
-    markRetry(id, now = new Date(), lastError, attemptCount) {
+    markRetry(id, claimToken, now = new Date(), lastError, attemptCount) {
       return (
         markRetry.run({
           id,
           now: new Date(now).toISOString(),
           nextAttemptAt: nextAttemptAt(new Date(now), attemptCount),
-          lastError: normalizeError(lastError),
+          lastError,
+          claimToken,
         }).changes === 1
       );
     },
-    markFailed(id, now = new Date(), lastError) {
+    markFailed(id, claimToken, now = new Date(), lastError) {
       return (
         markFailed.run({
           id,
           now: new Date(now).toISOString(),
-          lastError: normalizeError(lastError),
+          lastError,
+          claimToken,
         }).changes === 1
       );
     },
     recoverInterrupted(now = new Date()) {
-      const maxAttempts = MAX_ATTEMPTS;
-      const failed = countInterruptedAtLimit.get({ maxAttempts }).total;
-      const result = recoverInterrupted.run({
-        now: new Date(now).toISOString(),
-        maxAttempts,
-        lastError: 'Delivery was interrupted after the maximum number of attempts.',
-      });
-      return { requeued: result.changes - failed, failed };
+      return recoverInterruptedTransaction.immediate(new Date(now));
+    },
+    getOperationalSummary(now = new Date()) {
+      const summary = summaryQuery.get();
+      const oldestPendingAt = summary.oldestPendingAt ?? null;
+      return {
+        pendingCount: summary.pendingCount,
+        processingCount: summary.processingCount,
+        deliveredCount: summary.deliveredCount,
+        failedCount: summary.failedCount,
+        oldestPendingAt,
+        oldestPendingAgeMs: oldestPendingAt
+          ? Math.max(0, new Date(now).getTime() - new Date(oldestPendingAt).getTime())
+          : null,
+        lastSuccessfulDeliveryAt: summary.lastSuccessfulDeliveryAt ?? null,
+        lastFailureAt: summary.lastFailureAt ?? null,
+      };
     },
     nextAttemptAt,
-    normalizeError,
+    classifyError,
     parsePayload,
     async processPending({
       limit = 20,
       now = new Date(),
+      getNow = () => new Date(),
       transport,
       render,
       logger = console,
@@ -203,11 +287,18 @@ export function createEmailNotificationRepository(db) {
       let processed = 0;
 
       for (const row of rows) {
+        const claimToken = randomUUID();
+        if (!this.markProcessing(row.id, now, claimToken)) continue;
         processed += 1;
-        if (!this.markProcessing(row.id, now)) continue;
 
         try {
-          const payload = this.parsePayload(row.payload) ?? {};
+          const payload = this.parsePayload(row.payload);
+          if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+            const error = new Error('Invalid email notification payload.');
+            error.permanent = true;
+            error.code = 'INVALID_PAYLOAD';
+            throw error;
+          }
           const content = render
             ? render(row.notificationType, payload)
             : {
@@ -222,23 +313,51 @@ export function createEmailNotificationRepository(db) {
 
           const rejected = Array.isArray(result?.rejected) ? result.rejected : [];
           if (result?.accepted === false || rejected.length > 0) {
-            throw new Error(result?.error ?? 'The email transport rejected the message.');
+            const rejection = rejected[0] ?? {};
+            const error = new Error('SMTP rejected the message.');
+            error.responseCode = rejection.responseCode;
+            error.code = rejection.code;
+            error.permanent = rejection.permanent;
+            throw error;
           }
 
-          this.markSent(row.id, now);
-          sent += 1;
-        } catch (error) {
-          const newAttempt = Number(row.attemptCount ?? 0) + 1;
-          const sanitized = this.normalizeError(error);
-          if (newAttempt >= this.MAX_ATTEMPTS) {
-            this.markFailed(row.id, now, sanitized);
-            logger.warn?.('Email notification failed permanently.', {
+          if (this.markSent(row.id, claimToken, getNow())) {
+            sent += 1;
+          } else {
+            logger.error?.('Email outbox claim was lost after delivery.', {
               id: row.id,
               type: row.notificationType,
-              error: sanitized,
             });
-          } else {
-            this.markRetry(row.id, now, sanitized, newAttempt);
+          }
+        } catch (error) {
+          const attempts = Number(row.attemptCount ?? 0) + 1;
+          const failure = this.classifyError(error);
+          const failureAt = getNow();
+          if (!failure.retryable || attempts >= maxAttempts) {
+            if (
+              this.markFailed(row.id, claimToken, failureAt, `${failure.code}: ${failure.message}`)
+            ) {
+              logger.warn?.('Email notification failed permanently.', {
+                id: row.id,
+                type: row.notificationType,
+                attempts,
+                code: failure.code,
+              });
+            }
+          } else if (
+            !this.markRetry(
+              row.id,
+              claimToken,
+              failureAt,
+              `${failure.code}: ${failure.message}`,
+              attempts,
+            )
+          ) {
+            logger.error?.('Email outbox claim was lost after a delivery failure.', {
+              id: row.id,
+              type: row.notificationType,
+              code: failure.code,
+            });
           }
         }
       }

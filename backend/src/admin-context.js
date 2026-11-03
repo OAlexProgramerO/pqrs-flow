@@ -6,6 +6,7 @@ import { createAccountAuditRepository } from './repositories/account-audit.repos
 import { createDeadlinesRepository } from './repositories/deadlines.repository.js';
 import { createSecurityEventRepository } from './repositories/security-events.repository.js';
 import { createMfaRepository } from './repositories/mfa.repository.js';
+import { createEmailNotificationRepository } from './repositories/email-notifications.repository.js';
 import { createSessionRepository } from './repositories/session.repository.js';
 import { createAccountService } from './services/admin-accounts.js';
 import { createAuthService } from './services/auth.service.js';
@@ -22,6 +23,7 @@ export function createAdminContext(db, { sessionPolicy = env.session, passwordPa
   const sessionRepository = createSessionRepository(db, accountAuditRepository);
   const securityEventRepository = createSecurityEventRepository(db);
   const mfaRepository = createMfaRepository(db);
+  const emailNotificationRepository = createEmailNotificationRepository(db);
   const adminPqrsRepository = createAdminPqrsRepository(db);
   const adminReportsRepository = createAdminReportsRepository(db);
   const deadlinesRepository = createDeadlinesRepository(db);
@@ -44,6 +46,7 @@ export function createAdminContext(db, { sessionPolicy = env.session, passwordPa
     accountAuditRepository,
     securityEventRepository,
     mfaRepository,
+    emailNotificationRepository,
     adminPqrsRepository,
     adminReportsRepository,
     deadlinesRepository,

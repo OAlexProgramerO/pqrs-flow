@@ -71,6 +71,91 @@ export function parseBoolean(value, fallback) {
   return fallback;
 }
 
+function emailBoolean(source, name, fallback) {
+  const text = String(source[name] ?? '')
+    .trim()
+    .toLowerCase();
+  if (!text) return fallback;
+  if (['true', '1', 'yes', 'on'].includes(text)) return true;
+  if (['false', '0', 'no', 'off'].includes(text)) return false;
+  throw new Error(`${name} must be a boolean value.`);
+}
+
+function emailInteger(source, name, fallback, { min = 1, max = Number.MAX_SAFE_INTEGER } = {}) {
+  const text = String(source[name] ?? '').trim();
+  if (!text) return fallback;
+  const number = Number(text);
+  if (!Number.isSafeInteger(number) || number < min || number > max) {
+    throw new Error(`${name} must be a whole number between ${min} and ${max}.`);
+  }
+  return number;
+}
+
+export function parseEmailConfig(source = process.env) {
+  const enabled = emailBoolean(source, 'EMAIL_ENABLED', false);
+  const deliveryTimeoutMs = emailInteger(source, 'EMAIL_DELIVERY_TIMEOUT_MS', 30_000, {
+    min: 1_000,
+    max: 300_000,
+  });
+  const processingLeaseMs = emailInteger(
+    source,
+    'EMAIL_PROCESSING_LEASE_MS',
+    Math.max(60_000, deliveryTimeoutMs + 10_000),
+    { min: 1_000, max: 600_000 },
+  );
+  const retryInitialDelayMs = emailInteger(source, 'EMAIL_RETRY_INITIAL_DELAY_MS', 30_000, {
+    max: 86_400_000,
+  });
+  const retryMaxDelayMs = emailInteger(source, 'EMAIL_RETRY_MAX_DELAY_MS', 1_800_000, {
+    max: 86_400_000,
+  });
+  const config = {
+    enabled,
+    from: String(source.EMAIL_FROM ?? '').trim(),
+    smtp: {
+      host: String(source.SMTP_HOST ?? '').trim(),
+      port: emailInteger(source, 'SMTP_PORT', 587, { max: 65_535 }),
+      secure: emailBoolean(source, 'SMTP_SECURE', false),
+      user: String(source.SMTP_USER ?? '').trim(),
+      pass: String(source.SMTP_PASS ?? ''),
+    },
+    maxAttempts: emailInteger(source, 'EMAIL_MAX_ATTEMPTS', 5, { max: 20 }),
+    retryInitialDelayMs,
+    retryMaxDelayMs,
+    workerIntervalMs: emailInteger(source, 'EMAIL_WORKER_INTERVAL_MS', 60_000, {
+      min: 1_000,
+      max: 3_600_000,
+    }),
+    batchSize: emailInteger(source, 'EMAIL_BATCH_SIZE', 20, { max: 100 }),
+    deliveryTimeoutMs,
+    processingLeaseMs,
+  };
+
+  if (retryMaxDelayMs < retryInitialDelayMs) {
+    throw new Error('EMAIL_RETRY_MAX_DELAY_MS must be at least EMAIL_RETRY_INITIAL_DELAY_MS.');
+  }
+  if (processingLeaseMs <= deliveryTimeoutMs) {
+    throw new Error('EMAIL_PROCESSING_LEASE_MS must exceed EMAIL_DELIVERY_TIMEOUT_MS.');
+  }
+  if (enabled) {
+    if (!config.smtp.host || /[\s\r\n]/.test(config.smtp.host)) {
+      throw new Error('SMTP_HOST must be configured as a hostname or IP address.');
+    }
+    if (
+      !config.from ||
+      /[\r\n]/.test(config.from) ||
+      !/^(?:[^<>\s@]+@[^<>\s@]+|[^<>\r\n]*<[^<>\s@]+@[^<>\s@]+>)$/.test(config.from)
+    ) {
+      throw new Error('EMAIL_FROM must contain a valid sender email address.');
+    }
+    if (Boolean(config.smtp.user) !== Boolean(config.smtp.pass)) {
+      throw new Error('SMTP_USER and SMTP_PASS must either both be set or both be empty.');
+    }
+  }
+
+  return config;
+}
+
 const nodeEnv = process.env.NODE_ENV ?? 'development';
 
 export const env = {
@@ -141,17 +226,6 @@ export const env = {
       .filter(Boolean),
   },
 
-  // Email notifications use a SQLite-backed outbox. When disabled, the app keeps the request
-  // and response lifecycle unchanged and no network delivery is attempted.
-  email: {
-    enabled: parseBoolean(process.env.EMAIL_ENABLED, false),
-    from: String(process.env.EMAIL_FROM ?? '').trim(),
-    smtp: {
-      host: String(process.env.SMTP_HOST ?? '').trim(),
-      port: positiveInteger(process.env.SMTP_PORT, 587),
-      secure: parseBoolean(process.env.SMTP_SECURE, false),
-      user: String(process.env.SMTP_USER ?? '').trim(),
-      pass: String(process.env.SMTP_PASS ?? '').trim(),
-    },
-  },
+  // Email delivery configuration is validated strictly, while the feature remains opt-in.
+  email: parseEmailConfig(),
 };

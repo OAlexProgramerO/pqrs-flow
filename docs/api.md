@@ -29,7 +29,7 @@ Checks that the server is running. Used by the frontend and by monitoring tools.
 {
   "status": "ok",
   "service": "pqrs-flow",
-  "version": "0.4.1",
+  "version": "0.10.0",
   "timestamp": "2026-10-04T12:00:00.000Z"
 }
 ```
@@ -43,7 +43,7 @@ Checks that the server is running. Used by the frontend and by monitoring tools.
 
 ### `GET /api/pqrs/:caseNumber/attachments`
 
-Lists the attachments linked to a request. Public callers may only request attachments for the exact case number and email they have already verified; staff callers use the protected admin API and the normal session-based authorization rules.
+Lists attachments linked to a request. Public callers must send the original requester email in the `X-Requester-Email` header. The public response includes only public attachments and omits uploader and visibility metadata. Staff use the protected admin endpoint and normal session-based authorization.
 
 **Response `200 OK`**
 
@@ -55,8 +55,6 @@ Lists the attachments linked to a request. Public callers may only request attac
       "name": "invoice.pdf",
       "sizeBytes": 12842,
       "mimeType": "application/pdf",
-      "visibility": "public",
-      "uploadedBy": "citizen",
       "uploadedAt": "2026-10-19T12:00:00.000Z"
     }
   ]
@@ -65,9 +63,9 @@ Lists the attachments linked to a request. Public callers may only request attac
 
 ### `POST /api/pqrs/:caseNumber/attachments`
 
-Uploads one or more validated files for a verified request. The server keeps them in a dedicated `data/attachments` storage directory and never writes the original client file name into the path.
+Uploads one or more validated files for a request. Public callers must include the original requester email as a `requesterEmail` multipart field; staff use the protected admin endpoint. Public uploads are rate limited. The server keeps files in a dedicated `data/attachments` storage directory and never writes the original client file name into the path.
 
-**Request**: multipart/form-data with field name `files`.
+**Request**: multipart/form-data with field name `files` and, for public callers, `requesterEmail`.
 
 **Response `201 Created`**
 
@@ -89,7 +87,7 @@ Uploads one or more validated files for a verified request. The server keeps the
 
 ### `GET /api/pqrs/:caseNumber/attachments/:attachmentId/download`
 
-Returns the stored file as a safe attachment download. The response sets a `Content-Disposition` attachment header, `X-Content-Type-Options: nosniff`, and `Cache-Control: no-store`.
+Returns the stored file as a safe attachment download. Public callers must send the original requester email in the `X-Requester-Email` header and can download only public attachments. The response sets a `Content-Disposition` attachment header, `X-Content-Type-Options: nosniff`, and `Cache-Control: no-store`.
 
 ### `POST /api/pqrs`
 
@@ -396,6 +394,23 @@ Account responses include `id`, `email`, `displayName`, `isActive`, `role`, `cre
 ```
 
 Every status is present, with zero when it has no requests.
+
+### `GET /api/admin/email-outbox`
+
+Returns operational counts and timestamps for email delivery. Requires a live administrator session and `email:operations:read`; staff accounts are denied. The endpoint does not return recipient addresses, email contents, SMTP settings, claim tokens or raw error text. Responses are `Cache-Control: no-store`.
+
+```json
+{
+  "pendingCount": 2,
+  "processingCount": 0,
+  "deliveredCount": 15,
+  "failedCount": 1,
+  "oldestPendingAt": "2026-11-02T12:00:00.000Z",
+  "oldestPendingAgeMs": 3600000,
+  "lastSuccessfulDeliveryAt": "2026-11-02T11:30:00.000Z",
+  "lastFailureAt": "2026-11-02T10:00:00.000Z"
+}
+```
 
 ### `GET /api/admin/reports`
 

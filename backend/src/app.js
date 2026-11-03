@@ -28,10 +28,8 @@ const adminDir = path.join(__dirname, '../../frontend-admin');
 morgan.token('id', (req) => req.id);
 
 // Staff searches may contain names and emails, so the query string of the staff API is not logged
-morgan.token('safe-url', (req) => {
-  const url = req.originalUrl ?? req.url;
-  return url.startsWith('/api/admin') ? url.split('?')[0] : url;
-});
+// Query strings can contain personal identifiers; logs only need the route path.
+morgan.token('safe-url', (req) => (req.originalUrl ?? req.url).split('?')[0]);
 
 const FIFTEEN_MINUTES = 15 * 60 * 1000;
 

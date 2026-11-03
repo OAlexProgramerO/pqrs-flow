@@ -43,6 +43,23 @@ export function createAttachmentRepository(db) {
     WHERE a.pqrs_id = ?
     ORDER BY a.uploaded_at DESC, a.id DESC
   `);
+  const listPublicByPqrsId = db.prepare(`
+    SELECT
+      a.id,
+      a.pqrs_id AS pqrsId,
+      a.storage_id AS storageId,
+      a.original_name AS originalName,
+      a.safe_name AS safeName,
+      a.mime_type AS mimeType,
+      a.extension,
+      a.size_bytes AS sizeBytes,
+      a.visibility,
+      a.uploaded_by AS uploadedBy,
+      a.uploaded_at AS uploadedAt
+    FROM attachments a
+    WHERE a.pqrs_id = ? AND a.visibility = 'public'
+    ORDER BY a.uploaded_at DESC, a.id DESC
+  `);
 
   const getById = db.prepare(`
     SELECT
@@ -87,6 +104,10 @@ export function createAttachmentRepository(db) {
 
     listByPqrsId(pqrsId) {
       return listByPqrsId.all(pqrsId);
+    },
+
+    listPublicByPqrsId(pqrsId) {
+      return listPublicByPqrsId.all(pqrsId);
     },
 
     getById(attachmentId) {

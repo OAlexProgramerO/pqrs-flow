@@ -8,7 +8,7 @@
 
 A web system to submit, track and manage **PQRS** — _Peticiones, Quejas, Reclamos y Sugerencias_ (Petitions, Complaints, Claims and Suggestions). Built end to end with JavaScript, prioritizing simplicity, no frontend build step and clear architectural boundaries.
 
-**Current code version: v0.9.0 (local implementation).** Version 0.9.0 adds a privacy-safe public activity timeline and displays official responses only after publication. It exposes audited status changes and response publication events without revealing internal notes, draft replies, staff identities or assignment details. Version 0.8.0 provides coordinated SQLite and attachment backups with checksum validation and restore procedures. See [CHANGELOG.md](./CHANGELOG.md), [ROADMAP.md](./ROADMAP.md), and [the backup and restore guide](./docs/operations/backup-restore.md).
+**Current code version: v0.10.0 (local implementation; not released).** Version 0.10.0 hardens transactional email delivery with bounded retries, claim recovery and protected operational metrics, and requires requester verification for public attachment operations. Version 0.9.0 adds a privacy-safe public activity timeline and displays official responses only after publication. Version 0.8.0 provides coordinated SQLite and attachment backups with checksum validation and restore procedures. See [CHANGELOG.md](./CHANGELOG.md), [ROADMAP.md](./ROADMAP.md), the [email operations guide](./docs/operations/email-delivery.md), and [the backup and restore guide](./docs/operations/backup-restore.md).
 
 ---
 
@@ -24,30 +24,32 @@ Many organizations still handle feedback, complaints and requests through scatte
 
 ### Project status
 
-| Feature                                                                     | Version | Status              |
-| --------------------------------------------------------------------------- | ------- | ------------------- |
-| Express server, health endpoint, static site                                | 0.0.1   | Done                |
-| Submission form with client-side validation                                 | 0.0.2   | Done                |
-| Database, migrations and repository                                         | 0.0.3   | Done                |
-| `POST /api/pqrs`, form connected to the API, case number                    | 0.1.0   | Done                |
-| Status lookup with case number and email                                    | 0.1.1   | Done                |
-| Rate limit for submissions, compression, proxy settings                     | 0.1.2   | Done                |
-| Cache headers for static files, CORS from the environment                   | 0.1.3   | Done                |
-| Staff panel: login, dashboard, search, status changes                       | 0.2.0   | Done                |
-| Audit history of every status change                                        | 0.2.0   | Done                |
-| Clean shutdown, Spanish README, isolation regression tests                  | 0.3.0   | Done                |
-| Staff roles, account management and security settings                       | 0.3.1   | Done                |
-| Replies, internal notes, assignment and request audit                       | 0.3.2   | Implemented locally |
-| Configurable business-day deadlines and holiday calendar                    | 0.3.3   | Implemented locally |
-| Secure attachments and application refinement                               | 0.3.4   | Implemented locally |
-| Transactional email notifications                                           | 0.3.5   | Implemented locally |
-| Staff reports and operational analytics                                     | 0.4.0   | Implemented locally |
-| Filtered staff CSV export with spreadsheet formula mitigation               | 0.4.1   | Implemented locally |
-| Coverage reports, Playwright browser smoke tests and accessibility checks   | 0.5.0   | Implemented locally |
-| TOTP MFA, one-time recovery codes and administrator security-event explorer | 0.6.0   | Done                |
-| Hardened Docker image, persistent volumes and container health check        | 0.7.0   | Released            |
-| Version metadata and release-documentation consistency                      | 0.7.1   | Released            |
-| Coordinated SQLite and attachment backups, checksum validation and restore  | 0.8.0   | Implemented locally | \n  | Public activity timeline and published official response visibility | 0.9.0 | Implemented locally |
+| Feature                                                                             | Version | Status              |
+| ----------------------------------------------------------------------------------- | ------- | ------------------- |
+| Express server, health endpoint, static site                                        | 0.0.1   | Done                |
+| Submission form with client-side validation                                         | 0.0.2   | Done                |
+| Database, migrations and repository                                                 | 0.0.3   | Done                |
+| `POST /api/pqrs`, form connected to the API, case number                            | 0.1.0   | Done                |
+| Status lookup with case number and email                                            | 0.1.1   | Done                |
+| Rate limit for submissions, compression, proxy settings                             | 0.1.2   | Done                |
+| Cache headers for static files, CORS from the environment                           | 0.1.3   | Done                |
+| Staff panel: login, dashboard, search, status changes                               | 0.2.0   | Done                |
+| Audit history of every status change                                                | 0.2.0   | Done                |
+| Clean shutdown, Spanish README, isolation regression tests                          | 0.3.0   | Done                |
+| Staff roles, account management and security settings                               | 0.3.1   | Done                |
+| Replies, internal notes, assignment and request audit                               | 0.3.2   | Implemented locally |
+| Configurable business-day deadlines and holiday calendar                            | 0.3.3   | Implemented locally |
+| Secure attachments and application refinement                                       | 0.3.4   | Implemented locally |
+| Transactional email notifications                                                   | 0.3.5   | Implemented locally |
+| Staff reports and operational analytics                                             | 0.4.0   | Implemented locally |
+| Filtered staff CSV export with spreadsheet formula mitigation                       | 0.4.1   | Implemented locally |
+| Coverage reports, Playwright browser smoke tests and accessibility checks           | 0.5.0   | Implemented locally |
+| TOTP MFA, one-time recovery codes and administrator security-event explorer         | 0.6.0   | Done                |
+| Hardened Docker image, persistent volumes and container health check                | 0.7.0   | Released            |
+| Version metadata and release-documentation consistency                              | 0.7.1   | Released            |
+| Coordinated SQLite and attachment backups, checksum validation and restore          | 0.8.0   | Implemented locally |
+| Public activity timeline and published official response visibility                 | 0.9.0   | Implemented locally |
+| Reliable email outbox, protected operations metrics and verified public attachments | 0.10.0  | Implemented locally |
 
 ## Public tracking experience (v0.9.0)
 
@@ -76,7 +78,7 @@ After verifying a case number and the original requester email, citizens can rev
 - **Reports** (`/admin/reports.html`): staff-only UTC-period summaries of request volume, type and current-status distributions, response-time samples, and overdue-rate states. Categories with no matches remain zero; missing response or deadline data is not invented.
 - **CSV export**: the reports page downloads matching requests through `GET /api/admin/pqrs/export.csv`. The export reuses the report's UTC date, type and current-status filters, contains only case number, request type, subject, current status and submission time, and rejects more than 5,000 matching rows rather than truncating. Requester contact details, descriptions and data from related tables are excluded.
 - **Deadline management**: the staff list and detail show on-track, approaching, overdue, completed or unavailable states. Administrators configure each request type's business-day rule and explicit holidays through the protected staff API. Every new request snapshots the rule version, due date and applicable holiday dates; changing the configuration never silently rewrites old requests.
-- **Secure attachments**: uploads are validated by extension, MIME type and file signatures, stored under `data/attachments/` outside the public web root and exposed only through authenticated request-scoped download endpoints. Citizens can access only files attached to the request they verified; staff can access public or internal attachments according to admin permissions. The public metadata is limited to safe names and sizes.
+- **Secure attachments**: uploads are validated by extension, MIME type and file signatures, stored under `data/attachments/` outside the public web root, and served through request-scoped endpoints. Public listing, upload and download require requester email verification; citizens can access only public files attached to their request, and staff can access public or internal attachments according to admin permissions. Public metadata omits staff-only details.
 - **Status workflow** with permitted transitions (`closed` is final) and protection against two people changing the same request.
 - **Audit history**: every status change records who, from which status to which, when and with which request id. It is saved in the same transaction as the change, is append-only and is never shown to the public.
 - **Role-based access**: administrators manage accounts; staff can read and process PQRS but cannot access account administration. Both roles can work on all PQRS; assignment-level access is not implemented.
@@ -84,7 +86,8 @@ After verifying a case number and the original requester email, citizens can rev
 - **Security settings** (`/admin/security.html`): change your own password, review active sessions and revoke one or all other sessions. Password changes preserve the current session and revoke the rest.
 - **Append-only account audit**: account, role, password and session-management changes are recorded transactionally, including the request id. Passwords, session tokens and hashes are never included.
 - **Account tool** (`npm run admin`): bootstrap or recover accounts from the server's terminal. There are no default accounts.
-- **Email notifications**: request receipts and published-response notices are queued transactionally in SQLite, sent by the server's outbox worker when SMTP is enabled, and retried up to five times after delivery failures. If SMTP accepts a message immediately before an unclean shutdown, restart recovery may resend it. Email delivery does not determine whether a request or response is saved.
+- **Email notifications**: request receipts and published-response notices are queued transactionally in SQLite, sent by the server's outbox worker when SMTP is enabled, and retried with bounded exponential backoff for transient failures. Permanent SMTP failures stop retrying. An administrator-only endpoint reports counts and timestamps without exposing message content or recipients. If SMTP accepts a message immediately before an unclean shutdown, restart recovery may resend it; exactly-once delivery is not guaranteed. Email delivery does not determine whether a request or response is saved. See the [email operations guide](./docs/operations/email-delivery.md).
+- **Public attachment privacy**: public listing, upload and download operations verify the original requester email; public lists exclude internal attachments and staff-only metadata.
 - **Reporting**: `GET /api/admin/reports` uses SQLite aggregates for counts and response time, and the saved deadline/holiday snapshots plus status audit history for deadline state at the selected period end. See the API reference for denominators and historical limitations.
 - Clean shutdown: `Ctrl+C` or `SIGTERM` stop accepting connections, let running requests finish (up to 10 seconds) and close the SQLite database.
 - Demo data and database reset commands for local development.
@@ -297,14 +300,7 @@ To run one test file use `npm --prefix backend test -- tests/admin-audit.test.js
 
 ## 🗺️ Planned next versions
 
-Version `0.7.0` delivers containerization. Version `0.7.1` is a maintenance release in preparation to align version metadata and release documentation; it does not add application functionality. Plans can change after review; see [ROADMAP.md](./ROADMAP.md) for scope and decisions.
-
-| Version | Work                                                                                                                                                                               |
-| ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0.7.1   | **Release consistency.** Align package versions, API health metadata, changelog, README files and roadmap with the v0.7.0 release. No new application features.                    |
-| 0.8.0   | **Deployment and operations.** CI/CD release workflow, deployment guide, backup and restore procedures, and an operational checklist for secrets, persistent volumes and recovery. |
-| 0.9.0   | **Release candidate.** Feature freeze, reproducible demo data, screenshots, end-to-end verification and final documentation.                                                       |
-| 1.0.0   | **First stable release** with a public demo, documented support boundaries and a verified release process.                                                                         |
+The v0.10.0 milestone is implemented locally but is not a public release. The earlier version sketch has been superseded; current implementation status and future scope are tracked in [ROADMAP.md](./ROADMAP.md). No tag or release is created automatically.
 
 ### Known limits of the current implementation
 

@@ -2,11 +2,35 @@
 
 Based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [SemVer](https://semver.org).
 
-## [Unreleased]
+## [0.10.0] - Unreleased
 
-### Fixed
+### Added
 
-- Start the transactional email outbox worker when SMTP notifications are enabled, render the existing citizen-safe templates, recover interrupted deliveries within the retry limit, and drain in-flight delivery before database shutdown.
+- Administrator-only email outbox operations endpoint with privacy-safe delivery counts and timestamps.
+- English and Spanish email delivery operations guides, including SMTP setup, retry behavior, limitations and local verification.
+
+### Changed
+
+- Fence outbox processing with per-delivery claim tokens and stale-claim leases; classify SMTP errors and apply bounded exponential backoff.
+- Validate SMTP configuration, use delivery timeouts and safe HTML templates, and start/drain the outbox worker with application lifecycle.
+- Require requester verification for public attachment listing, uploads and downloads; return only public metadata and apply upload rate limits.
+- Strip query strings from access logs to avoid retaining sensitive search terms.
+
+### Security and operational notes
+
+- Email delivery is asynchronous and is not guaranteed exactly once: a message accepted by SMTP immediately before a process crash can be sent again during recovery.
+- The protected outbox endpoint excludes recipients, message content, SMTP credentials and raw error details.
+- Email is opt-in. Pending records remain queued while disabled.
+- The deployment remains single-instance SQLite; do not run multiple application replicas against the same database.
+- No real SMTP provider or deployment was tested; no release, tag or commit was created.
+
+### Validation
+
+- `npm run check` — passed; 523 tests, 0 failures (2 skipped).
+- `npm run test:e2e` — passed; 3 browser tests.
+- `npm run test:a11y` — passed; 1 accessibility test.
+- `docker compose config -q` — passed.
+- Docker build, health and persistence smoke tests were not run because the Docker daemon was unavailable. No production SMTP provider or deployment was tested.
 
 ## [0.9.0] - Unreleased
 

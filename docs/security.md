@@ -1,6 +1,6 @@
 # Security
 
-This document describes the security model of PQRS Flow 0.7.2, what to do before putting it online, and what it does **not** cover. Passing the automated tests is not a security review. Test the system in your own environment before exposing it.
+This document describes the security model of PQRS Flow v0.10.0 (local implementation), what to do before putting it online, and what it does **not** cover. Passing the automated tests is not a security review. Test the system in your own environment before exposing it.
 
 ## What is protected and how
 
@@ -22,8 +22,12 @@ This document describes the security model of PQRS Flow 0.7.2, what to do before
 | Staff reports and CSV export     | Both require an authenticated `pqrs:read` session and use bound filters. Reports return aggregate fields only; CSV uses a fixed five-column allowlist, excludes requester contact details and unrelated tables, is limited to 5,000 rows, and inherits `Cache-Control: no-store`. |
 | Spreadsheet formula injection    | CSV cells are quoted and escaped. Untrusted subject text beginning with formula characters, even after leading whitespace or controls, is prefixed with an apostrophe; this is defense in depth, not a guarantee across every spreadsheet import workflow.                        |
 | Attachment storage               | Uploaded files are kept in a dedicated storage directory outside the web root, named with server-generated ids and isolated by request; downloads are gated by explicit request authorization.                                                                                    |
-| Leaking data to the public       | Public lookup still requires case number and email and exposes no staff-only deadline data; the staff API is never opened by CORS.                                                                                                                                                |
-| Sensitive data in logs           | Passwords and tokens are never logged. The access log drops the query string of `/api/admin`, where searches may hold names and emails.                                                                                                                                           |
+| Public attachment privacy        | Public listing, upload and download verify the original requester email. Public listings include only public files and omit uploader/visibility metadata; uploads are rate limited.                                                                                               |
+| Email operations                 | SMTP configuration is validated; connections have timeouts, retries are bounded, transient and permanent failures are classified, and only administrators can read aggregate outbox metrics. The endpoint omits recipients, content and raw errors.                               |
+| Leaking data to the public       | Public lookup still requires case number and email and exposes no staff-only deadline data; public attachment operations verify requester email; the staff API is never opened by CORS.                                                                                           |
+| Sensitive data in logs           | Passwords and tokens are never logged. The access log drops query strings on all routes, not only `/api/admin`, because URL parameters can contain personal identifiers.                                                                                                          |
+
+Email is opt-in. Pending notifications remain queued while disabled. Delivery is not exactly once: SMTP may accept a message immediately before a process crash, after which stale-claim recovery may deliver it again. See the [English](./operations/email-delivery.md) and [Spanish](./operations/email-delivery.es.md) email operations guides for configuration, verification and deployment limitations.
 
 ## Multi-factor authentication and recovery
 

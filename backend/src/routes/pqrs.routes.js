@@ -29,6 +29,7 @@ export function createPqrsRoutes({ getRepository, lookupLimiters = [], submitLim
   router.get('/:caseNumber/attachments', attachments.list);
   router.post(
     '/:caseNumber/attachments',
+    ...submitLimiters,
     attachmentUpload.array('files', env.attachments.maxFilesPerRequest),
     attachments.upload,
   );

@@ -8,7 +8,7 @@
 
 Un sistema web para radicar, consultar y gestionar **PQRS** — _Peticiones, Quejas, Reclamos y Sugerencias_. Está construido de principio a fin con JavaScript, priorizando la simplicidad, la ausencia de un paso de compilación en el frontend y límites de arquitectura claros.
 
-**Versión actual del código: v0.9.0 (implementación local).** La versión 0.9.0 incorpora una línea de actividad pública que protege la privacidad y muestra las respuestas oficiales únicamente después de su publicación. Expone cambios de estado auditados y eventos de publicación sin revelar notas internas, borradores, identidades del personal ni asignaciones. La versión 0.8.0 incorpora respaldos coordinados de SQLite y adjuntos, validación por checksum y procedimientos de restauración. Consulta [CHANGELOG.md](./CHANGELOG.md), [ROADMAP.md](./ROADMAP.md) y la [guía de respaldo y restauración](./docs/operations/backup-restore.es.md).
+**Versión actual del código: v0.10.0 (implementación local; no publicada).** La versión 0.10.0 refuerza la entrega transaccional de correo con reintentos acotados, recuperación de reservas y métricas operativas protegidas, y exige verificar al solicitante en las operaciones públicas de adjuntos. La versión 0.9.0 incorpora una línea de actividad pública que protege la privacidad y muestra las respuestas oficiales únicamente después de su publicación. La versión 0.8.0 incorpora respaldos coordinados de SQLite y adjuntos, validación por checksum y procedimientos de restauración. Consulta [CHANGELOG.md](./CHANGELOG.md), [ROADMAP.md](./ROADMAP.md), la [guía de operación del correo](./docs/operations/email-delivery.es.md) y la [guía de respaldo y restauración](./docs/operations/backup-restore.es.md).
 
 > Este archivo es la versión en español de [README.md](./README.md). Si algo difiere, el README en inglés y el código son la referencia. Los cambios de la implementación v0.6.0 y el historial de versiones están en [CHANGELOG.md](./CHANGELOG.md).
 
@@ -26,30 +26,32 @@ Muchas organizaciones todavía gestionan sugerencias, quejas y solicitudes con c
 
 ### Estado del proyecto
 
-| Funcionalidad                                                                              | Versión | Estado                  |
-| ------------------------------------------------------------------------------------------ | ------- | ----------------------- |
-| Servidor Express, endpoint de salud, sitio estático                                        | 0.0.1   | Hecho                   |
-| Formulario de radicación con validación en el cliente                                      | 0.0.2   | Hecho                   |
-| Base de datos, migraciones y repositorio                                                   | 0.0.3   | Hecho                   |
-| `POST /api/pqrs`, formulario conectado a la API, número de caso                            | 0.1.0   | Hecho                   |
-| Consulta de estado con número de caso y correo                                             | 0.1.1   | Hecho                   |
-| Límite de radicaciones, compresión, configuración de proxy                                 | 0.1.2   | Hecho                   |
-| Cabeceras de caché para archivos estáticos, CORS desde el entorno                          | 0.1.3   | Hecho                   |
-| Panel del personal: login, tablero, búsqueda, cambios de estado                            | 0.2.0   | Hecho                   |
-| Historial de auditoría de cada cambio de estado                                            | 0.2.0   | Hecho                   |
-| Apagado limpio, README en español, pruebas de regresión de aislamiento                     | 0.3.0   | Hecho                   |
-| Roles, cuentas y seguridad del personal                                                    | 0.3.1   | Hecho                   |
-| Respuestas, notas internas, asignación y auditoría de solicitudes                          | 0.3.2   | Implementado localmente |
-| Reglas configurables de plazos hábiles y calendario de festivos                            | 0.3.3   | Implementado localmente |
-| Adjuntos seguros y refinamiento de la aplicación                                           | 0.3.4   | Implementado localmente |
-| Notificaciones transaccionales por correo                                                  | 0.3.5   | Implementado localmente |
-| Reportes y analítica operativa                                                             | 0.4.0   | Implementado localmente |
-| Exportación CSV filtrada del personal con mitigación de fórmulas                           | 0.4.1   | Implementado localmente |
-| Reportes de cobertura, pruebas de navegador real y accesibilidad                           | 0.5.0   | Implementado localmente |
-| MFA TOTP, códigos de recuperación de un uso y visor administrativo de eventos de seguridad | 0.6.0   | Hecho                   |
-| Imagen Docker endurecida, volúmenes persistentes y salud del contenedor                    | 0.7.0   | Publicado               |
-| Consistencia de metadatos y documentación de versión                                       | 0.7.1   | Publicado               |
-| Respaldos coordinados de SQLite y adjuntos, verificación y restauración                    | 0.8.0   | Implementado localmente |
+| Funcionalidad                                                                               | Versión | Estado                  |
+| ------------------------------------------------------------------------------------------- | ------- | ----------------------- |
+| Servidor Express, endpoint de salud, sitio estático                                         | 0.0.1   | Hecho                   |
+| Formulario de radicación con validación en el cliente                                       | 0.0.2   | Hecho                   |
+| Base de datos, migraciones y repositorio                                                    | 0.0.3   | Hecho                   |
+| `POST /api/pqrs`, formulario conectado a la API, número de caso                             | 0.1.0   | Hecho                   |
+| Consulta de estado con número de caso y correo                                              | 0.1.1   | Hecho                   |
+| Límite de radicaciones, compresión, configuración de proxy                                  | 0.1.2   | Hecho                   |
+| Cabeceras de caché para archivos estáticos, CORS desde el entorno                           | 0.1.3   | Hecho                   |
+| Panel del personal: login, tablero, búsqueda, cambios de estado                             | 0.2.0   | Hecho                   |
+| Historial de auditoría de cada cambio de estado                                             | 0.2.0   | Hecho                   |
+| Apagado limpio, README en español, pruebas de regresión de aislamiento                      | 0.3.0   | Hecho                   |
+| Roles, cuentas y seguridad del personal                                                     | 0.3.1   | Hecho                   |
+| Respuestas, notas internas, asignación y auditoría de solicitudes                           | 0.3.2   | Implementado localmente |
+| Reglas configurables de plazos hábiles y calendario de festivos                             | 0.3.3   | Implementado localmente |
+| Adjuntos seguros y refinamiento de la aplicación                                            | 0.3.4   | Implementado localmente |
+| Notificaciones transaccionales por correo                                                   | 0.3.5   | Implementado localmente |
+| Reportes y analítica operativa                                                              | 0.4.0   | Implementado localmente |
+| Exportación CSV filtrada del personal con mitigación de fórmulas                            | 0.4.1   | Implementado localmente |
+| Reportes de cobertura, pruebas de navegador real y accesibilidad                            | 0.5.0   | Implementado localmente |
+| MFA TOTP, códigos de recuperación de un uso y visor administrativo de eventos de seguridad  | 0.6.0   | Hecho                   |
+| Imagen Docker endurecida, volúmenes persistentes y salud del contenedor                     | 0.7.0   | Publicado               |
+| Consistencia de metadatos y documentación de versión                                        | 0.7.1   | Publicado               |
+| Respaldos coordinados de SQLite y adjuntos, verificación y restauración                     | 0.8.0   | Implementado localmente |
+| Línea de actividad pública y visibilidad de respuestas oficiales publicadas                 | 0.9.0   | Implementado localmente |
+| Bandeja de correo confiable, métricas operativas protegidas y adjuntos públicos verificados | 0.10.0  | Implementado localmente |
 
 ## ✨ Qué hace hoy
 
@@ -81,7 +83,8 @@ Muchas organizaciones todavía gestionan sugerencias, quejas y solicitudes con c
 - **Seguridad** (`/admin/security.html`): cada persona puede cambiar su contraseña, consultar sus sesiones activas y revocar una o todas las demás sesiones. El cambio de contraseña conserva la sesión actual y revoca las demás.
 - **Auditoría de solo adición de cuentas**: los cambios de cuenta, rol, contraseña y sesiones se registran en transacciones, con el identificador de petición. Nunca se guardan contraseñas, tokens ni hashes en la auditoría.
 - **Herramienta de cuentas** (`npm run admin`): permite crear la primera cuenta o recuperarla desde la terminal del servidor. No hay cuentas por defecto.
-- **Notificaciones por correo**: las constancias de radicación y los avisos de respuestas publicadas se encolan en SQLite dentro de transacciones, el servidor las envía mediante la bandeja de salida cuando SMTP está habilitado y reintenta los envíos fallidos hasta cinco veces. Si SMTP acepta un mensaje justo antes de un cierre inesperado, la recuperación al reiniciar podría volver a enviarlo. El correo no determina si se guarda la solicitud o la respuesta.
+- **Notificaciones por correo**: las constancias de radicación y los avisos de respuestas publicadas se encolan en SQLite dentro de transacciones y el servidor las envía cuando SMTP está habilitado. Los fallos transitorios usan reintentos exponenciales acotados; los permanentes detienen los reintentos. Un endpoint exclusivo para administradores muestra cantidades y fechas sin revelar destinatarios ni contenido. Si SMTP acepta un mensaje justo antes de un cierre inesperado, la recuperación podría volver a enviarlo; no se garantiza una entrega exactamente una vez. El correo no determina si se guarda la solicitud o la respuesta. Consulta la [guía de operación del correo](./docs/operations/email-delivery.es.md).
+- **Privacidad de adjuntos públicos**: las operaciones públicas de consulta, carga y descarga verifican el correo original del solicitante; los listados públicos excluyen adjuntos internos y metadatos exclusivos del personal.
 - **Reportes**: `GET /api/admin/reports` usa agregaciones de SQLite y, para los plazos, las instantáneas guardadas y el historial de estados. La referencia de API explica denominadores y limitaciones históricas.
 - Apagado limpio: `Ctrl+C` o `SIGTERM` dejan de aceptar conexiones, permiten terminar las peticiones en curso (hasta 10 segundos) y cierran la base de datos SQLite.
 - Datos de demostración y comandos para reiniciar la base de datos en desarrollo local.

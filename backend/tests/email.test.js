@@ -113,7 +113,7 @@ test('worker startup recovers a delivery interrupted by a previous process', asy
   const request = addRequest(db);
   const notifications = createEmailNotificationRepository(db);
   const row = notifications.findDue()[0];
-  assert.equal(notifications.markProcessing(row.id), true);
+  assert.equal(notifications.markProcessing(row.id, new Date(Date.now() - 120_000)), true);
 
   let markStarted;
   const started = new Promise((resolve) => {
@@ -152,7 +152,7 @@ test('worker startup warns when an interrupted delivery has exhausted its retrie
     UPDATE email_notifications
     SET status = 'processing', attempt_count = 5, last_attempt_at = ?, next_attempt_at = NULL
   `,
-  ).run(new Date().toISOString());
+  ).run(new Date(Date.now() - 120_000).toISOString());
   const warnings = [];
   const processor = createEmailProcessor({
     db,
@@ -175,4 +175,134 @@ test('worker startup warns when an interrupted delivery has exhausted its retrie
   assert.match(notification.lastError, /maximum number of attempts/);
   assert.equal(warnings.length, 1);
   assert.equal(warnings[0][1].count, 1);
+});
+
+test('active claims are not recovered by another worker and cannot be processed twice', async () => {
+  const db = setup();
+  addRequest(db);
+  let markStarted;
+  const started = new Promise((resolve) => {
+    markStarted = resolve;
+  });
+  let finishDelivery;
+  let sendCount = 0;
+  const transport = {
+    isEnabled: () => true,
+    send() {
+      sendCount += 1;
+      markStarted();
+      return new Promise((resolve) => {
+        finishDelivery = resolve;
+      });
+    },
+  };
+  const first = createEmailProcessor({ db, enabled: true, transport }).start(60_000);
+  await started;
+  const second = createEmailProcessor({ db, enabled: true, transport }).start(60_000);
+
+  assert.deepEqual(await second.processOnce(), { sent: 0, processed: 0 });
+  assert.equal(sendCount, 1);
+  finishDelivery({ accepted: true, rejected: [] });
+  await Promise.all([first.stop(), second.stop()]);
+  assert.equal(sendCount, 1);
+});
+
+test('temporary delivery failures use bounded exponential retries without storing raw errors', async () => {
+  const db = setup();
+  addRequest(db);
+  const now = new Date('2026-11-02T12:00:00.000Z');
+  const config = {
+    enabled: true,
+    batchSize: 20,
+    workerIntervalMs: 60_000,
+    maxAttempts: 3,
+    retryInitialDelayMs: 1_000,
+    retryMaxDelayMs: 2_500,
+    processingLeaseMs: 60_000,
+  };
+  const processor = createEmailProcessor({
+    db,
+    enabled: true,
+    config,
+    logger: { warn() {}, error() {} },
+    transport: {
+      isEnabled: () => true,
+      async send() {
+        const error = new Error('SMTP password must not appear in logs or database.');
+        error.responseCode = 451;
+        throw error;
+      },
+    },
+  });
+  const read = () =>
+    db
+      .prepare(
+        'SELECT status, attempt_count AS attempts, next_attempt_at AS nextAttemptAt, last_error AS lastError FROM email_notifications',
+      )
+      .get();
+
+  await processor.processOnce(undefined, now, () => new Date(now));
+  assert.equal(read().status, 'pending');
+  assert.equal(read().attempts, 1);
+  assert.equal(read().nextAttemptAt, '2026-11-02T12:00:01.000Z');
+  assert.doesNotMatch(read().lastError, /password|SMTP password/i);
+
+  const secondAttemptAt = new Date('2026-11-02T12:00:01.000Z');
+  await processor.processOnce(undefined, secondAttemptAt, () => new Date(secondAttemptAt));
+  assert.equal(read().attempts, 2);
+  assert.equal(read().nextAttemptAt, '2026-11-02T12:00:03.000Z');
+
+  const thirdAttemptAt = new Date('2026-11-02T12:00:03.000Z');
+  await processor.processOnce(undefined, thirdAttemptAt, () => new Date(thirdAttemptAt));
+  assert.equal(read().status, 'failed');
+  assert.equal(read().attempts, 3);
+  assert.equal(read().nextAttemptAt, null);
+});
+
+test('permanent SMTP rejection fails immediately without retrying', async () => {
+  const db = setup();
+  addRequest(db);
+  const processor = createEmailProcessor({
+    db,
+    enabled: true,
+    transport: {
+      isEnabled: () => true,
+      async send() {
+        const error = new Error('Recipient-specific server message.');
+        error.responseCode = 550;
+        throw error;
+      },
+    },
+  });
+
+  await processor.processOnce();
+  const notification = db
+    .prepare(
+      'SELECT status, attempt_count AS attempts, last_error AS lastError FROM email_notifications',
+    )
+    .get();
+  assert.equal(notification.status, 'failed');
+  assert.equal(notification.attempts, 1);
+  assert.match(notification.lastError, /SMTP_550/);
+  assert.doesNotMatch(notification.lastError, /Recipient-specific/);
+});
+
+test('outbox operational summary exposes counts and timestamps, not content or recipients', () => {
+  const db = setup();
+  addRequest(db);
+  const now = new Date('2026-11-02T12:00:00.000Z');
+  const summary = createEmailNotificationRepository(db).getOperationalSummary(now);
+
+  assert.deepEqual(summary, {
+    pendingCount: 1,
+    processingCount: 0,
+    deliveredCount: 0,
+    failedCount: 0,
+    oldestPendingAt: '2026-11-02T12:00:00.000Z',
+    oldestPendingAgeMs: 0,
+    lastSuccessfulDeliveryAt: null,
+    lastFailureAt: null,
+  });
+  assert.equal(JSON.stringify(summary).includes('ana@example.com'), false);
+  assert.equal(JSON.stringify(summary).includes('Private request'), false);
 });

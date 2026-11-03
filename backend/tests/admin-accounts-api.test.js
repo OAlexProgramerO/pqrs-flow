@@ -25,7 +25,9 @@ async function createStaff(app, email = 'staff-two@example.com') {
 
 test('the permission map grants only explicit role capabilities', () => {
   assert.equal(hasPermission('administrator', PERMISSIONS.STAFF_MANAGE), true);
+  assert.equal(hasPermission('administrator', PERMISSIONS.EMAIL_OPERATIONS_READ), true);
   assert.equal(hasPermission('staff', PERMISSIONS.STAFF_MANAGE), false);
+  assert.equal(hasPermission('staff', PERMISSIONS.EMAIL_OPERATIONS_READ), false);
   assert.equal(hasPermission('staff', PERMISSIONS.PQRS_READ), true);
   assert.equal(hasPermission('unknown', PERMISSIONS.PQRS_READ), false);
   assert.equal(hasPermission('administrator', 'unlisted:permission'), false);

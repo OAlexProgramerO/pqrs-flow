@@ -23,14 +23,32 @@ export function createAttachmentController({
         const pqrs = getPqrsRepository().findByCaseNumber(req.params.caseNumber);
         if (!pqrs) throw new HttpError(404, 'Request not found.');
 
-        const attachments = listAttachmentRecords(getRepository(), pqrs.id).map((attachment) => ({
+        const repository = getRepository();
+        const publicRequest = !req.admin
+          ? getPqrsRepository().findForLookup(
+              req.params.caseNumber,
+              req.get('x-requester-email') ?? '',
+            )
+          : null;
+        if (!req.admin && !publicRequest) {
+          throw new HttpError(404, 'Request not found.');
+        }
+
+        const records = req.admin
+          ? listAttachmentRecords(repository, pqrs.id)
+          : repository.listPublicByPqrsId(pqrs.id);
+        const attachments = records.map((attachment) => ({
           id: attachment.id,
           name: attachment.originalName,
           sizeBytes: attachment.sizeBytes,
           mimeType: attachment.mimeType,
-          visibility: attachment.visibility,
-          uploadedBy: attachment.uploadedBy,
           uploadedAt: attachment.uploadedAt,
+          ...(req.admin
+            ? {
+                visibility: attachment.visibility,
+                uploadedBy: attachment.uploadedBy,
+              }
+            : {}),
         }));
 
         res.status(200).json({ data: attachments });
@@ -47,6 +65,12 @@ export function createAttachmentController({
 
         const pqrs = getPqrsRepository().findByCaseNumber(req.params.caseNumber);
         if (!pqrs) throw new HttpError(404, 'Request not found.');
+        if (
+          !req.admin &&
+          !getPqrsRepository().findForLookup(req.params.caseNumber, req.body?.requesterEmail ?? '')
+        ) {
+          throw new HttpError(404, 'Request not found.');
+        }
 
         const uploaded = req.files.map((file) => {
           const validated = validateAttachmentFile(file);
@@ -92,13 +116,13 @@ export function createAttachmentController({
         } else {
           const lookup = getPqrsRepository().findForLookup(
             req.params.caseNumber,
-            req.query.requesterEmail ?? '',
+            req.get('x-requester-email') ?? '',
           );
           if (!lookup || lookup.caseNumber !== req.params.caseNumber) {
-            throw new HttpError(403, 'You are not allowed to access this attachment.');
+            throw new HttpError(404, 'Attachment not found.');
           }
           if (record.visibility !== 'public') {
-            throw new HttpError(403, 'You are not allowed to access this attachment.');
+            throw new HttpError(404, 'Attachment not found.');
           }
         }
 

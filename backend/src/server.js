@@ -19,7 +19,10 @@ if (env.nodeEnv === 'production' && !env.session.cookieSecure) {
   );
 }
 
-const emailWorker = env.email.enabled ? createEmailProcessor({ db: getDb() }).start() : null;
+const emailConfig = env.email;
+const emailWorker = emailConfig.enabled
+  ? createEmailProcessor({ db: getDb(), config: emailConfig }).start()
+  : null;
 
 const server = app.listen(env.port, () => {
   console.log(`PQRS Flow listening on http://localhost:${env.port}`);

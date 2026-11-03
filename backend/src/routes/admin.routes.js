@@ -9,6 +9,7 @@ import { createAdminReportsController } from '../controllers/admin-reports.contr
 import { createAdminCsvExportController } from '../controllers/admin-csv-export.controller.js';
 import { createAttachmentController } from '../controllers/attachments.controller.js';
 import { createDeadlinesController } from '../controllers/deadlines.controller.js';
+import { createAdminEmailOutboxController } from '../controllers/admin-email-outbox.controller.js';
 import { createAttachmentRepository } from '../repositories/attachments.repository.js';
 import { env } from '../config/env.js';
 import { PERMISSIONS } from '../services/permissions.js';
@@ -47,6 +48,10 @@ export function createAdminRoutes({
   const accounts = createAdminAccountController({ getAdmin, adminAuth });
   const mfa = createAdminMfaController({ getAdmin });
   const securityEvents = createAdminSecurityEventsController({ getAdmin });
+  const emailOutbox = createAdminEmailOutboxController({
+    getRepository: () => getAdmin().emailNotificationRepository,
+    getNow,
+  });
   const pqrs = createAdminPqrsController({
     getRepository: () => getAdmin().adminPqrsRepository,
     getNow,
@@ -85,6 +90,11 @@ export function createAdminRoutes({
   // Accounts flagged by an administrator may only change their password or log out.
   router.use(adminAuth.requirePasswordUpdate);
 
+  router.get(
+    '/email-outbox',
+    adminAuth.requirePermission(PERMISSIONS.EMAIL_OPERATIONS_READ),
+    emailOutbox.summary,
+  );
   router.delete('/sessions/others', ...managementLimiters, accounts.revokeOtherSessions);
 
   router.get('/mfa', mfa.status);
