@@ -26,32 +26,32 @@ Muchas organizaciones todavía gestionan sugerencias, quejas y solicitudes con c
 
 ### Estado del proyecto
 
-| Funcionalidad                                                                               | Versión | Estado                  |
-| ------------------------------------------------------------------------------------------- | ------- | ----------------------- |
-| Servidor Express, endpoint de salud, sitio estático                                         | 0.0.1   | Hecho                   |
-| Formulario de radicación con validación en el cliente                                       | 0.0.2   | Hecho                   |
-| Base de datos, migraciones y repositorio                                                    | 0.0.3   | Hecho                   |
-| `POST /api/pqrs`, formulario conectado a la API, número de caso                             | 0.1.0   | Hecho                   |
-| Consulta de estado con número de caso y correo                                              | 0.1.1   | Hecho                   |
-| Límite de radicaciones, compresión, configuración de proxy                                  | 0.1.2   | Hecho                   |
-| Cabeceras de caché para archivos estáticos, CORS desde el entorno                           | 0.1.3   | Hecho                   |
-| Panel del personal: login, tablero, búsqueda, cambios de estado                             | 0.2.0   | Hecho                   |
-| Historial de auditoría de cada cambio de estado                                             | 0.2.0   | Hecho                   |
-| Apagado limpio, README en español, pruebas de regresión de aislamiento                      | 0.3.0   | Hecho                   |
-| Roles, cuentas y seguridad del personal                                                     | 0.3.1   | Hecho                   |
-| Respuestas, notas internas, asignación y auditoría de solicitudes                           | 0.3.2   | Implementado localmente |
-| Reglas configurables de plazos hábiles y calendario de festivos                             | 0.3.3   | Implementado localmente |
-| Adjuntos seguros y refinamiento de la aplicación                                            | 0.3.4   | Implementado localmente |
-| Notificaciones transaccionales por correo                                                   | 0.3.5   | Implementado localmente |
-| Reportes y analítica operativa                                                              | 0.4.0   | Implementado localmente |
-| Exportación CSV filtrada del personal con mitigación de fórmulas                            | 0.4.1   | Implementado localmente |
-| Reportes de cobertura, pruebas de navegador real y accesibilidad                            | 0.5.0   | Implementado localmente |
-| MFA TOTP, códigos de recuperación de un uso y visor administrativo de eventos de seguridad  | 0.6.0   | Hecho                   |
-| Imagen Docker endurecida, volúmenes persistentes y salud del contenedor                     | 0.7.0   | Publicado               |
-| Consistencia de metadatos y documentación de versión                                        | 0.7.1   | Publicado               |
-| Respaldos coordinados de SQLite y adjuntos, verificación y restauración                     | 0.8.0   | Implementado localmente |
-| Línea de actividad pública y visibilidad de respuestas oficiales publicadas                 | 0.9.0   | Implementado localmente |
-| Versión final estable de la plataforma completa de PQRS | 1.0.0  | Implementación local final |
+| Funcionalidad                                                                              | Versión | Estado                     |
+| ------------------------------------------------------------------------------------------ | ------- | -------------------------- |
+| Servidor Express, endpoint de salud, sitio estático                                        | 0.0.1   | Hecho                      |
+| Formulario de radicación con validación en el cliente                                      | 0.0.2   | Hecho                      |
+| Base de datos, migraciones y repositorio                                                   | 0.0.3   | Hecho                      |
+| `POST /api/pqrs`, formulario conectado a la API, número de caso                            | 0.1.0   | Hecho                      |
+| Consulta de estado con número de caso y correo                                             | 0.1.1   | Hecho                      |
+| Límite de radicaciones, compresión, configuración de proxy                                 | 0.1.2   | Hecho                      |
+| Cabeceras de caché para archivos estáticos, CORS desde el entorno                          | 0.1.3   | Hecho                      |
+| Panel del personal: login, tablero, búsqueda, cambios de estado                            | 0.2.0   | Hecho                      |
+| Historial de auditoría de cada cambio de estado                                            | 0.2.0   | Hecho                      |
+| Apagado limpio, README en español, pruebas de regresión de aislamiento                     | 0.3.0   | Hecho                      |
+| Roles, cuentas y seguridad del personal                                                    | 0.3.1   | Hecho                      |
+| Respuestas, notas internas, asignación y auditoría de solicitudes                          | 0.3.2   | Implementado localmente    |
+| Reglas configurables de plazos hábiles y calendario de festivos                            | 0.3.3   | Implementado localmente    |
+| Adjuntos seguros y refinamiento de la aplicación                                           | 0.3.4   | Implementado localmente    |
+| Notificaciones transaccionales por correo                                                  | 0.3.5   | Implementado localmente    |
+| Reportes y analítica operativa                                                             | 0.4.0   | Implementado localmente    |
+| Exportación CSV filtrada del personal con mitigación de fórmulas                           | 0.4.1   | Implementado localmente    |
+| Reportes de cobertura, pruebas de navegador real y accesibilidad                           | 0.5.0   | Implementado localmente    |
+| MFA TOTP, códigos de recuperación de un uso y visor administrativo de eventos de seguridad | 0.6.0   | Hecho                      |
+| Imagen Docker endurecida, volúmenes persistentes y salud del contenedor                    | 0.7.0   | Publicado                  |
+| Consistencia de metadatos y documentación de versión                                       | 0.7.1   | Publicado                  |
+| Respaldos coordinados de SQLite y adjuntos, verificación y restauración                    | 0.8.0   | Implementado localmente    |
+| Línea de actividad pública y visibilidad de respuestas oficiales publicadas                | 0.9.0   | Implementado localmente    |
+| Versión final estable de la plataforma completa de PQRS                                    | 1.0.0   | Implementación local final |
 
 ## ✨ Qué hace hoy
 
