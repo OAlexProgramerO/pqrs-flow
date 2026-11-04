@@ -29,7 +29,7 @@ Checks that the server is running. Used by the frontend and by monitoring tools.
 {
   "status": "ok",
   "service": "pqrs-flow",
-  "version": "0.10.0",
+  "version": "1.0.0",
   "timestamp": "2026-10-04T12:00:00.000Z"
 }
 ```

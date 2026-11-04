@@ -1,6 +1,6 @@
 # Security
 
-This document describes the security model of PQRS Flow v0.10.0 (local implementation), what to do before putting it online, and what it does **not** cover. Passing the automated tests is not a security review. Test the system in your own environment before exposing it.
+This document describes the security model of PQRS Flow v1.0.0 (final local implementation), what to do before putting it online, and what it does **not** cover. Passing the automated tests is not a security review. Test the system in your own environment before exposing it.
 
 ## What is protected and how
 

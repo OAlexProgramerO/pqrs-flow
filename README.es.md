@@ -8,7 +8,7 @@
 
 Un sistema web para radicar, consultar y gestionar **PQRS** — _Peticiones, Quejas, Reclamos y Sugerencias_. Está construido de principio a fin con JavaScript, priorizando la simplicidad, la ausencia de un paso de compilación en el frontend y límites de arquitectura claros.
 
-**Versión actual del código: v0.10.0 (implementación local; no publicada).** La versión 0.10.0 refuerza la entrega transaccional de correo con reintentos acotados, recuperación de reservas y métricas operativas protegidas, y exige verificar al solicitante en las operaciones públicas de adjuntos. La versión 0.9.0 incorpora una línea de actividad pública que protege la privacidad y muestra las respuestas oficiales únicamente después de su publicación. La versión 0.8.0 incorpora respaldos coordinados de SQLite y adjuntos, validación por checksum y procedimientos de restauración. Consulta [CHANGELOG.md](./CHANGELOG.md), [ROADMAP.md](./ROADMAP.md), la [guía de operación del correo](./docs/operations/email-delivery.es.md) y la [guía de respaldo y restauración](./docs/operations/backup-restore.es.md).
+**Versión actual del código: v1.0.0 (implementación local final; no publicada como release de GitHub).** La versión 1.0.0 consolida el proyecto en una plataforma estable y completa de gestión de PQRS con entrega de correo reforzada, métricas operativas protegidas, flujos públicos de adjuntos verificados y un flujo completo entre atención pública y administrativa. La versión 0.9.0 incorpora una línea de actividad pública que protege la privacidad y muestra las respuestas oficiales únicamente después de su publicación. La versión 0.8.0 incorpora respaldos coordinados de SQLite y adjuntos, validación por checksum y procedimientos de restauración. Consulta [CHANGELOG.md](./CHANGELOG.md), [ROADMAP.md](./ROADMAP.md), la [guía de operación del correo](./docs/operations/email-delivery.es.md) y la [guía de respaldo y restauración](./docs/operations/backup-restore.es.md).
 
 > Este archivo es la versión en español de [README.md](./README.md). Si algo difiere, el README en inglés y el código son la referencia. Los cambios de la implementación v0.6.0 y el historial de versiones están en [CHANGELOG.md](./CHANGELOG.md).
 
@@ -51,7 +51,7 @@ Muchas organizaciones todavía gestionan sugerencias, quejas y solicitudes con c
 | Consistencia de metadatos y documentación de versión                                        | 0.7.1   | Publicado               |
 | Respaldos coordinados de SQLite y adjuntos, verificación y restauración                     | 0.8.0   | Implementado localmente |
 | Línea de actividad pública y visibilidad de respuestas oficiales publicadas                 | 0.9.0   | Implementado localmente |
-| Bandeja de correo confiable, métricas operativas protegidas y adjuntos públicos verificados | 0.10.0  | Implementado localmente |
+| Versión final estable de la plataforma completa de PQRS | 1.0.0  | Implementación local final |
 
 ## ✨ Qué hace hoy
 

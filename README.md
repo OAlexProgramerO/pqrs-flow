@@ -8,7 +8,7 @@
 
 A web system to submit, track and manage **PQRS** — _Peticiones, Quejas, Reclamos y Sugerencias_ (Petitions, Complaints, Claims and Suggestions). Built end to end with JavaScript, prioritizing simplicity, no frontend build step and clear architectural boundaries.
 
-**Current code version: v0.10.0 (local implementation; not released).** Version 0.10.0 hardens transactional email delivery with bounded retries, claim recovery and protected operational metrics, and requires requester verification for public attachment operations. Version 0.9.0 adds a privacy-safe public activity timeline and displays official responses only after publication. Version 0.8.0 provides coordinated SQLite and attachment backups with checksum validation and restore procedures. See [CHANGELOG.md](./CHANGELOG.md), [ROADMAP.md](./ROADMAP.md), the [email operations guide](./docs/operations/email-delivery.md), and [the backup and restore guide](./docs/operations/backup-restore.md).
+**Current code version: v1.0.0 (final local implementation; not published as a GitHub release).** Version 1.0.0 consolidates the project into a stable, end-to-end PQRS management product with hardened email delivery, protected operational metrics, verified public attachment flows, and a complete public/admin workflow. Version 0.9.0 adds a privacy-safe public activity timeline and displays official responses only after publication. Version 0.8.0 provides coordinated SQLite and attachment backups with checksum validation and restore procedures. See [CHANGELOG.md](./CHANGELOG.md), [ROADMAP.md](./ROADMAP.md), the [email operations guide](./docs/operations/email-delivery.md), and [the backup and restore guide](./docs/operations/backup-restore.md).
 
 ---
 
@@ -49,7 +49,7 @@ Many organizations still handle feedback, complaints and requests through scatte
 | Version metadata and release-documentation consistency                              | 0.7.1   | Released            |
 | Coordinated SQLite and attachment backups, checksum validation and restore          | 0.8.0   | Implemented locally |
 | Public activity timeline and published official response visibility                 | 0.9.0   | Implemented locally |
-| Reliable email outbox, protected operations metrics and verified public attachments | 0.10.0  | Implemented locally |
+| Final stable release of the complete PQRS platform | 1.0.0  | Final local implementation |
 
 ## Public tracking experience (v0.9.0)
 
@@ -300,7 +300,7 @@ To run one test file use `npm --prefix backend test -- tests/admin-audit.test.js
 
 ## 🗺️ Planned next versions
 
-The v0.10.0 milestone is implemented locally but is not a public release. The earlier version sketch has been superseded; current implementation status and future scope are tracked in [ROADMAP.md](./ROADMAP.md). No tag or release is created automatically.
+The v1.0.0 milestone is the final local implementation of the platform and the definition of the stable release in this repository. The current status and planned follow-up work remain tracked in [ROADMAP.md](./ROADMAP.md). No tag or public GitHub release is created automatically.
 
 ### Known limits of the current implementation
 

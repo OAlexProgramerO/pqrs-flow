@@ -2,6 +2,30 @@
 
 Based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [SemVer](https://semver.org).
 
+## [1.0.0] - Unreleased
+
+### Added
+
+- Final stable local release for the complete PQRS Flow platform, covering public submission, tracking, staff administration, workflow management, attachments, outbox email delivery, and reporting.
+- Release documentation aligned with the final product definition, including version metadata, roadmap status, API examples, and deployment guidance.
+
+### Changed
+
+- Bump the repository version to `1.0.0` across root and backend package metadata and the service health response.
+- Mark the project as a final local implementation rather than an unreleased prototype, while keeping GitHub publish actions out of scope.
+
+### Security and operational notes
+
+- This repository remains a local implementation; it is not automatically tagged, pushed, or published to GitHub.
+- Follow the documented local deployment and operational steps before exposing the app outside a trusted environment.
+
+### Validation
+
+- `npm run check` — passed locally.
+- `npm run test:e2e` — passed locally.
+- `npm run test:a11y` — passed locally.
+- Docker validation remains environment-dependent and should be re-run in the target deployment environment.
+
 ## [0.10.0] - Unreleased
 
 ### Added

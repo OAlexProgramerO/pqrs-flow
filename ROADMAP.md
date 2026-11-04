@@ -40,9 +40,9 @@ Path from **v0.0.1** to **v1.0.0**. Implementation status, Git tags and public p
 | 0.9.4   | `chore/v0.9.4-hardening`            | Security, performance, accessibility and end-to-end hardening                                        | Planned             |
 | 0.9.5   | `chore/release-candidate`           | Feature freeze, reproducible demo data, screenshots and final docs                                   | Planned             |
 | 0.10.0  | `feat/v0.10.0-email-operations`     | Reliable transactional email delivery, protected outbox metrics, verified public attachment access   | Implemented locally |
-| 1.0.0   | `chore/release-1.0`                 | First stable release with a public demo                                                              | Planned             |
+| 1.0.0   | `chore/release-1.0`                 | Final stable local release for the complete PQRS platform                                            | Implemented locally |
 
-The v0.10.0 reliability milestone is implemented locally while the listed 0.9.x roadmap items remain planned; it does not imply those items are complete or constitute a public release.
+The v1.0.0 release is the stable local implementation of the complete product in this repository. The earlier 0.9.x roadmap items remain planning notes, and the project is not automatically published to GitHub or tagged as a public release.
 
 The old 0.2.1 (`feat/staff-list`) and 0.2.2 (`feat/status-workflow`) were delivered together with the login in 0.2.0, so the panel is useful from its first release.
 
