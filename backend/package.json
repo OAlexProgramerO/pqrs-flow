@@ -21,15 +21,15 @@
     "node": ">=22"
   },
   "dependencies": {
-    "better-sqlite3": "^13.0.3",
+    "better-sqlite3": "^13.1.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.21.2",
     "helmet": "^8.0.0",
     "morgan": "^1.10.0",
     "multer": "^2.5.0",
-    "nodemailer": "^10.1.7",
-    "otplib": "^13.5.0",
+    "nodemailer": "^10.5.0",
+    "otplib": "^13.6.0",
     "zod": "^4.6.7"
   },
   "overrides": {
@@ -37,6 +37,6 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.10.2",
-    "@playwright/test": "^1.55.0"
+    "@playwright/test": "^1.65.0"
   }
 }
